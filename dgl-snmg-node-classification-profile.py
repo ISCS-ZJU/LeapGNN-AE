@@ -1,12 +1,3 @@
-# Loading Dataset
-# ---------------
-# 
-# OGB already prepared the data as a ``DGLGraph`` object. The following code is
-# copy-pasted from the :doc:`Training GNN with Neighbor Sampling for Node
-# Classification <../large/L1_large_node_classification>`
-# tutorial.
-# 
-
 import dgl
 import torch
 import numpy as np
@@ -15,54 +6,22 @@ import torch.nn.functional as F
 from ogb.nodeproppred import DglNodePropPredDataset
 import tqdm
 import sklearn.metrics
+import torch.multiprocessing as mp
 
-import time, contextlib
+import time, argparse
 from models import demo_model, graphsage
 from utils import timer
-
-# Available datasets are as follows:
-# ogbn-proteins
-# ogbn-products
-# ogbn-arxiv
-# ogbn-mag
-# ogbn-papers100M
-# dataset = DglNodePropPredDataset('ogbn-arxiv')
-dataset = DglNodePropPredDataset('ogbn-products')
-
-graph, node_labels = dataset[0]
-# Add reverse edges since ogbn-arxiv is unidirectional.
-graph = dgl.add_reverse_edges(graph)
-graph.ndata['label'] = node_labels[:, 0]
-
-node_features = graph.ndata['feat']
-num_features = node_features.shape[1]
-num_classes = (node_labels.max() + 1).item()
-
-idx_split = dataset.get_idx_split()
-train_nids = idx_split['train']
-valid_nids = idx_split['valid']
-test_nids = idx_split['test']    # Test node IDs, not used in the tutorial though.
 
 
 
 ######################################################################
 # Defining Training Procedure
 # ---------------------------
-# 
-# The training procedure will be slightly different from what you saw
-# previously, in the sense that you will need to
-#
-# * Initialize a distributed training context with ``torch.distributed``.
-# * Wrap your model with ``torch.nn.parallel.DistributedDataParallel``.
-# * Add a ``use_ddp=True`` argument to the DGL dataloader you wish to run
-#   together with DDP.
-# 
-# You will also need to wrap the training loop inside a function so that
-# you can spawn subprocesses to run it.
-# 
 
-def run(proc_id, devices):
-    total_epochs = 5
+def run(proc_id, devices, args):
+    if proc_id == 0:
+        print(args)
+    total_epochs = args.epoch
     # Initialize distributed training context.
     dev_id = devices[proc_id]
     dist_init_method = 'tcp://{master_ip}:{master_port}'.format(master_ip='127.0.0.1', master_port='12345')
@@ -79,7 +38,8 @@ def run(proc_id, devices):
     # Define training and validation dataloader, copied from the previous tutorial
     # but with one line of difference: use_ddp to enable distributed data parallel
     # data loading.
-    sampler = dgl.dataloading.NeighborSampler([10, 10, 10])
+    sampling_param = list(map(int, args.sampling.split('-')))
+    sampler = dgl.dataloading.NeighborSampler(sampling_param)
     train_dataloader = dgl.dataloading.DataLoader(
         # The following arguments are specific to NodeDataLoader.
         graph,              # The graph
@@ -88,25 +48,28 @@ def run(proc_id, devices):
         device=device,      # Put the sampled MFGs on CPU or GPU
         use_ddp=True,       # Make it work with distributed data parallel
         # The following arguments are inherited from PyTorch DataLoader.
-        batch_size=1024,    # Per-device batch size.
+        batch_size=args.batch_size,    # Per-device batch size.
                             # The effective batch size is this number times the number of GPUs.
         shuffle=True,       # Whether to shuffle the nodes for every epoch
         drop_last=False,    # Whether to drop the last incomplete batch
-        num_workers=0       # Number of sampler processes
+        num_workers=args.num_worker       # Number of sampler processes
     )
     valid_dataloader = dgl.dataloading.DataLoader(
         graph, valid_nids, sampler,
         device=device,
         use_ddp=False,
-        batch_size=1024,
+        batch_size=args.batch_size,
         shuffle=False,
         drop_last=False,
-        num_workers=0,
+        num_workers=args.num_worker,
     )
 
     # create the models
     # model = demo_model.Model(num_features, 128, num_classes).to(device)
-    model = graphsage.SAGE(num_features, 256, num_classes).to(device)
+    if args.model_name == 'graphsage':
+        model = graphsage.SAGE(num_features, args.hidden_size, num_classes).to(device)
+    elif args.model_name == 'demo':
+        model = demo_model.Model(num_features, args.hidden_size, num_classes).to(device)
 
     # Wrap the model with distributed data parallel module.
     if device == torch.device('cpu'):
@@ -171,39 +134,38 @@ def run(proc_id, devices):
         print('Feats and labels transfer avg time per iteration:', sum(avg_time_transfer)/len(avg_time_transfer))
 
 
-######################################################################
-# Spawning Trainer Processes
-# --------------------------
-# 
-# A typical scenario for multi-GPU training with DDP is to replicate the
-# model once per GPU, and spawn one trainer process per GPU.
-#
-# Normally, DGL maintains only one sparse matrix representation (usually COO)
-# for each graph, and will create new formats when some APIs are called for
-# efficiency.  For instance, calling ``in_degrees`` will create a CSC
-# representation for the graph, and calling ``out_degrees`` will create a
-# CSR representation.  A consequence is that if a graph is shared to
-# trainer processes via copy-on-write *before* having its CSC/CSR
-# created, each trainer will create its own CSC/CSR replica once ``in_degrees``
-# or ``out_degrees`` is called.  To avoid this, you need to create
-# all sparse matrix representations beforehand using the ``create_formats_``
-# method:
-# 
-
-graph.create_formats_()
+def parse_args_func(argv):
+    parser = argparse.ArgumentParser(description='GNN Training')
+    parser.add_argument('-d', '--dataset', default="ogbn-products", type=str, choices=['ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
+    parser.add_argument('-ngpu', '--num-gpu', default=4, type=int, help='# of gpus to train gnn with DDP')
+    parser.add_argument('-s', '--sampling', default="10-10-10", type=str, help='neighborhood sampling method parameters')
+    parser.add_argument('-hd', '--hidden-size', default=256, type=int, help='hidden dimension size')
+    parser.add_argument('-bs', '--batch-size', default=1024, type=int, help='training batch size')
+    parser.add_argument('-mn', '--model-name', default='graphsage', type=str, choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
+    parser.add_argument('-ep', '--epoch', default=5, type=int, help='total trianing epoch')
+    parser.add_argument('-wkr', '--num-worker', default=0, type=int, help='sampling worker')
+    return parser.parse_args(argv)
 
 
-######################################################################
-# Then you can spawn the subprocesses to train with multiple GPUs.
-# 
-# 
-# .. code:: python
-#
-#    # Say you have four GPUs.
+args = parse_args_func(None)
+
+dataset = DglNodePropPredDataset(args.dataset)
+graph, node_labels = dataset[0]
+# Add reverse edges since ogbn-arxiv is unidirectional.
+graph = dgl.add_reverse_edges(graph)
+graph.ndata['label'] = node_labels[:, 0]
+graph.create_formats_() #  避免每个子进程重复做COO到CSC/CSR格式的转化
+
+node_features = graph.ndata['feat']
+num_features = node_features.shape[1]
+num_classes = (node_labels.max() + 1).item()
+
+idx_split = dataset.get_idx_split()
+train_nids = idx_split['train']
+valid_nids = idx_split['valid']
+test_nids = idx_split['test']    # Test node IDs, not used in the tutorial though.
+
+num_gpus = args.num_gpu
+
 if __name__ == '__main__':
-    num_gpus = 4
-    import torch.multiprocessing as mp
-    mp.spawn(run, args=(list(range(num_gpus)),), nprocs=num_gpus)
-
-# Thumbnail credits: Stanford CS224W Notes
-# sphinx_gallery_thumbnail_path = '_static/blitz_1_introduction.png'
+    mp.spawn(run, args=(list(range(num_gpus)), args), nprocs=num_gpus)
