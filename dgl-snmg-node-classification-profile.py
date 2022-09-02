@@ -39,7 +39,9 @@ def run(proc_id, devices, args):
     # but with one line of difference: use_ddp to enable distributed data parallel
     # data loading.
     sampling_param = list(map(int, args.sampling.split('-')))
-    sampler = dgl.dataloading.NeighborSampler(sampling_param)
+    sampler = dgl.dataloading.NeighborSampler(sampling_param,
+        
+        )
     train_dataloader = dgl.dataloading.DataLoader(
         # The following arguments are specific to NodeDataLoader.
         graph,              # The graph
@@ -84,13 +86,16 @@ def run(proc_id, devices, args):
     best_model_path = './model.pt'
     
     profile_begin = time.time()
-    avg_time_transfer = []
+    avg_time_transfer = [] # per iteration
+    avg_time_sampling = [] # per iteration
     with torch.autograd.profiler.profile(enabled=(proc_id==0), use_cuda=True) as prof:
         for epoch in range(total_epochs):
             model.train()
 
             with tqdm.tqdm(train_dataloader) as tq:
+                st = time.time()
                 for step, (input_nodes, output_nodes, mfgs) in enumerate(tq):
+                    avg_time_sampling.append(time.time() - st)
                     with torch.autograd.profiler.record_function('cpu-gpu-feat-label-load'):
                         with timer.Timer(device=f"cuda:{proc_id}") as t:
                             inputs = mfgs[0].srcdata['feat']
@@ -98,8 +103,9 @@ def run(proc_id, devices, args):
                     avg_time_transfer.append(t.elapsed_secs)
                     with torch.autograd.profiler.record_function('gpu-forward'):
                         predictions = model(mfgs, inputs)
-                    loss = F.cross_entropy(predictions, labels)
-                    opt.zero_grad()
+                    with torch.autograd.profiler.record_function('gpu-cal_loss'):
+                        loss = F.cross_entropy(predictions, labels)
+                        opt.zero_grad()
                     with torch.autograd.profiler.record_function('gpu-backward'):
                         loss.backward()
                     with torch.autograd.profiler.record_function('gpu-optimizer'):
@@ -108,6 +114,7 @@ def run(proc_id, devices, args):
                     accuracy = sklearn.metrics.accuracy_score(labels.cpu().numpy(), predictions.argmax(1).detach().cpu().numpy())
 
                     tq.set_postfix({'loss': '%.03f' % loss.item(), 'acc': '%.03f' % accuracy}, refresh=False)
+                    st = time.time()
 
             model.eval()
 
@@ -132,6 +139,7 @@ def run(proc_id, devices, args):
     if proc_id == 0:
         print(prof.key_averages().table(sort_by='cuda_time_total'))
         print('Feats and labels transfer avg time per iteration:', sum(avg_time_transfer)/len(avg_time_transfer))
+        print('Waiting sampples avg time per iteration:', sum(avg_time_sampling)/len(avg_time_sampling))
 
 
 def parse_args_func(argv):
@@ -142,7 +150,7 @@ def parse_args_func(argv):
     parser.add_argument('-hd', '--hidden-size', default=256, type=int, help='hidden dimension size')
     parser.add_argument('-bs', '--batch-size', default=1024, type=int, help='training batch size')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str, choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
-    parser.add_argument('-ep', '--epoch', default=5, type=int, help='total trianing epoch')
+    parser.add_argument('-ep', '--epoch', default=3, type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=0, type=int, help='sampling worker')
     return parser.parse_args(argv)
 

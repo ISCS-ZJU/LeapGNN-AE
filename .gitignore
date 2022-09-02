@@ -1,4 +1,4 @@
-dataset/
+dataset
 */__pycache__/*
 dgl/
 *.pt
