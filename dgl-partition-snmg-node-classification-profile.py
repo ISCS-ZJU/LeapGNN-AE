@@ -98,9 +98,11 @@ def run(proc_id, devices, args):
     # gpb.nid2localnid(gnid, partid)得到local node id;其中partid只能是当前proc分配到的partion的id，不能查询远程的partition
     # gpb.nid2partid(gnid)得到global node id -> partition id;
     # gpb.partid2nids(partid)得到partition id -> global node id；这里的global node id是连续的；
-    # local_feat是
+    # local_feat是包含了k-hop的结果
     local_graph, local_nfeat, local_efeat, gpb, graphname, gnid2onid, geid2oeid = parti_results
     
+    """
+    # understanding onid, gnid, local node id, local_nfeat, local_graph
     print(gnid2onid[0], gnid2onid[1], geid2oeid[0], geid2oeid[1], len(gnid2onid), len(geid2oeid))
     print('proc_id:', proc_id, gpb.nid2localnid(0, proc_id), gpb.nid2localnid(42693, proc_id), gpb.nid2partid(42690),gpb.nid2partid(42691), gpb.partid2nids(proc_id))
     
@@ -111,16 +113,15 @@ def run(proc_id, devices, args):
         # 下面展示从子图访问和原图访问相同的点以及node id
         print(graph.ndata['feat'][121586]) # 从原图访问某个点，改点对应part0的0号点
         print(gpb.partid2nids(0)[0], gnid2onid[gpb.partid2nids(0)[0]], local_nfeat['_N/feat'][0],) # 从子图的属性中访问同一个点，打印gnid, onid,和feat
+    """
 
 
     
     # 2. local gpu-cache
-    n_local_nfeats, nfeat_dim = list(local_nfeat.values())[0].size()
+    n_local_nfeats, nfeat_dim = local_nfeat['_N/feat'].size()
+    print(n_local_nfeats, nfeat_dim)
     local_cache_size = 2*1024*1024 // nfeat_dim // 4 # # of node feats to cache on each GPU
-    local_gpu_cacher = cache.GraphGPUCache(local_graph, proc_id, cache_size=local_cache_size)
-
-
-
+    local_gpu_cacher = cache.GraphGPUCache(gpb, gnid2onid.tolist(), local_nfeat, proc_id, cache_size=local_cache_size)
     
     profile_begin = time.time()
     avg_time_transfer = [] # per iteration
@@ -132,12 +133,16 @@ def run(proc_id, devices, args):
             with tqdm.tqdm(train_dataloader) as tq:
                 st = time.time()
                 for step, (input_nodes, output_nodes, mfgs) in enumerate(tq):
+                    # assert torch.equal(input_nodes, mfgs[0].srcdata[dgl.NID])
                     # if 121586 in input_nodes:
                     #     print('121586 in mfgs with feat:', mfgs[0].srcdata['feat'][input_nodes.tolist().index(121586)]) # 说明mfgs中的点id是onid
                     avg_time_sampling.append(time.time() - st)
                     with torch.autograd.profiler.record_function('cpu-gpu-feat-label-load'):
                         with timer.Timer(device=f"cuda:{proc_id}") as t:
                             inputs = mfgs[0].srcdata['feat']
+                            inputs2 = local_gpu_cacher.construct_input_feats(mfgs)
+                            print(torch.equal(inputs, inputs2))
+                            assert torch.equal(inputs, inputs2)
                             labels = mfgs[-1].dstdata['label']
 
                     avg_time_transfer.append(t.elapsed_secs)
