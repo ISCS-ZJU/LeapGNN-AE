@@ -15,6 +15,8 @@ from gpucache import cache
 from partition import metis
 
 
+# torch.set_printoptions(threshold=np.inf)
+
 
 ######################################################################
 # Defining Training Procedure
@@ -36,7 +38,7 @@ def run(proc_id, devices, args):
         torch.cuda.set_device(dev_id)
         device = torch.device('cuda:' + str(dev_id))
         torch.distributed.init_process_group(
-            backend='nccl', init_method=dist_init_method, world_size=len(devices), rank=proc_id)
+            backend='gloo', init_method=dist_init_method, world_size=len(devices), rank=proc_id)
     
     # Define training and validation dataloader, copied from the previous tutorial
     # but with one line of difference: use_ddp to enable distributed data parallel
@@ -101,11 +103,13 @@ def run(proc_id, devices, args):
     # local_feat是包含了k-hop的结果
     local_graph, local_nfeat, local_efeat, gpb, graphname, gnid2onid, geid2oeid = parti_results
     
+    
     """
     # understanding onid, gnid, local node id, local_nfeat, local_graph
     print(gnid2onid[0], gnid2onid[1], geid2oeid[0], geid2oeid[1], len(gnid2onid), len(geid2oeid))
     print('proc_id:', proc_id, gpb.nid2localnid(0, proc_id), gpb.nid2localnid(42693, proc_id), gpb.nid2partid(42690),gpb.nid2partid(42691), gpb.partid2nids(proc_id))
-    
+    print(gpb.metadata()) # [{'machine_id': 0, 'num_nodes': 42691, 'num_edges': 530820}, {'machine_id': 1, 'num_nodes': 41964, 'num_edges': 393048}, {'machine_id': 2, 'num_nodes': 41992, 'num_edges': 420392}, {'machine_id': 3, 'num_nodes': 42696, 'num_edges': 988226}]
+
     if proc_id==0:
         print(graph, local_graph) # Graph(num_nodes=169343, num_edges=2332486, ndata_schemes={'year': Scheme(shape=(1,), dtype=torch.int64), 'feat': Scheme(shape=(128,), dtype=torch.float32), 'label': Scheme(shape=(), dtype=torch.int64)} edata_schemes={}) 
         #Graph(num_nodes=153373, num_edges=2102947, ndata_schemes={'orig_id': Scheme(shape=(), dtype=torch.int64), 'part_id': Scheme(shape=(), dtype=torch.int64), 'inner_node': Scheme(shape=(), dtype=torch.int32), '_ID': Scheme(shape=(), dtype=torch.int64)} edata_schemes={'inner_edge': Scheme(shape=(), dtype=torch.int8), 'orig_id': Scheme(shape=(), dtype=torch.int64), '_ID': Scheme(shape=(), dtype=torch.int64)})
@@ -141,8 +145,11 @@ def run(proc_id, devices, args):
                         with timer.Timer(device=f"cuda:{proc_id}") as t:
                             inputs = mfgs[0].srcdata['feat']
                             inputs2 = local_gpu_cacher.construct_input_feats(mfgs)
-                            print(torch.equal(inputs, inputs2))
+                            inputs3 = local_gpu_cacher.construct_input_feats_include_remote(mfgs)
+                            # print('rank:', proc_id, torch.equal(inputs, inputs2), torch.equal(inputs, inputs3))
+                            # print('inputs:',proc_id, inputs)
                             assert torch.equal(inputs, inputs2)
+                            assert torch.equal(inputs, inputs3)
                             labels = mfgs[-1].dstdata['label']
 
                     avg_time_transfer.append(t.elapsed_secs)
@@ -160,6 +167,7 @@ def run(proc_id, devices, args):
 
                     tq.set_postfix({'loss': '%.03f' % loss.item(), 'acc': '%.03f' % accuracy}, refresh=False)
                     st = time.time()
+                    # sys.exit()
 
             model.eval()
 
@@ -190,7 +198,7 @@ def run(proc_id, devices, args):
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
     parser.add_argument('-d', '--dataset', default="ogbn-arxiv", type=str, choices=['ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
-    parser.add_argument('-ngpu', '--num-gpu', default=4, type=int, help='# of gpus to train gnn with DDP')
+    parser.add_argument('-ngpu', '--num-gpu', default=2, type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="10-10-10", type=str, help='neighborhood sampling method parameters')
     parser.add_argument('-hd', '--hidden-size', default=256, type=int, help='hidden dimension size')
     parser.add_argument('-bs', '--batch-size', default=1024, type=int, help='training batch size')
