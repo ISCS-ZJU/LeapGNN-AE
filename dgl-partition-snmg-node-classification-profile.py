@@ -124,7 +124,7 @@ def run(proc_id, devices, args):
     # 2. local gpu-cache
     n_local_nfeats, nfeat_dim = local_nfeat['_N/feat'].size()
     print(n_local_nfeats, nfeat_dim)
-    local_cache_size = 2*1024*1024 // nfeat_dim // 4 # # of node feats to cache on each GPU
+    local_cache_size = args.cache_size*1024*1024*1024 // nfeat_dim // 4 # # of node feats to cache on each GPU
     local_gpu_cacher = cache.GraphGPUCache(gpb, gnid2onid.tolist(), local_nfeat, proc_id, cache_size=local_cache_size)
     
     profile_begin = time.time()
@@ -143,18 +143,19 @@ def run(proc_id, devices, args):
                     avg_time_sampling.append(time.time() - st)
                     with torch.autograd.profiler.record_function('cpu-gpu-feat-label-load'):
                         with timer.Timer(device=f"cuda:{proc_id}") as t:
-                            inputs = mfgs[0].srcdata['feat']
+                            # inputs = mfgs[0].srcdata['feat']
                             inputs2 = local_gpu_cacher.construct_input_feats(mfgs)
-                            inputs3 = local_gpu_cacher.construct_input_feats_include_remote(mfgs)
+                            # inputs3 = local_gpu_cacher.construct_input_feats_include_remote(mfgs)
                             # print('rank:', proc_id, torch.equal(inputs, inputs2), torch.equal(inputs, inputs3))
                             # print('inputs:',proc_id, inputs)
-                            assert torch.equal(inputs, inputs2)
-                            assert torch.equal(inputs, inputs3)
+                            # print('inputs:',proc_id, inputs3)
+                            # assert torch.equal(inputs, inputs2)
+                            # assert torch.equal(inputs, inputs3)
                             labels = mfgs[-1].dstdata['label']
 
                     avg_time_transfer.append(t.elapsed_secs)
                     with torch.autograd.profiler.record_function('gpu-forward'):
-                        predictions = model(mfgs, inputs)
+                        predictions = model(mfgs, inputs2)
                     with torch.autograd.profiler.record_function('gpu-cal_loss'):
                         loss = F.cross_entropy(predictions, labels)
                         opt.zero_grad()
@@ -205,6 +206,7 @@ def parse_args_func(argv):
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str, choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3, type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=0, type=int, help='sampling worker')
+    parser.add_argument('-cs', '--cache-size', default=0, type=int, help='cache size in each gpu (GB)')
     return parser.parse_args(argv)
 
 

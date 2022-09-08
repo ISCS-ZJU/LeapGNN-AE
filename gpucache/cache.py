@@ -65,6 +65,7 @@ class GraphGPUCache(object):
         # print(f'{self.rank} after add cached:', ret)
 
         for ret_idx, node_id in zip(missed_keys_mask.nonzero(), keys[missed_keys_mask]):
+            print('*')
             ret[ret_idx.item()] = self.fetch_feat_from_cpu(mfgs, node_id, key_lst)
         # print(f'{self.rank} after add missed:', ret)
         return ret
