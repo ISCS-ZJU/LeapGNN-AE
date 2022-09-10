@@ -3,7 +3,7 @@ import argparse
 import torch
 import numpy as np
 
-import PaGraph.PaGraph.data as data
+import data
 import os
 
 
