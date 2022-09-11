@@ -55,20 +55,20 @@ def run(rank, devices_lst, args):
     # get part-graph;注意，下面注释的lnid是针对part-graph，而不是sample出来的sub-graph
     partgraph_adj, lnid2onid = data.get_sub_train_graph(args.dataset, rank, world_size) # local graph topo, lnid->onid(这里的onid似乎要求就是从0开始编号的，否则最开始数据集的mask就无法适应了)
     Print("adj, lnid2onid of part-graph", partgraph_adj, lnid2onid)
-    train_lnid = data.get_sub_train_nid(args.dataset, rank, world_size) # 在subgraph中，train点的id并不是连续的
+    train_lnid = data.get_sub_train_nid(args.dataset, rank, world_size) # 在partgraph中
     Print("train_lnid of part-graph", train_lnid)
     train_labels = data.get_sub_train_labels(args.dataset, rank, world_size)
     Print("train_labels of part-graph", train_labels)
-    subgrap_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int) # 根据train_lnid -> train_label
-    subgrap_labels[train_lnid] = train_labels
+    partgrap_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int) # 根据train_lnid -> train_label
+    partgrap_labels[train_lnid] = train_labels
     # construct this partition graph for sampling 
     part_g = DGLGraph(partgraph_adj, readonly=True)
 
     # to tensor
     lnid2onid = torch.LongTensor(lnid2onid)
-    subgrap_labels = torch.LongTensor(subgrap_labels)
+    partgrap_labels = torch.LongTensor(partgrap_labels)
 
-    # 建立当前GPU的cache-第一个参数是cpu-full-graph, 第二个点的数量是partgraph
+    # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个点的数量是partgraph（因为是当前GPU的feat缓存对象，要用bool array表示，使用full-graph太浪费空间）
     cacher = storage.GraphCacheServer(cpu_g, partgraph_adj.shape[0], lnid2onid, rank) 
     cacher.init_field(['features'])
 
@@ -81,13 +81,28 @@ def run(rank, devices_lst, args):
     ctx = torch.device(rank)
 
     # sampling on sub-graph
-    sampler = dgl.contrib.sampling.NeighborSampler(part_g, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling), neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True)
+    sampler = dgl.contrib.sampling.NeighborSampler(part_g, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
     # start training
     for epoch in range(args.epoch):
         model.train()
+        iter = 0
         for nf in sampler:
-            cacher.fetch_data(nf)
+            Print('iter:', iter)
+            cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+            batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
+            Print('batch_lnid:', batch_nid)
+            labels = partgrap_labels[batch_nid].cuda(rank, non_blocking=True)
+            pred = model(nf)
+            loss = loss_fn(pred, labels)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            iter += 1
+            if epoch==0 and iter==1:
+                cacher.auto_cache(part_g, ['features']) # 这时候做的好处是根据历史第一轮的gpu memory利用情况，自适应判断可以缓存多少的feat
+
+
 
 
 def parse_args_func(argv):

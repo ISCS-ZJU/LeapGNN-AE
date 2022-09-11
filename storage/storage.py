@@ -34,7 +34,7 @@ class GraphCacheServer:
     self.graph = graph # CPU full graph topo
     self.gpuid = gpuid
     self.node_num = node_num # part_graph total node number
-    self.nid_map = nid_map.clone().detach().cuda(self.gpuid) # lnid2onid
+    self.nid_map = nid_map.clone().detach().cuda(self.gpuid) # part-graph lnid2onid
     self.nid_map.requires_grad_(False)
     
     # masks for manage the feature locations: default in CPU (在开始cache前所有点都在cpu，所有都是False)
@@ -50,7 +50,7 @@ class GraphCacheServer:
     self.total_dim = 0
     self.gpu_fix_cache = dict() # {'field name': tensor data for cached nodes in gpu} # 真正缓存的地方
     with torch.cuda.device(self.gpuid):
-      self.localid2cacheid = torch.cuda.LongTensor(node_num).fill_(0) # 表示lnid -> cache id （不直接让cacheid=lnid是好处是...）
+      self.localid2cacheid = torch.cuda.LongTensor(node_num).fill_(0) # 表示part-graph lnid -> cache id （好处是根据part-graph lnid可以很快获取cache row id）
       self.localid2cacheid.requires_grad_(False)
     
     # logs
@@ -86,23 +86,23 @@ class GraphCacheServer:
     # Stpe2: get capability
     self.capability = int(available / (self.total_dim * 4)) # assume float32 = 4 bytes
     #self.capability = int(6 * 1024 * 1024 * 1024 / (self.total_dim * 4))
-    #self.capability = int(self.node_num * 0.8)
+    self.capability = int(self.node_num * 0.2)
     print('Cache Memory: {:.2f}G. Capability: {}'
           .format(available / 1024 / 1024 / 1024, self.capability))
     # Step3: cache
     if self.capability >= self.node_num:
       # fully cache
       print('cache the full graph...')
-      full_nids = torch.arange(self.node_num).cuda(self.gpuid)
+      full_nids = torch.arange(self.node_num).cuda(self.gpuid) # part-graph 中的lnid是0开始的
       data_frame = self.get_feat_from_server(full_nids, embed_names)
-      self.cache_fix_data(full_nids, data_frame, is_full=True)
+      self.cache_fix_data(full_nids, data_frame, is_full=True) # 最终缓存里的node id是full-graph的onid
     else:
       # choose top-cap out-degree nodes to cache
       print('cache the part of graph... caching percentage: {:.4f}'
             .format(self.capability / self.node_num))
-      out_degrees = dgl_g.out_degrees()
+      out_degrees = dgl_g.out_degrees() # 对当前part-graph的node degree 排序
       sort_nid = torch.argsort(out_degrees, descending=True)
-      cache_nid = sort_nid[:self.capability]
+      cache_nid = sort_nid[:self.capability] # part-graph level lnid
       data_frame = self.get_feat_from_server(cache_nid, embed_names)
       self.cache_fix_data(cache_nid, data_frame, is_full=False)
 
@@ -117,7 +117,7 @@ class GraphCacheServer:
     Return:
       feature tensors of these nids (in CPU)
     """
-    nids_in_full = self.nid_map[nids]
+    nids_in_full = self.nid_map[nids] # part-graph lnid -> full-graph onid
     #cpu_frame = self.graph._node_frame[dgl.utils.toindex(nids_in_full.cpu())]
     #data_frame = {}
     #for name in embed_names:
@@ -145,7 +145,7 @@ class GraphCacheServer:
       data: dict: {'field name': tensor data}
     """
     rows = nids.size(0)
-    self.localid2cacheid[nids] = torch.arange(rows).cuda(self.gpuid)
+    self.localid2cacheid[nids] = torch.arange(rows).cuda(self.gpuid) # part-graph lnid -> cache row id
     self.cached_num = rows
     for name in data:
       data_rows = data[name].size(0)
@@ -171,7 +171,7 @@ class GraphCacheServer:
       self.fetch_from_cache(nodeflow)
       return
     with torch.autograd.profiler.record_function('cache-idxload'):
-      nf_nids = nodeflow._node_mapping.tousertensor().cuda(self.gpuid) # 把整个part-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
+      nf_nids = nodeflow._node_mapping.tousertensor().cuda(self.gpuid) # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
       offsets = nodeflow._layer_offsets
       Print('fetch_data batch onid, layer_offset:', nf_nids, offsets)
     Print('nf.nlayers:', nodeflow.num_layers)
@@ -182,14 +182,14 @@ class GraphCacheServer:
       # get nids -- overhead ~0.1s
       with torch.autograd.profiler.record_function('cache-index'):
         gpu_mask = self.gpu_flag[tnid]
-        nids_in_gpu = tnid[gpu_mask] # lnid cached in gpu
+        nids_in_gpu = tnid[gpu_mask] # lnid cached in gpu (part-graph level)
         cpu_mask = ~gpu_mask
-        nids_in_cpu = tnid[cpu_mask] # lnid cached in cpu
+        nids_in_cpu = tnid[cpu_mask] # lnid cached in cpu (part-graph level)
       # create frame
       with torch.autograd.profiler.record_function('cache-allocate'):
         with torch.cuda.device(self.gpuid):
           frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name]) \
-                    for name in self.dims} # 分配存放返回batch特征的空间，size是(#onid, feature-dim)
+                    for name in self.dims} # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
       # for gpu cached tensors: ##NOTE: Make sure it is in-place update!
       with torch.autograd.profiler.record_function('cache-gpu feat read'):
         if nids_in_gpu.size(0) != 0:
@@ -202,8 +202,10 @@ class GraphCacheServer:
           cpu_data_frame = self.get_feat_from_server(
             nids_in_cpu, list(self.dims), to_gpu=True)
           for name in self.dims:
+            Print('frame[name].size():', frame[name].size(),'cpu_mask:', cpu_mask, 'cpu_data_frame.shape:', cpu_data_frame[name].size())
             frame[name][cpu_mask] = cpu_data_frame[name]
       with torch.autograd.profiler.record_function('cache-asign'):
+        Print('nodeflow._node_frames:',i,'frame:', frame['features'].size())
         nodeflow._node_frames[i] = FrameRef(Frame(frame))
       if self.log:
         self.log_miss_rate(nids_in_cpu.size(0), tnid.size(0))
