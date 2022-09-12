@@ -66,7 +66,7 @@ def run(rank, devices_lst, args):
     fg = DGLGraph(fg_adj, readonly=True)
 
     # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个参数用于形成bool数组，判断某个train_nid是否在缓存中
-    cacher = storage.DGLCPUGraphCacheServer(cpu_g, fg_adj.shape[0], rank)
+    cacher = storage.DGLCPUGPUGraphCacheServer(cpu_g, fg_adj.shape[0], rank)
     cacher.init_field(['features'])
 
     # build DDP model and helpers
@@ -97,10 +97,9 @@ def run(rank, devices_lst, args):
             model.train()
             iter = 0
             for nf in sampler:
-                Print('iter:', iter)
                 with torch.autograd.profiler.record_function('featch batch data'):
                     cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                    batch_nid = nf.layer_parent_nid(-1)
+                    batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
                     labels = part_labels[batch_nid].cuda(rank, non_blocking=True)
                 with torch.autograd.profiler.record_function('gpu-compute'):
                     pred = model(nf)
