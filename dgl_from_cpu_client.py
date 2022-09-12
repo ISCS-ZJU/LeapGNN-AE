@@ -54,15 +54,10 @@ def run(rank, devices_lst, args):
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
     ntrain_per_node = int(fg_train_nid.shape[0] / world_size) -1
-    # train_lnid = fg_train_nid[rank*ntrain_per_node: (rank+1)*ntrain_per_node]
-    # test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
-    # train_labels = fg_labels[train_lnid]
-    # labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
-    # labels[train_lnid] = train_lnid
-    # # to torch tensors
-    # labels = torch.LongTensor(labels)
+    test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    
 
-    # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat
+    # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
     if rank == 0:
         os.system(f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
 
@@ -82,29 +77,46 @@ def run(rank, devices_lst, args):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
     ctx = torch.device(rank)
 
-    # sampling on sub-graph
-    sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+    
 
     # start training
-    for epoch in range(args.epoch):
-        # 切分训练数据
-        # 构造sampler
-        model.train()
-        iter = 0
-        for nf in sampler:
-            Print('iter:', iter)
-            cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-            batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
-            Print('batch_lnid:', batch_nid)
-            labels = partgrap_labels[batch_nid].cuda(rank, non_blocking=True)
-            pred = model(nf)
-            loss = loss_fn(pred, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            iter += 1
-            if epoch==0 and iter==1:
-                cacher.auto_cache(part_g, ['features']) # 这时候做的好处是根据历史第一轮的gpu memory利用情况，自适应判断可以缓存多少的feat
+    with torch.autograd.profiler.profile(enabled=(rank==0), use_cuda=True) as prof:
+        for epoch in range(args.epoch):
+            # 切分训练数据
+            np.random.seed(epoch)
+            np.random.shuffle(fg_train_nid)
+            train_lnid = fg_train_nid[rank*ntrain_per_node: (rank+1)*ntrain_per_node]
+            train_labels = fg_labels[train_lnid]
+            labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
+            labels[train_lnid] = train_labels
+            labels = torch.LongTensor(labels) # to torch tensors
+
+            # 构造sampler
+            sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+
+            model.train()
+            iter = 0
+            for nf in sampler:
+                with torch.autograd.profiler.record_function('featch batch data'):
+                    cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                    batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
+                    labels = labels[batch_nid].cuda(rank, non_blocking=True)
+                with torch.autograd.profiler.record_function('gpu-compute'):
+                    pred = model(nf)
+                    loss = loss_fn(pred, labels)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                iter += 1
+                if epoch==0 and iter==1:
+                    cacher.auto_cache(args.dataset, "metis", world_size, rank, ['features'])
+            if cacher.log:
+                miss_rate = cacher.get_miss_rate()
+                print('Epoch miss rate: {:.4f}'.format(miss_rate))
+    if rank == 0:
+        print(prof.key_averages().table(sort_by='cuda_time_total'))
+    
+
 
 
 

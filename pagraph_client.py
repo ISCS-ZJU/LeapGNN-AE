@@ -104,7 +104,7 @@ def run(rank, devices_lst, args):
                     cacher.auto_cache(part_g, ['features']) # 这时候做的好处是根据历史第一轮的gpu memory利用情况，自适应判断可以缓存多少的feat
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
-                print('Epoch average miss rate: {:.4f}'.format(miss_rate))
+                print('Epoch miss rate: {:.4f}'.format(miss_rate))
     if rank == 0:
         print(prof.key_averages().table(sort_by='cuda_time_total'))
 

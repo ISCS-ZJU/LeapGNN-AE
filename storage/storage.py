@@ -13,6 +13,7 @@ import torch
 from dgl import DGLGraph
 from dgl.frame import Frame, FrameRef
 import dgl.utils
+import data
 
 def Print(*content, debug = False):
   if debug:
@@ -269,6 +270,9 @@ class DGLCPUGraphCacheServer:
     self.try_num = 0
     self.miss_num = 0
 
+    # load part results
+    
+
   
   def init_field(self, embed_names):
     with torch.cuda.device(self.gpuid):
@@ -281,13 +285,18 @@ class DGLCPUGraphCacheServer:
     print('total dims: {}'.format(self.total_dim))
 
 
-  def auto_cache(self, dgl_g, embed_names):
+  def auto_cache(self, dataset, methodname, partitions, rank, embed_names):
     """
     Automatically cache the node features
     Params:
       g: DGLGraph for local graphs
       embed_names: field name list, e.g. ['features', 'norm']
     """
+    # 加载分割到的这部分的图id
+    sorted_part_nids = data.get_partition_results(dataset, methodname, partitions, rank)
+    part_node_num = sorted_part_nids.shape[0]
+    print(f'rank {rank} got a part of graph with {part_node_num} nodes.')
+
     # Step1: get available GPU memory
     peak_allocated_mem = torch.cuda.max_memory_allocated(device=self.gpuid)
     peak_cached_mem = torch.cuda.max_memory_reserved(device=self.gpuid)
@@ -301,19 +310,16 @@ class DGLCPUGraphCacheServer:
     print('Cache Memory: {:.2f}G. Capability: {}'
           .format(available / 1024 / 1024 / 1024, self.capability))
     # Step3: cache
-    if self.capability >= self.node_num:
+    if self.capability >= part_node_num:
       # fully cache
-      print('cache the full graph...')
-      full_nids = torch.arange(self.node_num).cuda(self.gpuid) # part-graph 中的lnid是0开始的
-      data_frame = self.get_feat_from_server(full_nids, embed_names)
-      self.cache_fix_data(full_nids, data_frame, is_full=True) # 最终缓存里的node id是full-graph的onid
+      print('cache the part graph... caching percentage: 100%')
+      data_frame = self.get_feat_from_server(sorted_part_nids, embed_names)
+      self.cache_fix_data(sorted_part_nids, data_frame, is_full=True) # 最终缓存里的node id是full-graph的onid
     else:
       # choose top-cap out-degree nodes to cache
       print('cache the part of graph... caching percentage: {:.4f}'
-            .format(self.capability / self.node_num))
-      out_degrees = dgl_g.out_degrees() # 对当前part-graph的node degree 排序
-      sort_nid = torch.argsort(out_degrees, descending=True)
-      cache_nid = sort_nid[:self.capability] # part-graph level lnid
+            .format(self.capability / part_node_num))
+      cache_nid = sorted_part_nids[:self.capability]
       data_frame = self.get_feat_from_server(cache_nid, embed_names)
       self.cache_fix_data(cache_nid, data_frame, is_full=False)
 
@@ -328,16 +334,7 @@ class DGLCPUGraphCacheServer:
     Return:
       feature tensors of these nids (in CPU)
     """
-    nids_in_full = self.nid_map[nids] # part-graph lnid -> full-graph onid
-    #cpu_frame = self.graph._node_frame[dgl.utils.toindex(nids_in_full.cpu())]
-    #data_frame = {}
-    #for name in embed_names:
-    #  if to_gpu:
-    #    data_frame[name] = cpu_frame[name].cuda(self.gpuid)
-    #  else:
-    #    data_frame[name] = cpu_frame[name]
-    #return data_frame
-    nids = nids_in_full.cpu()
+    nids = nids.cpu()
     if to_gpu:
       frame = {name: self.graph._node_frame._frame[name].data[nids].cuda(self.gpuid, non_blocking=True)\
                    for name in embed_names}
@@ -356,7 +353,7 @@ class DGLCPUGraphCacheServer:
       data: dict: {'field name': tensor data}
     """
     rows = nids.size(0)
-    self.localid2cacheid[nids] = torch.arange(rows).cuda(self.gpuid) # part-graph lnid -> cache row id
+    self.localid2cacheid[nids] = torch.arange(rows).cuda(self.gpuid)
     self.cached_num = rows
     for name in data:
       data_rows = data[name].size(0)

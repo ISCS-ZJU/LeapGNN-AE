@@ -115,3 +115,9 @@ def get_feat_from_server(g, nids, embed_name):
   """
   cpu_frame = g._node_frame[dgl.utils.toindex(nids)]
   return cpu_frame[embed_name]
+
+def get_partition_results(dataset, methodname, partitions, rank):
+  if methodname == "metis":
+    part_result_folder = os.path.join(dataset, f"{partitions}_{methodname}")
+    part_id = np.load(os.path.join(part_result_folder, f"{rank}.npz"))
+    return part_id
