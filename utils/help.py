@@ -1,5 +1,5 @@
 
 
-def Print(*content, debug = True):
+def Print(*content, debug = False):
   if debug:
     print(*content)

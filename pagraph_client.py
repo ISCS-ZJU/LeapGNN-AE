@@ -69,7 +69,7 @@ def run(rank, devices_lst, args):
     partgrap_labels = torch.LongTensor(partgrap_labels)
 
     # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个点的数量是partgraph（因为是当前GPU的feat缓存对象，要用bool array表示，使用full-graph太浪费空间）
-    cacher = storage.GraphCacheServer(cpu_g, partgraph_adj.shape[0], lnid2onid, rank) 
+    cacher = storage.PaGraphGraphCacheServer(cpu_g, partgraph_adj.shape[0], lnid2onid, rank) 
     cacher.init_field(['features'])
 
     # build DDP model and helpers
@@ -84,23 +84,29 @@ def run(rank, devices_lst, args):
     sampler = dgl.contrib.sampling.NeighborSampler(part_g, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
     # start training
-    for epoch in range(args.epoch):
-        model.train()
-        iter = 0
-        for nf in sampler:
-            Print('iter:', iter)
-            cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-            batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
-            Print('batch_lnid:', batch_nid)
-            labels = partgrap_labels[batch_nid].cuda(rank, non_blocking=True)
-            pred = model(nf)
-            loss = loss_fn(pred, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            iter += 1
-            if epoch==0 and iter==1:
-                cacher.auto_cache(part_g, ['features']) # 这时候做的好处是根据历史第一轮的gpu memory利用情况，自适应判断可以缓存多少的feat
+    with torch.autograd.profiler.profile(enabled=(rank==0), use_cuda=True) as prof:
+        for epoch in range(args.epoch):
+            model.train()
+            iter = 0
+            for nf in sampler:
+                with torch.autograd.profiler.record_function('featch batch data'):
+                    cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                    batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
+                    labels = partgrap_labels[batch_nid].cuda(rank, non_blocking=True)
+                with torch.autograd.profiler.record_function('gpu-compute'):
+                    pred = model(nf)
+                    loss = loss_fn(pred, labels)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                iter += 1
+                if epoch==0 and iter==1:
+                    cacher.auto_cache(part_g, ['features']) # 这时候做的好处是根据历史第一轮的gpu memory利用情况，自适应判断可以缓存多少的feat
+            if cacher.log:
+                miss_rate = cacher.get_miss_rate()
+                print('Epoch average miss rate: {:.4f}'.format(miss_rate))
+    if rank == 0:
+        print(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 

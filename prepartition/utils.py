@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import scipy.sparse as spsp
 
-def Print(*content, debug = True):
+def Print(*content, debug = False):
   if debug:
     print(*content)
 
