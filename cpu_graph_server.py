@@ -46,7 +46,8 @@ def main(args):
 
     # create server
     g = dgl.contrib.graph_store.create_graph_store_server(graph, graph_name,
-        'shared_mem', args.num_gpu, False, edge_dir='in')
+        'shared_mem', args.num_gpu, False, edge_dir='in', port=8004)
+
     g.ndata['features'] = features
     # 至此，graph的topo和feat都已经在shared memory中，并赋给变量g._graph，可以通过graph server来访问
 

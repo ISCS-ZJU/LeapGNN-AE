@@ -29,7 +29,7 @@ def run(rank, devices_lst, args):
     world_size = len(devices_lst)
     # Initialize distributed training context.
     dev_id = devices_lst[rank]
-    dist_init_method = 'tcp://{master_ip}:{master_port}'.format(master_ip='127.0.0.1', master_port='12345')
+    dist_init_method = 'tcp://{master_ip}:{master_port}'.format(master_ip='127.0.0.1', master_port='12365')
     if torch.cuda.device_count() < 1:
         device = torch.device('cpu')
         torch.distributed.init_process_group(
@@ -42,7 +42,7 @@ def run(rank, devices_lst, args):
     
     # connect to cpu graph server
     dataset_name = os.path.basename(args.dataset)
-    cpu_g = dgl.contrib.graph_store.create_graph_from_store(dataset_name, "shared_mem")
+    cpu_g = dgl.contrib.graph_store.create_graph_from_store(dataset_name, "shared_mem", port=8004)
 
     # rank = 0 partition graph
     sampling = args.sampling.split('-')
