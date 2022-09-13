@@ -86,6 +86,7 @@ def run(rank, devices_lst, args):
             np.random.seed(epoch)
             np.random.shuffle(fg_train_nid)
             train_lnid = fg_train_nid[rank*ntrain_per_node: (rank+1)*ntrain_per_node]
+            print('rank:', rank, 'epoch train_lnid:', train_lnid)
             train_labels = fg_labels[train_lnid]
             part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
             part_labels[train_lnid] = train_labels
@@ -97,6 +98,7 @@ def run(rank, devices_lst, args):
             model.train()
             iter = 0
             for nf in sampler:
+                print("rank", rank, 'iter:', iter)
                 with torch.autograd.profiler.record_function('featch batch data'):
                     cacher.fetch_data(nf) # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                     batch_nid = nf.layer_parent_nid(-1) # part-graph lnid
@@ -110,6 +112,10 @@ def run(rank, devices_lst, args):
                 iter += 1
                 if epoch==0 and iter==1:
                     cacher.auto_cache(args.dataset, "metis", world_size, rank, ['features'])
+                # print(f"rank: {rank}", "=========="*10)
+                # if iter==3:
+                #     import sys
+                #     sys.exit()
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
                 print('Epoch miss rate: {:.4f}'.format(miss_rate))

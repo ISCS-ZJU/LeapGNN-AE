@@ -47,7 +47,6 @@ class GCNSampling(nn.Module):
     nf.layers[0].data['activation'] = nf.layers[0].data['features']
 
     for i, layer in enumerate(self.layers):
-      print('i:',i)
       h = nf.layers[i].data.pop('activation')
       if self.dropout:
           h = self.dropout(h)
