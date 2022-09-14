@@ -603,16 +603,15 @@ class DGLCPUGPUGraphCacheServer:
     with torch.autograd.profiler.record_function('cache-idxload'):
       nf_nids = nodeflow._node_mapping.tousertensor().cuda(self.gpuid) # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
       offsets = nodeflow._layer_offsets
-      Print('fetch_data batch onid, layer_offset:', nf_nids, offsets)
-    Print('nf.nlayers:', nodeflow.num_layers)
+      Print('rank', self.gpuid, 'fetch_data batch onid, layer_offset:', nf_nids, offsets)
+    Print('rank', self.gpuid, 'nf.nlayers:', nodeflow.num_layers)
     for i in range(nodeflow.num_layers):
-      print('()()()()))()())(()()'*10, i)
       self.local_remote_gpu_flag[:] = False # all tnid are not got from local/remote gpu
       #with torch.autograd.profiler.record_function('cache-idx-load'):
         #tnid = nodeflow.layer_parent_nid(i).cuda(self.gpuid)
       tnid = nf_nids[offsets[i]:offsets[i+1]]
       # 建立tnid的反映射，这样远程反传回来的nid的feat可以确定对应在frame中的位置
-      nid2frameidx = 
+      nid2frameidx = {nid.item():i for i,nid in enumerate(tnid)}
       
       # # get nids -- overhead ~0.1s
       # with torch.autograd.profiler.record_function('cache-index'):
@@ -627,7 +626,6 @@ class DGLCPUGPUGraphCacheServer:
       for pid,nid in zip(pid_of_tnid, tnid):
         if pid!= -1:
           source_lst[pid].append(nid)
-      Print(f"rank {self.gpuid} source_lst:", source_lst)
       
       # scatter require node id to each gpu
       nid_recv = []
@@ -636,14 +634,12 @@ class DGLCPUGPUGraphCacheServer:
         dist.scatter_object_list(tmp_recv_nid, source_lst, src=src)
         nid_recv.append(tmp_recv_nid)
         tmp_recv_nid = [None]
-      Print(f"rank {self.gpuid} receive nid:", nid_recv)
 
       # collecte cached feats
       response_lst = [] # [([hit_nid_lst], {name:graph._node_frame.data[hit_nid_lst]}), ...]
       for j, nids  in enumerate(nid_recv):
         nids = nids[0]
         response_lst.append(self.get_hit_feats_from_local_cache(nids, j))
-      Print(f"rank {self.gpuid} response_lst:", response_lst[0][0].size())
 
       # response required nodes' features
       recv_feats_lst = [] # ([hit_nid_lst], feats_value:frame)
@@ -652,7 +648,6 @@ class DGLCPUGPUGraphCacheServer:
         dist.scatter_object_list(tmp_feat_recv, response_lst, src=src)
         recv_feats_lst.append(tmp_feat_recv)
         tmp_feat_recv = [None]
-      Print(f"rank {self.gpuid} recv_feats:", recv_feats_lst[0][0][0].size())
       
       # create return frame
       with torch.autograd.profiler.record_function('cache-allocate'):
@@ -671,23 +666,22 @@ class DGLCPUGPUGraphCacheServer:
         for recv_feats in recv_feats_lst:
           recv_feats = recv_feats[0]
           hit_nid, feats_dict = recv_feats
-          print('rank:', self.gpuid, 'hit_nid:', hit_nid)
+          frame_hit_idx = torch.tensor([nid2frameidx[x.item()] for x in hit_nid]).cuda(self.gpuid) # maybe slow
           if hit_nid.size(0) > 0:
             for name in self.dims:
-              frame[name][hit_nid] = feats_dict[name]
+              frame[name][frame_hit_idx] = feats_dict[name]
               self.local_remote_gpu_flag[hit_nid] = True # already hit in local/remote gpu
       
       gpu_mask = self.local_remote_gpu_flag[tnid]
       cpu_mask = ~gpu_mask
       nids_in_cpu = tnid[cpu_mask]
-      print(f'rank', self.gpuid, '***'*40, nids_in_cpu)
 
       # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
       with torch.autograd.profiler.record_function('cache-cpu feat read'):
         if nids_in_cpu.size(0) != 0:
           cpu_data_frame = self.get_feat_from_server(nids_in_cpu, list(self.dims), to_gpu=True)
           for name in self.dims:
-            Print('frame[name].size():', frame[name].size(),'cpu_mask:', cpu_mask, 'cpu_data_frame.shape:', cpu_data_frame[name].size())
+            Print('rank', self.gpuid, 'frame[name].size():', frame[name].size(),'cpu_mask:', cpu_mask, 'cpu_data_frame.shape:', cpu_data_frame[name].size())
             frame[name][cpu_mask] = cpu_data_frame[name]
       
       with torch.autograd.profiler.record_function('cache-asign'):
