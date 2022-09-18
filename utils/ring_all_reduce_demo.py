@@ -56,37 +56,38 @@ def allreduce(send, recv):
 
 
 def run_allreduce(rank, size):
-   data = torch.ones(3)  * (rank + 1)
-   print(f'rank:{rank} data:{data}')    
-   recv = torch.zeros_like(data)
-   allreduce(send=data, recv=recv)
-   print(recv)
+    data = torch.ones(3) * (rank + 1)
+    print(f'rank:{rank} data:{data}')
+    recv = torch.zeros_like(data)
+    allreduce(send=data, recv=recv)
+    print(recv)
     """
-    rank:2 data:tensor([3., 3., 3.])
-    rank:0 data:tensor([1., 1., 1.])
-    rank:3 data:tensor([4., 4., 4.])
-    rank:1 data:tensor([2., 2., 2.])
-    tensor([10., 10., 10.])
-    tensor([10., 10., 10.])
-    tensor([10., 10., 10.])
-    tensor([10., 10., 10.])
-    """
+        rank:2 data:tensor([3., 3., 3.])
+        rank:0 data:tensor([1., 1., 1.])
+        rank:3 data:tensor([4., 4., 4.])
+        rank:1 data:tensor([2., 2., 2.])
+        tensor([10., 10., 10.])
+        tensor([10., 10., 10.])
+        tensor([10., 10., 10.])
+        tensor([10., 10., 10.])
+        """
+
 
 def init_process(rank, size, fn, backend='gloo'):
-   """ Initialize the distributed environment. """
-   os.environ['MASTER_ADDR'] = '127.0.0.1'
-   os.environ['MASTER_PORT'] = '29500'
-   dist.init_process_group(backend, rank=rank, world_size=size)
-   fn(rank, size)
+    """ Initialize the distributed environment. """
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29500'
+    dist.init_process_group(backend, rank=rank, world_size=size)
+    fn(rank, size)
 
 
 if __name__ == "__main__":
-   size = 4
-   processes = []
-   for rank in range(size):
-       p = mp.Process(target=init_process, args=(rank, size, run_allreduce))
-       p.start()
-       processes.append(p)
+    size = 4
+    processes = []
+    for rank in range(size):
+        p = mp.Process(target=init_process, args=(rank, size, run_allreduce))
+        p.start()
+        processes.append(p)
 
-   for p in processes:
-       p.join()
+    for p in processes:
+        p.join()

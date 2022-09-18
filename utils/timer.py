@@ -1,6 +1,7 @@
 import torch
 from timeit import default_timer
 
+
 class Timer:
     def __init__(self, device=None):
         self.timer = default_timer

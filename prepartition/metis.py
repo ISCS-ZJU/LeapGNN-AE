@@ -1,12 +1,14 @@
+import sys
+sys.path.append('./')
+import data
 import enum
 import numpy as np
 import pymetis
 import argparse
 import scipy.sparse as spsp
-import os, sys
+import os
 
-sys.path.append('./')
-import data
+
 
 
 
@@ -18,14 +20,17 @@ if __name__ == "__main__":
                         help="partition number")
     args = parser.parse_args()
 
-
     # load data
-    adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz')) # 加载全图topo（其中的点应该是从0开始编号的，否则mask怎么确定？）
-    train_mask, val_mask, test_mask = data.get_masks(args.dataset) # 加载mask
-    train_nid = np.nonzero(train_mask)[0].astype(np.int64) # 得到node id
-    adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()] # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]
+    # 加载全图topo（其中的点应该是从0开始编号的，否则mask怎么确定？）
+    adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz'))
+    train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
+    train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
+    # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]
+    adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()]
     # print(adjacency_list)
-    n_cuts, membership = pymetis.part_graph(args.partition, adjacency=adjacency_list) # n_cuts:边切分的次数，membership:[...]表示从Index=0的点开始被分配到的partition的id
+    # n_cuts:边切分的次数，membership:[...]表示从Index=0的点开始被分配到的partition的id
+    n_cuts, membership = pymetis.part_graph(
+        args.partition, adjacency=adjacency_list)
     # print(n_cuts, membership) # 7 [0, 1, 0, 0, 0, 1, 1, 0, 1, 1]
 
     # 在每个partition中，按照in degree大小排序，然后写入{partition}metis文件夹中，每个文件是一个npy，存储降序的node id
@@ -34,7 +39,7 @@ if __name__ == "__main__":
         part_id[pid].append(nid)
     # print(part_id)
     for lst in part_id:
-        lst.sort(key = lambda x:len(adjacency_list[x]), reverse = True)
+        lst.sort(key=lambda x: len(adjacency_list[x]), reverse=True)
     # print(part_id)
 
     # save
