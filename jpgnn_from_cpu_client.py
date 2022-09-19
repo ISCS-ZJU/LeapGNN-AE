@@ -1,8 +1,9 @@
 import argparse
-import os
+import os, sys
 import torch
 import torch.multiprocessing as mp
 import torch.nn.functional as F
+import torch.distributed as dist
 import dgl
 import numpy as np
 import data
@@ -64,6 +65,15 @@ def run(rank, devices_lst, args):
         os.system(
             f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
     torch.distributed.barrier()
+    
+    # 1. 每个gpu加载分图的结果，之后用于对train_lnid根据所在GPU进行切分
+    max_train_nid = np.max(fg_train_nid)+1
+    nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
+    for pid in range(world_size):
+        sorted_part_nid = data.get_partition_results(args.dataset, "metis", world_size, pid)
+        necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid]
+        nid2pid[sorted_part_nid] = pid
+    
 
     # construct this partition graph for sampling
     fg = DGLGraph(fg_adj, readonly=True)
@@ -79,7 +89,7 @@ def run(rank, devices_lst, args):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     model.cuda(rank)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
+    # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
     ctx = torch.device(rank)
 
     model_idx = rank
@@ -90,38 +100,111 @@ def run(rank, devices_lst, args):
             # 切分训练数据
             np.random.seed(epoch)
             np.random.shuffle(fg_train_nid)
-            train_lnid = fg_train_nid[rank *
-                                      ntrain_per_node: (rank+1)*ntrain_per_node]
+            if rank==0:
+                print('=> Shuffled epoch training nid:', fg_train_nid)
+            train_lnid = fg_train_nid[rank * ntrain_per_node: (rank+1)*ntrain_per_node] # 当前rank的当前epoch要训练的点
             train_labels = fg_labels[train_lnid]
             part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
             part_labels[train_lnid] = train_labels
             part_labels = torch.LongTensor(part_labels)  # to torch tensors
-            Print('rank:', rank, 'local training nid:', train_lnid)
+            Print('rank:', rank, 'local epoch training nid:', train_lnid)
 
-            # 根据每个train nid分类出所属的优势GPU组别
-            # train_nid_per_gpu =
-
-            # 构造sampler
-            sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
-                sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+            # # 构造sampler
+            # sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
             model.train()
             iter = 0
-            for nf in sampler:
-                Print('iter:', iter)
-                with torch.autograd.profiler.record_function('featch batch data'):
-                    # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                    cacher.fetch_data(nf)
-                    batch_nid = nf.layer_parent_nid(-1)
-                    labels = part_labels[batch_nid].cuda(
-                        rank, non_blocking=True)
-                with torch.autograd.profiler.record_function('gpu-compute'):
-                    print(f'rank: {rank}, model locate on device:', model.device)
-                    pred = model(nf)
-                    loss = loss_fn(pred, labels)
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
+            # padding train_lnid using replicas
+            pad_num =0 if (train_lnid.size % args.batch_size==0) else args.batch_size - train_lnid.size % args.batch_size
+            if pad_num:
+                pad_ndarray = train_lnid[:pad_num]
+                train_lnid = np.concatenate((train_lnid, pad_ndarray))
+            train_lnid = train_lnid.reshape(-1, args.batch_size)
+            Print('rank:', rank, 'train_lnid after padding:', train_lnid)
+            for batch_nid in train_lnid:
+                Print('rank:', rank, 'iter:', iter, 'batch_nid:', batch_nid)
+                # 根据每个train nid分类出所属的优势GPU组别
+                train_nid_per_gpu = []
+                for pid in range(world_size):
+                    cur_pid_mask = nid2pid[train_lnid]==pid
+                    train_nid_per_gpu.append(train_lnid[cur_pid_mask])
+                # train_nid_per_gpu = torch.tensor(train_nid_per_gpu) # then, isend is enabled
+                Print('rank:', rank, 'train_nid_per_gpu:', train_nid_per_gpu)
+                
+                # scatter
+                train_nid_after_scatter = []
+                rcv_tmp_tensor = [None]
+                for src in range(world_size):
+                    dist.scatter_object_list(rcv_tmp_tensor, train_nid_per_gpu, src=src)
+                    train_nid_after_scatter.append(rcv_tmp_tensor[0])
+                Print('rank:', rank, 'train_nid_after_scatter:', train_nid_after_scatter)
+                
+                # 保留初始的model_ckpt和grad到CPU memory (tmp file:/dev/shm/model_{mid}.pt, model_{mid}_grad.pt)
+                model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
+                grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
+                torch.save(model.state_dict(), model_ckpt_path)
+                optimizer.zero_grad()
+                with torch.no_grad():
+                    grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
+                    torch.save(grad_dict, grad_ckpt_path)
+                
+                cur_batch_piece_id = rank
+                sub_iter = 0
+                for _ in range(world_size):
+                    sub_iter += 1
+                    if rank==0:
+                        print("===="*10, 'sub_iter:',sub_iter, "===="*10)
+                    # 加载其他worker写入的模型和grad
+                    load_model_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}.pt')
+                    load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
+                    model.load_state_dict(torch.load(load_model_ckpt_path))
+                    # model.train()
+                    with torch.no_grad():
+                        grad_dict = torch.load(load_grad_ckpt_path)
+                        for x in model.named_parameters():
+                            x[1].data.grad = grad_dict[x[0]]
+                    Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load_ckpt_path:', load_model_ckpt_path, load_grad_ckpt_path)
+                    
+                    # 构造sampler产生子树
+                    cur_train_batch_piece = train_nid_after_scatter[cur_batch_piece_id]
+                    if cur_train_batch_piece.size:
+                        sampler = dgl.contrib.sampling.NeighborSampler(fg, cur_train_batch_piece.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=1, seed_nodes=cur_train_batch_piece, add_self_loop=True)
+                        Print('rank:', rank, 'cur_train_batch_piece and size:', cur_train_batch_piece, cur_train_batch_piece.size)
+                        
+                        # 前传反传
+                        asure = 0
+                        for nf in sampler:
+                            asure += 1
+                            with torch.autograd.profiler.record_function('featch batch data'):
+                                cacher.fetch_data(nf)
+                                batch_nid = nf.layer_parent_nid(-1)
+                                labels = part_labels[batch_nid].cuda(rank, non_blocking=True)
+                            with torch.autograd.profiler.record_function('gpu-compute'):
+                                pred = model(nf)
+                                Print('rank:', rank, 'forward done.')
+                                loss = loss_fn(pred, labels)
+                                loss.backward()
+                                Print('rank:', rank, 'local backward done.')
+                        assert asure==1, 'Error when constructing sampler and need to check sampler again'
+                    # 如果不是最后一次，直接保存累加了这次梯度的新梯度值
+                    if sub_iter != world_size:
+                        with torch.no_grad():
+                            grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
+                            torch.save(grad_dict, load_grad_ckpt_path)
+                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with accumulated grad:', load_grad_ckpt_path)
+                    # 如果是最后一次了，更新参数，梯度清零，覆写ckpt和梯度
+                    else:
+                        optimizer.step()
+                        torch.save(model.state_dict(), load_model_ckpt_path)
+                        optimizer.zero_grad()
+                        with torch.no_grad():
+                            grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
+                            torch.save(grad_dict, load_grad_ckpt_path)
+                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', '_UPDATE_ params and save ckpt:', load_model_ckpt_path, load_grad_ckpt_path)
+                    # 同步
+                    dist.barrier()
+                    # 将cur_batch_piece_id左移
+                    cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
 
                 iter += 1
                 if epoch == 0 and iter == 1:
@@ -131,12 +214,6 @@ def run(rank, devices_lst, args):
                 miss_rate = cacher.get_miss_rate()
                 print('Epoch miss rate: {:.4f}'.format(miss_rate))
             print(f'cur_epoch {epoch} finished on rank {rank}', '===='*20)
-            # move gnn to next right gpu
-            model_idx = (model_idx+1) % world_size
-            print(f'rank: {rank} will move model to {model_idx}')
-            # model = model.to(model_idx)
-            print(
-                f'rank: {rank} after moving gnn, model now on device{model.device}')
     if rank == 0:
         print(prof.key_averages().table(sort_by='cuda_time_total'))
 
@@ -169,6 +246,7 @@ def parse_args_func(argv):
                         type=int, help='sampling worker')
     parser.add_argument('-cs', '--cache-size', default=0,
                         type=int, help='cache size in each gpu (GB)')
+    parser.add_argument('-ckpt', '--ckpt-path', default='/dev/shm', type=str, help='ckpt path for jpgnn')
     return parser.parse_args(argv)
 
 
