@@ -103,6 +103,7 @@ def run(rank, devices_lst, args):
     grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
     if os.path.exists(model_ckpt_path):
         os.remove(model_ckpt_path)
+        torch.save(model.state_dict(), model_ckpt_path) # 保存最初始的模型参数
     if os.path.exists(grad_ckpt_path):
         os.remove(grad_ckpt_path)
     
@@ -143,11 +144,6 @@ def run(rank, devices_lst, args):
                     dist.scatter_object_list(rcv_tmp_tensor, train_nid_per_gpu, src=src)
                     train_nid_after_scatter.append(rcv_tmp_tensor[0])
                 Print('rank:', rank, 'train_nid_after_scatter:', train_nid_after_scatter)
-                
-                # 保留初始的model_ckpt和grad到CPU memory (tmp file:/dev/shm/model_{mid}.pt, model_{mid}_grad.pt)
-                model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
-                grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
-                torch.save(model.state_dict(), model_ckpt_path)
                 
                 cur_batch_piece_id = rank
                 sub_iter = -1
@@ -196,8 +192,9 @@ def run(rank, devices_lst, args):
                                 Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load and accumulate grad_ckpt_path:', load_grad_ckpt_path)
                             else:
                                 new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
+                                Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
                             torch.save(new_grad_dict, load_grad_ckpt_path)
-                            Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
+                            
                         assert asure<=1, 'Error when constructing sampler and need to check sampler again'
                         
                     # 同步
@@ -218,7 +215,7 @@ def run(rank, devices_lst, args):
                     # Print('rank', rank, 'before allreduce grad:', param_name, batch_grad_dict[param_name])
                     recv = torch.zeros_like(batch_grad_dict[param_name])
                     allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
-                    param.grad.data = recv.cuda(rank)
+                    param.grad = recv.cuda(rank)
                     # Print('rank', rank, 'after allreduce grad:', param_name, param.grad.data)
                 # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
                 optimizer.step()

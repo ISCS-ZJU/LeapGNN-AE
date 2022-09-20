@@ -13,6 +13,7 @@ from utils.help import Print
 import storage
 from model import gcn
 from utils.ring_all_reduce_demo import allreduce
+from multiprocessing import Process, Queue
 
 
 # torch.set_printoptions(threshold=np.inf)
@@ -103,11 +104,15 @@ def run(rank, devices_lst, args):
     grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
     if os.path.exists(model_ckpt_path):
         os.remove(model_ckpt_path)
+        torch.save(model.state_dict(), model_ckpt_path) # 保存最初始的模型参数
     if os.path.exists(grad_ckpt_path):
         os.remove(grad_ckpt_path)
-    
+        
+    def split_fn(a):
+        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
 
     # start training
+    nf_q = Queue(1)
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
         for epoch in range(args.epoch):
             # 切分训练数据
@@ -115,130 +120,113 @@ def run(rank, devices_lst, args):
             np.random.shuffle(fg_train_nid)
             if rank==0:
                 print(f'=> Shuffled epoch training nid for epoch {epoch}:', fg_train_nid)
-            train_lnid = fg_train_nid[rank * ntrain_per_node: (rank+1)*ntrain_per_node] # 当前rank的当前epoch要训练的点
-
-            model.train()
-            iter = 0
-            # padding train_lnid using replicas
-            pad_num =0 if (train_lnid.size % args.batch_size==0) else args.batch_size - train_lnid.size % args.batch_size
-            if pad_num:
-                pad_ndarray = train_lnid[:pad_num]
-                train_lnid = np.concatenate((train_lnid, pad_ndarray))
-            train_lnid = train_lnid.reshape(-1, args.batch_size)
-            Print('rank:', rank, 'train_lnid after padding:', train_lnid)
-            for batch_nid in train_lnid:
-                Print('rank:', rank, 'iter:', iter, 'batch_nid:', batch_nid)
-                # 根据每个train nid分类出所属的优势GPU组别
-                train_nid_per_gpu = []
-                for pid in range(world_size):
-                    cur_pid_mask = nid2pid[train_lnid]==pid
-                    train_nid_per_gpu.append(train_lnid[cur_pid_mask])
-                # train_nid_per_gpu = torch.tensor(train_nid_per_gpu) # then, isend is enabled
-                Print('rank:', rank, 'train_nid_per_gpu:', train_nid_per_gpu)
-                
-                # scatter
-                train_nid_after_scatter = []
-                rcv_tmp_tensor = [None]
-                for src in range(world_size):
-                    dist.scatter_object_list(rcv_tmp_tensor, train_nid_per_gpu, src=src)
-                    train_nid_after_scatter.append(rcv_tmp_tensor[0])
-                Print('rank:', rank, 'train_nid_after_scatter:', train_nid_after_scatter)
-                
-                # 保留初始的model_ckpt和grad到CPU memory (tmp file:/dev/shm/model_{mid}.pt, model_{mid}_grad.pt)
-                model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
-                grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
-                torch.save(model.state_dict(), model_ckpt_path)
-                
-                cur_batch_piece_id = rank
-                sub_iter = -1
-                for _ in range(world_size):
-                    sub_iter += 1
+            useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_node]
+            useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_node) # 每行表示一个gpu要训练的epoch train nid
+            Print('rank:',rank, 'useful_fg_train_nid:', useful_fg_train_nid)
+            # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
+            useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
+            Print('rank:',rank, 'useful_fg_train_nid.split.T:', useful_fg_train_nid)
+            
+            # 遍历二维数组中每行的batch nid，收集其中属于当前GPU的等数量的sub-batch nid
+            sub_batch_nid = [] # k个连续的sub_batch nparray为一组，表示一次iteration中所有的worker中属于当前GPU的nid
+            for row in useful_fg_train_nid:
+                for batch in row:
+                    cur_gpu_nid_mask = (nid2pid[batch]==rank)
+                    sub_batch_nid.append(batch[cur_gpu_nid_mask]) # 即使是空也会占一个位置
                     if rank==0:
-                        print("===="*10, 'sub_iter:',sub_iter, "===="*10)
+                        Print('put sub_batch:', batch[cur_gpu_nid_mask])
+            # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
+            nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q))
+            nf_gen_proc.daemon = True
+            nf_gen_proc.start()
+            # mp.spawn(generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q), nprocs=1)
+            
+            # 从nf_q中读取nf，开始模型训练
+            model.train()
+            n_batches = useful_fg_train_nid.shape[0]
+            n_sub_batches = n_batches * world_size
+            print('n_sub_batches:', n_sub_batches)
+            for sub_iter in range(n_sub_batches):
+                iter = sub_iter // world_size
+                print('waiting sampler results...')
+                try:
+                    nf = nf_q.get(True)
+                except Exception as e:
+                    print('*', repr(e)) # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
+                print('got sampler results.')
+                cur_batch_piece_id = rank
+                if nf!=None:
                     # 加载其他worker写入的模型
                     load_model_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}.pt')
                     model.load_state_dict(torch.load(load_model_ckpt_path))
                     model.cuda(rank)
+                    # 前传反传获取梯度
+                    with torch.autograd.profiler.record_function('featch batch data'):
+                        cacher.fetch_data(nf)
+                        batch_nid = nf.layer_parent_nid(-1)
+                        labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
+                    with torch.autograd.profiler.record_function('gpu-compute'):
+                        pred = model(nf)
+                        loss = loss_fn(pred, labels)
+                        # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
+                        loss.backward()
+                        for x in model.named_parameters():
+                            print(x[1].grad.size())
+                        Print('rank:', rank, 'local backward done.')
                     
-                    # 构造sampler产生子树
-                    cur_train_batch_piece = train_nid_after_scatter[cur_batch_piece_id]
-                    if cur_train_batch_piece.size:
-                        sampler = dgl.contrib.sampling.NeighborSampler(fg, cur_train_batch_piece.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=cur_train_batch_piece, add_self_loop=True)
-                        Print('rank:', rank, 'cur_train_batch_piece and size:', cur_train_batch_piece, cur_train_batch_piece.size)
-                        
-                        # 前传反传
-                        asure = 0
-                        for nf in sampler:
-                            asure += 1
-                            with torch.autograd.profiler.record_function('featch batch data'):
-                                cacher.fetch_data(nf)
-                                batch_nid = nf.layer_parent_nid(-1)
-                                labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
-                                # print(f'labels: {rank} {labels.size()}')
-                            with torch.autograd.profiler.record_function('gpu-compute'):
-                                pred = model(nf)
-                                loss = loss_fn(pred, labels)
-                                # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
-                                loss.backward()
-                                for x in model.named_parameters():
-                                    print(x[1].grad.size())
-                                Print('rank:', rank, 'local backward done.')
-                            
-                            new_grad_dict = {}
-                            load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
-                            if os.path.exists(load_grad_ckpt_path):
-                                # load gradient data from previous model
-                                with torch.no_grad():
-                                    pre_grad_dict = torch.load(load_grad_ckpt_path)
-                                    for x in model.named_parameters():
-                                        x[1].grad.data += pre_grad_dict[x[0]].cuda(rank) # accumulate grad
-                                        new_grad_dict[x[0]] = x[1].grad.data
-                                Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load and accumulate grad_ckpt_path:', load_grad_ckpt_path)
-                            else:
-                                new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
-                            torch.save(new_grad_dict, load_grad_ckpt_path)
-                            Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
-                        assert asure<=1, 'Error when constructing sampler and need to check sampler again'
-                        
-                    # 同步
-                    dist.barrier()
-                    # 将cur_batch_piece_id左移
-                    cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
-                # 此时，一个iteration结束，每个模型的累计梯度已经在model_{rank}_grad.pt中存储
+                    new_grad_dict = {}
+                    load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
+                    if os.path.exists(load_grad_ckpt_path):
+                        # load gradient data from previous model
+                        with torch.no_grad():
+                            pre_grad_dict = torch.load(load_grad_ckpt_path)
+                            for x in model.named_parameters():
+                                x[1].grad.data += pre_grad_dict[x[0]].cuda(rank) # accumulate grad
+                                new_grad_dict[x[0]] = x[1].grad.data
+                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load and accumulate grad_ckpt_path:', load_grad_ckpt_path)
+                    else:
+                        new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
+                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
+                    torch.save(new_grad_dict, load_grad_ckpt_path)
+                    
+                # 同步
+                dist.barrier()
+                # 将cur_batch_piece_id左移
+                cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
                 
-                # 加载自己rank的模型参数
-                model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
-                model.load_state_dict(torch.load(load_model_ckpt_path))
-                model.cuda(rank)
-                # 加载自己rank的梯度，然后进行allreduce同步，再更新本地模型参数
-                grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
-                batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
-                for param_name, param in model.named_parameters():
-                    # Print('rank', rank, 'before optimizer param:', param_name, param)
-                    # Print('rank', rank, 'before allreduce grad:', param_name, batch_grad_dict[param_name])
-                    recv = torch.zeros_like(batch_grad_dict[param_name])
-                    allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
-                    param.grad.data = recv.cuda(rank)
-                    # Print('rank', rank, 'after allreduce grad:', param_name, param.grad.data)
-                optimizer.step()
-                # for param_name, param in model.named_parameters():
-                #     Print('rank', rank, 'after optimizer grad:', param_name, param)
-                
-                # 覆写新参数、梯度归零、覆写梯度
-                torch.save(model.state_dict(), model_ckpt_path)
-                optimizer.zero_grad()
-                new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
-                torch.save(new_grad_dict, grad_ckpt_path)
-                
-                # 一个iteration至此结束
-                iter += 1
-                if epoch == 0 and iter == 1:
-                    cacher.auto_cache(args.dataset, "metis",
-                                      world_size, rank, ['features'])
+                if (sub_iter+1) % world_size == 0: # 如果已经完成了一个batch的数据并行训练，那么各模型加载对应rank的模型参数、梯度，进行梯度的allreduce，然后使用优化器更新参数；覆写最新的模型参数和归零后的梯度值；
+                    # 加载自己rank的模型参数
+                    model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
+                    model.load_state_dict(torch.load(load_model_ckpt_path))
+                    model.cuda(rank)
+                    # 加载自己rank的梯度，然后进行allreduce同步，再更新本地模型参数
+                    grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
+                    batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
+                    for param_name, param in model.named_parameters():
+                        # Print('rank', rank, 'before optimizer param:', param_name, param)
+                        # Print('rank', rank, 'before allreduce grad:', param_name, batch_grad_dict[param_name])
+                        recv = torch.zeros_like(batch_grad_dict[param_name])
+                        allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
+                        param.grad = recv.cuda(rank)
+                        # Print('rank', rank, 'after allreduce grad:', param_name, param.grad.data)
+                    optimizer.step()
+                    # for param_name, param in model.named_parameters():
+                    #     Print('rank', rank, 'after optimizer grad:', param_name, param)
+                    
+                    # 覆写新参数、梯度归零、覆写梯度
+                    torch.save(model.state_dict(), model_ckpt_path)
+                    optimizer.zero_grad()
+                    new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
+                    torch.save(new_grad_dict, grad_ckpt_path)
+                    
+                    # 至此，一个iteration结束
+                    if epoch == 0 and iter == 1:
+                        cacher.auto_cache(args.dataset, "metis", world_size, rank, ['features'])
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
                 print('Epoch miss rate: {:.4f}'.format(miss_rate))
             print(f'cur_epoch {epoch} finished on rank {rank}', '===='*20)
+            nf_gen_proc.terminate() # 一个epoch结束
     if rank == 0:
         print(prof.key_averages().table(sort_by='cuda_time_total'))
 
@@ -278,3 +266,23 @@ def parse_args_func(argv):
 if __name__ == '__main__':
     args = parse_args_func(None)
     mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
+
+
+
+
+def generate_nodeflows(sub_batch_nid, fg, sampling, queue):
+    iter = 0
+    for sub_batch in sub_batch_nid:
+        print('=> sub_batch in queue to generate nf:', sub_batch, iter)
+        iter += 1
+        if sub_batch.size>0:
+            sampler = dgl.contrib.sampling.NeighborSampler(fg, sub_batch.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch, add_self_loop=True)
+            asure = 0            
+            for nf in sampler:
+                asure += 1
+                queue.put(nf)
+            assert asure<=1, 'Error when create sampler'
+        else:
+            queue.put(None) # 当前sub_batch为空
+        # time.sleep(0.001)
+    
