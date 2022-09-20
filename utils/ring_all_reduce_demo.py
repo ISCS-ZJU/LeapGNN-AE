@@ -52,7 +52,7 @@ def allreduce(send, recv):
             dist.recv(send_buff, left)
             accum[:] += send_buff[:]
         send_req.wait()
-    recv[:] = accum[:]
+    recv[:] = accum[:]/size
 
 
 def run_allreduce(rank, size):

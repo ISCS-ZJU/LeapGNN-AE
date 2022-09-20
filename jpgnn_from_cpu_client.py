@@ -1,5 +1,5 @@
 import argparse
-import os, sys
+import os, sys, time
 import torch
 import torch.multiprocessing as mp
 import torch.nn.functional as F
@@ -12,6 +12,7 @@ from dgl import DGLGraph
 from utils.help import Print
 import storage
 from model import gcn
+from utils.ring_all_reduce_demo import allreduce
 
 
 # torch.set_printoptions(threshold=np.inf)
@@ -59,6 +60,8 @@ def run(rank, devices_lst, args):
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
     ntrain_per_node = int(fg_train_nid.shape[0] / world_size) - 1
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    
+    fg_labels = torch.from_numpy(fg_labels) # in cpu
 
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
     if rank == 0:
@@ -79,7 +82,7 @@ def run(rank, devices_lst, args):
     fg = DGLGraph(fg_adj, readonly=True)
 
     # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个参数用于形成bool数组，判断某个train_nid是否在缓存中
-    cacher = storage.JPGNNGraphCacheServer(cpu_g, fg_adj.shape[0], rank)
+    cacher = storage.DGLCPUGraphCacheServer(cpu_g, fg_adj.shape[0], rank)
     cacher.init_field(['features'])
 
     # build DDP model and helpers
@@ -93,6 +96,15 @@ def run(rank, devices_lst, args):
     ctx = torch.device(rank)
 
     model_idx = rank
+    
+    # remove old ckpt before starting
+    model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
+    grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
+    if os.path.exists(model_ckpt_path):
+        os.remove(model_ckpt_path)
+    if os.path.exists(grad_ckpt_path):
+        os.remove(grad_ckpt_path)
+    
 
     # start training
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
@@ -101,16 +113,8 @@ def run(rank, devices_lst, args):
             np.random.seed(epoch)
             np.random.shuffle(fg_train_nid)
             if rank==0:
-                print('=> Shuffled epoch training nid:', fg_train_nid)
+                print(f'=> Shuffled epoch training nid for epoch {epoch}:', fg_train_nid)
             train_lnid = fg_train_nid[rank * ntrain_per_node: (rank+1)*ntrain_per_node] # 当前rank的当前epoch要训练的点
-            train_labels = fg_labels[train_lnid]
-            part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
-            part_labels[train_lnid] = train_labels
-            part_labels = torch.LongTensor(part_labels)  # to torch tensors
-            Print('rank:', rank, 'local epoch training nid:', train_lnid)
-
-            # # 构造sampler
-            # sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
             model.train()
             iter = 0
@@ -143,32 +147,22 @@ def run(rank, devices_lst, args):
                 model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
                 grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
                 torch.save(model.state_dict(), model_ckpt_path)
-                optimizer.zero_grad()
-                with torch.no_grad():
-                    grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
-                    torch.save(grad_dict, grad_ckpt_path)
                 
                 cur_batch_piece_id = rank
-                sub_iter = 0
+                sub_iter = -1
                 for _ in range(world_size):
                     sub_iter += 1
                     if rank==0:
                         print("===="*10, 'sub_iter:',sub_iter, "===="*10)
-                    # 加载其他worker写入的模型和grad
+                    # 加载其他worker写入的模型
                     load_model_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}.pt')
-                    load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
                     model.load_state_dict(torch.load(load_model_ckpt_path))
-                    # model.train()
-                    with torch.no_grad():
-                        grad_dict = torch.load(load_grad_ckpt_path)
-                        for x in model.named_parameters():
-                            x[1].data.grad = grad_dict[x[0]]
-                    Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load_ckpt_path:', load_model_ckpt_path, load_grad_ckpt_path)
+                    model.cuda(rank)
                     
                     # 构造sampler产生子树
                     cur_train_batch_piece = train_nid_after_scatter[cur_batch_piece_id]
                     if cur_train_batch_piece.size:
-                        sampler = dgl.contrib.sampling.NeighborSampler(fg, cur_train_batch_piece.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=1, seed_nodes=cur_train_batch_piece, add_self_loop=True)
+                        sampler = dgl.contrib.sampling.NeighborSampler(fg, cur_train_batch_piece.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=cur_train_batch_piece, add_self_loop=True)
                         Print('rank:', rank, 'cur_train_batch_piece and size:', cur_train_batch_piece, cur_train_batch_piece.size)
                         
                         # 前传反传
@@ -178,34 +172,58 @@ def run(rank, devices_lst, args):
                             with torch.autograd.profiler.record_function('featch batch data'):
                                 cacher.fetch_data(nf)
                                 batch_nid = nf.layer_parent_nid(-1)
-                                labels = part_labels[batch_nid].cuda(rank, non_blocking=True)
+                                labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
+                                # print(f'labels: {rank} {labels.size()}')
                             with torch.autograd.profiler.record_function('gpu-compute'):
                                 pred = model(nf)
-                                Print('rank:', rank, 'forward done.')
                                 loss = loss_fn(pred, labels)
+                                # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
                                 loss.backward()
+                                for x in model.named_parameters():
+                                    print(x[1].grad.size())
                                 Print('rank:', rank, 'local backward done.')
-                        assert asure==1, 'Error when constructing sampler and need to check sampler again'
-                    # 如果不是最后一次，直接保存累加了这次梯度的新梯度值
-                    if sub_iter != world_size:
-                        with torch.no_grad():
-                            grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
-                            torch.save(grad_dict, load_grad_ckpt_path)
-                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with accumulated grad:', load_grad_ckpt_path)
-                    # 如果是最后一次了，更新参数，梯度清零，覆写ckpt和梯度
-                    else:
-                        optimizer.step()
-                        torch.save(model.state_dict(), load_model_ckpt_path)
-                        optimizer.zero_grad()
-                        with torch.no_grad():
-                            grad_dict = {x[0]:x[1].data.grad for x in model.named_parameters()}
-                            torch.save(grad_dict, load_grad_ckpt_path)
-                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', '_UPDATE_ params and save ckpt:', load_model_ckpt_path, load_grad_ckpt_path)
+                            
+                            new_grad_dict = {}
+                            load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
+                            if os.path.exists(load_grad_ckpt_path):
+                                # load gradient data from previous model
+                                with torch.no_grad():
+                                    pre_grad_dict = torch.load(load_grad_ckpt_path)
+                                    for x in model.named_parameters():
+                                        x[1].grad.data += pre_grad_dict[x[0]].cuda(rank) # accumulate grad
+                                        new_grad_dict[x[0]] = x[1].grad.data
+                                Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load and accumulate grad_ckpt_path:', load_grad_ckpt_path)
+                            else:
+                                new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
+                            torch.save(new_grad_dict, load_grad_ckpt_path)
+                            Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
+                        assert asure<=1, 'Error when constructing sampler and need to check sampler again'
+                        
                     # 同步
                     dist.barrier()
                     # 将cur_batch_piece_id左移
                     cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
-
+                # 此时，一个iteration结束，每个模型的累计梯度已经在model_{rank}_grad.pt中存储
+                # 加载自己rank的模型参数
+                model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
+                model.load_state_dict(torch.load(load_model_ckpt_path))
+                model.cuda(rank)
+                # 加载自己rank的梯度，然后进行allreduce同步，再更新本地模型参数
+                grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
+                batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
+                for param_name, param in model.named_parameters():
+                    recv = torch.zeros_like(batch_grad_dict[param_name])
+                    allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
+                    param.grad = recv.cuda(rank)
+                optimizer.step()
+                
+                # 覆写新参数、梯度归零、覆写梯度
+                torch.save(model.state_dict(), model_ckpt_path)
+                optimizer.zero_grad()
+                new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
+                torch.save(new_grad_dict, grad_ckpt_path)
+                
+                # 一个iteration至此结束
                 iter += 1
                 if epoch == 0 and iter == 1:
                     cacher.auto_cache(args.dataset, "metis",
