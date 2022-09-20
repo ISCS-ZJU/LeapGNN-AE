@@ -86,6 +86,7 @@ def run(rank, devices_lst, args):
     cacher.init_field(['features'])
 
     # build DDP model and helpers
+    torch.manual_seed(2022)
     model = gcn.GCNSampling(cacher.dims['features'], args.hidden_size, args.n_classes, len(
         sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -204,6 +205,7 @@ def run(rank, devices_lst, args):
                     # 将cur_batch_piece_id左移
                     cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
                 # 此时，一个iteration结束，每个模型的累计梯度已经在model_{rank}_grad.pt中存储
+                
                 # 加载自己rank的模型参数
                 model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
                 model.load_state_dict(torch.load(load_model_ckpt_path))
@@ -212,10 +214,15 @@ def run(rank, devices_lst, args):
                 grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
                 batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
                 for param_name, param in model.named_parameters():
+                    # Print('rank', rank, 'before optimizer param:', param_name, param)
+                    # Print('rank', rank, 'before allreduce grad:', param_name, batch_grad_dict[param_name])
                     recv = torch.zeros_like(batch_grad_dict[param_name])
                     allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
-                    param.grad = recv.cuda(rank)
+                    param.grad.data = recv.cuda(rank)
+                    # Print('rank', rank, 'after allreduce grad:', param_name, param.grad.data)
                 optimizer.step()
+                # for param_name, param in model.named_parameters():
+                #     Print('rank', rank, 'after optimizer grad:', param_name, param)
                 
                 # 覆写新参数、梯度归零、覆写梯度
                 torch.save(model.state_dict(), model_ckpt_path)
