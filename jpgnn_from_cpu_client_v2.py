@@ -15,7 +15,9 @@ from model import gcn
 from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 
-
+import logging
+# logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
+logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -26,7 +28,7 @@ from multiprocessing import Process, Queue
 def run(rank, devices_lst, args):
     # print config parameters
     if rank == 0:
-        print('Client Args:', args)
+        logging.info(f'Client Args: {args}')
     total_epochs = args.epoch
     world_size = len(devices_lst)
     # Initialize distributed training context.
@@ -55,7 +57,7 @@ def run(rank, devices_lst, args):
 
     # get train nid (consider DDP) as corresponding labels
     fg_adj = data.get_struct(args.dataset)
-    Print('full graph:', fg_adj)
+    logging.debug(f'full graph:{fg_adj}')
     fg_labels = data.get_labels(args.dataset)
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
@@ -119,13 +121,13 @@ def run(rank, devices_lst, args):
             np.random.seed(epoch)
             np.random.shuffle(fg_train_nid)
             if rank==0:
-                print(f'=> Shuffled epoch training nid for epoch {epoch}:', fg_train_nid)
+                logging.info(f'=> Shuffled epoch training nid for epoch {epoch}: {fg_train_nid}')
             useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_node]
             useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_node) # 每行表示一个gpu要训练的epoch train nid
-            Print('rank:',rank, 'useful_fg_train_nid:', useful_fg_train_nid)
+            logging.debug(f'rank: {rank} useful_fg_train_nid:{useful_fg_train_nid}')
             # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
             useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
-            Print('rank:',rank, 'useful_fg_train_nid.split.T:', useful_fg_train_nid)
+            logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
             
             # 遍历二维数组中每行的batch nid，收集其中属于当前GPU的等数量的sub-batch nid
             sub_batch_nid = [] # k个连续的sub_batch nparray为一组，表示一次iteration中所有的worker中属于当前GPU的nid
@@ -134,7 +136,7 @@ def run(rank, devices_lst, args):
                     cur_gpu_nid_mask = (nid2pid[batch]==rank)
                     sub_batch_nid.append(batch[cur_gpu_nid_mask]) # 即使是空也会占一个位置
                     if rank==0:
-                        Print('put sub_batch:', batch[cur_gpu_nid_mask])
+                        logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
             # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
             nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q))
             nf_gen_proc.daemon = True
@@ -145,15 +147,14 @@ def run(rank, devices_lst, args):
             model.train()
             n_batches = useful_fg_train_nid.shape[0]
             n_sub_batches = n_batches * world_size
-            print('n_sub_batches:', n_sub_batches)
+            logging.debug(f'n_sub_batches:{n_sub_batches}')
             for sub_iter in range(n_sub_batches):
                 iter = sub_iter // world_size
-                print('waiting sampler results...')
                 try:
                     nf = nf_q.get(True)
                 except Exception as e:
-                    print('*', repr(e)) # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
-                print('got sampler results.')
+                    logging.debug(f'* repr(e)') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
+                logging.debug('got sampler results.')
                 cur_batch_piece_id = rank
                 if nf!=None:
                     # 加载其他worker写入的模型
@@ -170,9 +171,9 @@ def run(rank, devices_lst, args):
                         loss = loss_fn(pred, labels)
                         # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
                         loss.backward()
-                        for x in model.named_parameters():
-                            print(x[1].grad.size())
-                        Print('rank:', rank, 'local backward done.')
+                        # for x in model.named_parameters():
+                        #     logging.info(x[1].grad.size())
+                        logging.debug(f'rank: {rank} local backward done.')
                     
                     new_grad_dict = {}
                     load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
@@ -183,10 +184,10 @@ def run(rank, devices_lst, args):
                             for x in model.named_parameters():
                                 x[1].grad.data += pre_grad_dict[x[0]].cuda(rank) # accumulate grad
                                 new_grad_dict[x[0]] = x[1].grad.data
-                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'load and accumulate grad_ckpt_path:', load_grad_ckpt_path)
+                        logging.debug(f'rank: {rank} iter/sub_iter: {iter}/{sub_iter} load and accumulate grad_ckpt_path: {load_grad_ckpt_path}')
                     else:
                         new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
-                        Print('rank:', rank, f'iter/sub_iter: {iter}/{sub_iter}', 'save grad_ckpt_path with new grad:', load_grad_ckpt_path)
+                        logging.debug(f'rank: {rank} iter/sub_iter: {iter}/{sub_iter} save grad_ckpt_path with new grad: {load_grad_ckpt_path}')
                     torch.save(new_grad_dict, load_grad_ckpt_path)
                     
                 # 同步
@@ -203,15 +204,15 @@ def run(rank, devices_lst, args):
                     grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
                     batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
                     for param_name, param in model.named_parameters():
-                        # Print('rank', rank, 'before optimizer param:', param_name, param)
-                        # Print('rank', rank, 'before allreduce grad:', param_name, batch_grad_dict[param_name])
+                        # logging.debug(f'rank: {rank} before optimizer param: {param_name} {param}')
+                        # logging.debug(f'rank: {rank} before allreduce grad: {param_name} {batch_grad_dict[param_name]}')
                         recv = torch.zeros_like(batch_grad_dict[param_name])
                         allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
                         param.grad = recv.cuda(rank)
-                        # Print('rank', rank, 'after allreduce grad:', param_name, param.grad.data)
+                        # logging.debug(f'rank: {rank} after allreduce grad: {param_name} {param.grad.data}')
                     optimizer.step()
                     # for param_name, param in model.named_parameters():
-                    #     Print('rank', rank, 'after optimizer grad:', param_name, param)
+                        # logging.debug(f'rank: {rank} after optimizer grad: {param_name} {param}')
                     
                     # 覆写新参数、梯度归零、覆写梯度
                     torch.save(model.state_dict(), model_ckpt_path)
@@ -224,11 +225,11 @@ def run(rank, devices_lst, args):
                         cacher.auto_cache(args.dataset, "metis", world_size, rank, ['features'])
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
-                print('Epoch miss rate: {:.4f}'.format(miss_rate))
-            print(f'cur_epoch {epoch} finished on rank {rank}', '===='*20)
+                logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
+            logging.info(f'=> cur_epoch {epoch} finished on rank {rank}')
             nf_gen_proc.terminate() # 一个epoch结束
     if rank == 0:
-        print(prof.key_averages().table(sort_by='cuda_time_total'))
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):
@@ -271,10 +272,10 @@ if __name__ == '__main__':
 
 
 def generate_nodeflows(sub_batch_nid, fg, sampling, queue):
-    iter = 0
+    sub_iter = 0
     for sub_batch in sub_batch_nid:
-        print('=> sub_batch in queue to generate nf:', sub_batch, iter)
-        iter += 1
+        logging.info(f'=> sub_batch in queue to generate nf: {sub_batch}, sub_iter:{sub_iter}')
+        sub_iter += 1
         if sub_batch.size>0:
             sampler = dgl.contrib.sampling.NeighborSampler(fg, sub_batch.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch, add_self_loop=True)
             asure = 0            
