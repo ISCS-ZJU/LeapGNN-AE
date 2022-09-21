@@ -11,9 +11,12 @@ from dgl import DGLGraph
 from utils.help import Print
 import storage
 from model import gcn
+import logging
 
-
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
+
 
 
 ######################################################################
@@ -23,7 +26,7 @@ from model import gcn
 def run(rank, devices_lst, args):
     # print config parameters
     if rank == 0:
-        print('Client Args:', args)
+        logging.info(f'Client Args: {args}')
     total_epochs = args.epoch
     world_size = len(devices_lst)
     # Initialize distributed training context.
@@ -101,7 +104,7 @@ def run(rank, devices_lst, args):
             model.train()
             iter = 0
             for nf in sampler:
-                Print('iter:', iter)
+                logging.debug(f'iter: {iter}')
                 with torch.autograd.profiler.record_function('featch batch data'):
                     # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                     cacher.fetch_data(nf)
@@ -120,9 +123,9 @@ def run(rank, devices_lst, args):
                                       world_size, rank, ['features'])
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
-                print('Epoch miss rate: {:.4f}'.format(miss_rate))
+                logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
     if rank == 0:
-        print(prof.key_averages().table(sort_by='cuda_time_total'))
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):

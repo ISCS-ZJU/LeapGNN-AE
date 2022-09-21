@@ -12,8 +12,12 @@ from utils.help import Print
 import storage
 from model import gcn
 
+import logging
+# logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
+logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
-# torch.set_printoptions(threshold=np.inf)
+
+# torch.set_logging.infooptions(threshold=np.inf)
 
 
 ######################################################################
@@ -21,9 +25,9 @@ from model import gcn
 # ---------------------------
 
 def run(rank, devices_lst, args):
-    # print config parameters
+    # logging.info config parameters
     if rank == 0:
-        print('Client Args:', args)
+        logging.info(f'Client Args: {args}')
     total_epochs = args.epoch
     world_size = len(devices_lst)
     # Initialize distributed training context.
@@ -89,7 +93,7 @@ def run(rank, devices_lst, args):
             np.random.shuffle(fg_train_nid)
             train_lnid = fg_train_nid[rank *
                                       ntrain_per_node: (rank+1)*ntrain_per_node]
-            print('rank:', rank, 'epoch train_lnid:', train_lnid)
+            logging.info(f'rank: {rank} epoch train_lnid: {train_lnid}')
             train_labels = fg_labels[train_lnid]
             part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
             part_labels[train_lnid] = train_labels
@@ -102,7 +106,7 @@ def run(rank, devices_lst, args):
             model.train()
             iter = 0
             for nf in sampler:
-                print("rank", rank, 'iter:', iter)
+                logging.info(f"rank: {rank} iter: {iter}")
                 with torch.autograd.profiler.record_function('featch batch data'):
                     # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                     cacher.fetch_data(nf)
@@ -119,15 +123,15 @@ def run(rank, devices_lst, args):
                 if epoch == 0 and iter == 1:
                     cacher.auto_cache(args.dataset, "metis",
                                       world_size, rank, ['features'])
-                # print(f"rank: {rank}", "=========="*10)
+                # logging.info(f"rank: {rank}", "=========="*10)
                 # if iter==3:
                 #     import sys
                 #     sys.exit()
             if cacher.log:
                 miss_rate = cacher.get_miss_rate()
-                print('Epoch miss rate: {:.4f}'.format(miss_rate))
+                logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
     if rank == 0:
-        print(prof.key_averages().table(sort_by='cuda_time_total'))
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):
