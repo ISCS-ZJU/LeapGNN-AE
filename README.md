@@ -4,7 +4,7 @@
 1. conda create -n repgnn python==3.9 -y
 2. conda activate repgnn
 3. pip3 install torch torchvision
-4. pip3 install psutil tqdm 
+4. pip3 install psutil tqdm pymetis
 
 5. install dgl==0.4.1 from source:
     ```
@@ -57,3 +57,8 @@
    4. 如果子树不为空：加载对应的模型，前传反传得到梯度；为空跳过5；
    5. 若之前已经存储过当前模型的grad，那么对grad进行累加；覆写新的grad；否则直接写入新的grad；
    6. 同步，等各GPU都完成一个sub-batch的处理；循环3-5步，每k次表示一个batch的数据并行训练完成，因此执行一次梯度同步，即上面的7；
+
+### Transfer Ogbn Dataset Format
+1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径, NAME为要下载的ogbn的数据集名称
+2. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh
+

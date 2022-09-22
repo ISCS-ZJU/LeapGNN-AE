@@ -16,8 +16,8 @@ from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 
 import logging
-# logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
+# logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -106,7 +106,7 @@ def run(rank, devices_lst, args):
     grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
     if os.path.exists(model_ckpt_path):
         os.remove(model_ckpt_path)
-        torch.save(model.state_dict(), model_ckpt_path) # 保存最初始的模型参数
+    torch.save(model.state_dict(), model_ckpt_path) # 保存最初始的模型参数
     if os.path.exists(grad_ckpt_path):
         os.remove(grad_ckpt_path)
         
@@ -153,7 +153,7 @@ def run(rank, devices_lst, args):
                 try:
                     nf = nf_q.get(True)
                 except Exception as e:
-                    logging.debug(f'* repr(e)') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
+                    logging.debug(f'* {repr(e)}') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
                 logging.debug('got sampler results.')
                 cur_batch_piece_id = rank
                 if nf!=None:

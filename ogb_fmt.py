@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # setpath = '/data/pagraph/ogb/set'
     # curpath =  osp.dirname(__file__)
     setpath = args.path
-    dataset = NodePropPredDataset(name=args.name,root='/data/pagraph/ogb')
+    dataset = NodePropPredDataset(name=args.name,root=setpath)
     data = dataset[0]
     node_num = data[0]['num_nodes']
     edge_num = len(data[0]['edge_index'][0])
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     np.save(featpath,np.array(data[0]['node_feat']))
     
 
-    print('end')
+    print(f'end, directed={directed[args.name]}')
 
     # print(data[0]['edge_index'][0])
     # print(data[0]['edge_index'][1])
