@@ -16,8 +16,8 @@ from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 
 import logging
-logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-# logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+# logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
+logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -227,7 +227,7 @@ def run(rank, devices_lst, args):
                 miss_rate = cacher.get_miss_rate()
                 logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
             logging.info(f'=> cur_epoch {epoch} finished on rank {rank}')
-            nf_gen_proc.terminate() # 一个epoch结束
+        nf_gen_proc.join() # 一个epoch结束
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
@@ -278,12 +278,12 @@ def generate_nodeflows(sub_batch_nid, fg, sampling, queue):
         sub_iter += 1
         if sub_batch.size>0:
             sampler = dgl.contrib.sampling.NeighborSampler(fg, sub_batch.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch, add_self_loop=True)
-            asure = 0            
+            asure = 0           
             for nf in sampler:
                 asure += 1
                 queue.put(nf)
             assert asure<=1, 'Error when create sampler'
         else:
             queue.put(None) # 当前sub_batch为空
-        # time.sleep(0.001)
+    time.sleep(2) # TODO: change a way to fix this error
     
