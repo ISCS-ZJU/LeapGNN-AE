@@ -17,7 +17,7 @@ from multiprocessing import Process, Queue
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename="./jpgnn_cpu_degree.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename="./jpgnn_cpu_degree.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -246,6 +246,7 @@ def run(rank, devices_lst, args):
                     miss_rate = cacher.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
+                fetch_done.put(1)
                 nf_gen_proc.join() # 一个epoch结束
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))

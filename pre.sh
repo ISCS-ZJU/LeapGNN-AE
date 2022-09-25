@@ -1,5 +1,5 @@
 
-SETPATH='/data/repgnn/'
+SETPATH='/data/wj/repgnn/'
 ORINAME='ogbn-arxiv'
 # NAME='ogbn-products'
 NAME=${ORINAME/-/_}
@@ -12,7 +12,7 @@ rm $RESUTLDIR/labels.npy
 rm $RESUTLDIR/test.npy
 rm $RESUTLDIR/train.npy
 rm $RESUTLDIR/val.npy
-python ogb_fmt.py -n $ORINAME -p $RESUTLDIR
+python ogb_fmt.py -n $ORINAME -p $SETPATH
 if [ $? ]
 then
 echo "running with --directed"

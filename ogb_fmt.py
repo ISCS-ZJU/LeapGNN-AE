@@ -43,10 +43,12 @@ if __name__ == '__main__':
     labels = np.zeros(node_num,dtype=np.int32)
     for i in range(0,node_num):
         labels[i] = data[1][i]
-
-    labpath = osp.join(setpath,'labels.npy')
-    ppath = osp.join(setpath,'pp.txt')
-    featpath = osp.join(setpath,'feat.npy')
+    
+    dataset_name = args.name.replace('-','_')
+    savepath = osp.join(setpath, dataset_name)
+    labpath = osp.join(savepath,'labels.npy')
+    ppath = osp.join(savepath,'pp.txt')
+    featpath = osp.join(savepath,'feat.npy')
     np.save(labpath,labels)
     with open(ppath,'w') as f:
         for i in range(0,edge_num):

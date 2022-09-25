@@ -12,7 +12,7 @@ import torch.distributed as dist
 import logging
 # logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
-f = open('dgl_cpu_degree_hit_rate.txt', 'a+')
+
 
 
 class DGLCPUGraphCacheServer:
@@ -52,6 +52,7 @@ class DGLCPUGraphCacheServer:
         self.log = True
         self.try_num = 0
         self.miss_num = 0
+        self.f = open('dgl_cpu_degree_hit_rate.txt', 'a+')
 
     def init_field(self, embed_names):
         with torch.cuda.device(self.gpuid):
@@ -219,7 +220,7 @@ class DGLCPUGraphCacheServer:
 
     def get_miss_rate(self):
         miss_rate = float(self.miss_num) / self.try_num
-        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}', file=f)
+        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}', file=self.f)
         self.miss_num = 0
         self.try_num = 0
         return miss_rate
