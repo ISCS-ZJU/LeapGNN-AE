@@ -152,7 +152,8 @@ def run(rank, devices_lst, args):
                 # 从nf_q中读取nf，开始模型训练
                 model.train()
                 n_batches = useful_fg_train_nid.shape[0]
-                n_sub_batches = n_batches * world_size
+                # n_sub_batches = n_batches * world_size
+                n_sub_batches = len(sub_batch_nid)
                 logging.debug(f'n_sub_batches:{n_sub_batches}')
 
                 for sub_iter in range(n_sub_batches):
