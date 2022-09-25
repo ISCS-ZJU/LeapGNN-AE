@@ -11,10 +11,10 @@ from dgl import DGLGraph
 from utils.help import Print
 import storage
 from model import gcn
-import logging
+import logging, time
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -61,10 +61,14 @@ def run(rank, devices_lst, args):
     ntrain_per_node = int(fg_train_nid.shape[0] / world_size) - 1
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
 
+    fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
+
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
     if rank == 0:
+        st = time.time()
         os.system(
             f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
+        logging.info(f'It takes {time.time()-st}s on metis algorithm.')
     torch.distributed.barrier()
 
     # construct this partition graph for sampling
@@ -86,52 +90,60 @@ def run(rank, devices_lst, args):
 
     # start training
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
-        for epoch in range(args.epoch):
-            # 切分训练数据
-            np.random.seed(epoch)
-            np.random.shuffle(fg_train_nid)
-            train_lnid = fg_train_nid[rank *
-                                      ntrain_per_node: (rank+1)*ntrain_per_node]
-            train_labels = fg_labels[train_lnid]
-            part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
-            part_labels[train_lnid] = train_labels
-            part_labels = torch.LongTensor(part_labels)  # to torch tensors
+        with torch.autograd.profiler.record_function('total epochs time'):
+            for epoch in range(args.epoch):
+                with torch.autograd.profiler.record_function('train data prepare'):
+                    # 切分训练数据
+                    np.random.seed(epoch)
+                    np.random.shuffle(fg_train_nid)
+                    train_lnid = fg_train_nid[rank *
+                                            ntrain_per_node: (rank+1)*ntrain_per_node]
+                    train_labels = fg_labels[train_lnid]
+                    part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
+                    part_labels[train_lnid] = train_labels
+                    part_labels = torch.LongTensor(part_labels)  # to torch tensors
 
-            # 构造sampler
-            sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
-                sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+                # 构造sampler
+                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
+                    sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
-            model.train()
-            iter = 0
-            for nf in sampler:
-                logging.debug(f'iter: {iter}')
-                with torch.autograd.profiler.record_function('featch batch data'):
-                    # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                    cacher.fetch_data(nf)
+                model.train()
+                iter = 0
+                wait_sampler = []
+                st = time.time()
+                for nf in sampler:
+                    wait_sampler.append(time.time()-st)
+                    logging.debug(f'iter: {iter}')
+                    with torch.autograd.profiler.record_function('fetch feat'):
+                        # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                        cacher.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
-                    labels = part_labels[batch_nid].cuda(
-                        rank, non_blocking=True)
-                with torch.autograd.profiler.record_function('gpu-compute'):
-                    pred = model(nf)
-                    loss = loss_fn(pred, labels)
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                iter += 1
-                if epoch == 0 and iter == 1:
-                    cacher.auto_cache(args.dataset, "metis",
-                                      world_size, rank, ['features'])
-            if cacher.log:
-                miss_rate = cacher.get_miss_rate()
-                logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
+                    with torch.autograd.profiler.record_function('fetch label'):
+                        labels = part_labels[batch_nid].cuda(
+                            rank, non_blocking=True)
+                    with torch.autograd.profiler.record_function('gpu-compute with gradient allreduce'):
+                        pred = model(nf)
+                        loss = loss_fn(pred, labels)
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                    iter += 1
+                    with torch.autograd.profiler.record_function('auto cache time'):
+                        if epoch == 0 and iter == 1:
+                            cacher.auto_cache(args.dataset, "metis",
+                                            world_size, rank, ['features'])
+                    st = time.time()
+                if cacher.log:
+                    miss_rate = cacher.get_miss_rate()
+                    print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
+                print(f'=> cur_epoch {epoch} finished on rank {rank}')
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, choices=[
-                        'ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
+    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="2-2-2",

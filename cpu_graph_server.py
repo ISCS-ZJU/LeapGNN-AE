@@ -9,8 +9,7 @@ import os
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, choices=[
-                        'ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
+    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=2,
                         type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="10-10-10",
@@ -56,7 +55,7 @@ def main(args):
 
     g.ndata['features'] = features
     # 至此，graph的topo和feat都已经在shared memory中，并赋给变量g._graph，可以通过graph server来访问
-
+    print('please start to run client...')
     g.run()  # 监听server请求
 
 

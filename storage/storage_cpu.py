@@ -12,6 +12,7 @@ import torch.distributed as dist
 import logging
 # logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
+f = open('dgl_cpu_degree_hit_rate.txt', 'a+')
 
 
 class DGLCPUGraphCacheServer:
@@ -48,7 +49,7 @@ class DGLCPUGraphCacheServer:
             self.localid2cacheid.requires_grad_(False)
 
         # logs
-        self.log = False
+        self.log = True
         self.try_num = 0
         self.miss_num = 0
 
@@ -86,7 +87,7 @@ class DGLCPUGraphCacheServer:
         # assume float32 = 4 bytes
         self.capability = int(available / (self.total_dim * 4))
         #self.capability = int(6 * 1024 * 1024 * 1024 / (self.total_dim * 4))
-        self.capability = int(self.node_num * 0.2)
+        self.capability = int(part_node_num * 0.2)
         logging.info('Cache Memory: {:.2f}G. Capability: {}'
               .format(available / 1024 / 1024 / 1024, self.capability))
         # Step3: cache
@@ -158,7 +159,7 @@ class DGLCPUGraphCacheServer:
         if self.full_cached:
             self.fetch_from_cache(nodeflow)
             return
-        with torch.autograd.profiler.record_function('cache-idxload'):
+        with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
             nf_nids = nodeflow._node_mapping.tousertensor().cuda(self.gpuid)
             offsets = nodeflow._layer_offsets
@@ -169,7 +170,7 @@ class DGLCPUGraphCacheServer:
             #tnid = nodeflow.layer_parent_nid(i).cuda(self.gpuid)
             tnid = nf_nids[offsets[i]:offsets[i+1]]
             # get nids -- overhead ~0.1s
-            with torch.autograd.profiler.record_function('cache-index'):
+            with torch.autograd.profiler.record_function('fetch feat overhead'):
                 gpu_mask = self.gpu_flag[tnid]
                 # lnid cached in gpu (part-graph level)
                 nids_in_gpu = tnid[gpu_mask]
@@ -177,18 +178,18 @@ class DGLCPUGraphCacheServer:
                 # lnid cached in cpu (part-graph level)
                 nids_in_cpu = tnid[cpu_mask]
             # create frame
-            with torch.autograd.profiler.record_function('cache-allocate'):
+            with torch.autograd.profiler.record_function('fetch feat overhead'):
                 with torch.cuda.device(self.gpuid):
                     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
                              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
             # for gpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('cache-gpu feat read'):
+            with torch.autograd.profiler.record_function('fetch feat from local gpu'):
                 if nids_in_gpu.size(0) != 0:
                     cacheid = self.localid2cacheid[nids_in_gpu]
                     for name in self.dims:
                         frame[name][gpu_mask] = self.gpu_fix_cache[name][cacheid]
             # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('cache-cpu feat read'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu'):
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
                         nids_in_cpu, list(self.dims), to_gpu=True)
@@ -218,6 +219,7 @@ class DGLCPUGraphCacheServer:
 
     def get_miss_rate(self):
         miss_rate = float(self.miss_num) / self.try_num
+        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}', file=f)
         self.miss_num = 0
         self.try_num = 0
         return miss_rate

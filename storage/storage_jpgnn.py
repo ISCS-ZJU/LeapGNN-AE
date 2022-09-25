@@ -12,12 +12,13 @@ import torch.distributed as dist
 import logging
 # logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
+f = open('jpgnn_cpu_degree_hit_rate.txt', 'a+')
 
 
 class JPGNNGraphCacheServer:
     """
     Manage graph features
-    Automatically fetch the feature tensor from local/remote GPU or CPU
+    Automatically fetch the feature tensor from CPU or local GPU
     """
 
     def __init__(self, graph, node_num, gpuid):
@@ -48,19 +49,9 @@ class JPGNNGraphCacheServer:
             self.localid2cacheid.requires_grad_(False)
 
         # logs
-        self.log = False
+        self.log = True
         self.try_num = 0
         self.miss_num = 0
-
-        # record each node's partition id
-        with torch.cuda.device(self.gpuid):
-            self.nid2pid = torch.cuda.LongTensor(node_num).fill_(-1)
-            self.nid2pid.requires_grad_(False)
-
-        # record whether node has been cached in local/remote gpus
-        self.local_remote_gpu_flag = torch.zeros(
-            self.node_num).bool().cuda(self.gpuid)
-        self.local_remote_gpu_flag.requires_grad_(False)
 
     def init_field(self, embed_names):
         with torch.cuda.device(self.gpuid):
@@ -79,19 +70,12 @@ class JPGNNGraphCacheServer:
           g: DGLGraph for local graphs
           embed_names: field name list, e.g. ['features', 'norm']
         """
-        # 加载所有的Partition，建立nid2pid (partition id == gpu id)
-        cur_part_node_num = -1
-        for pid in range(partitions):
-            sorted_part_nids = data.get_partition_results(
-                dataset, methodname, partitions, pid)
-            self.nid2pid[sorted_part_nids] = torch.LongTensor(1).fill_(pid)
-            if rank == pid:
-                cur_part_node_num = len(sorted_part_nids)
-                cur_sorted_part_nids = torch.from_numpy(sorted_part_nids)
-            if rank == 0:
-                logging.info(
-                    f'There are {len(sorted_part_nids)} nodes in partition {pid}: {sorted_part_nids}')
-        assert cur_part_node_num != -1
+        # 加载分割到的这部分的图id
+        sorted_part_nids = data.get_partition_results(
+            dataset, methodname, partitions, rank)
+        part_node_num = sorted_part_nids.shape[0]
+        sorted_part_nids = torch.from_numpy(sorted_part_nids)
+        logging.info(f'rank {rank} got a part of graph with {part_node_num} nodes.')
 
         # Step1: get available GPU memory
         peak_allocated_mem = torch.cuda.max_memory_allocated(device=self.gpuid)
@@ -103,23 +87,22 @@ class JPGNNGraphCacheServer:
         # assume float32 = 4 bytes
         self.capability = int(available / (self.total_dim * 4))
         #self.capability = int(6 * 1024 * 1024 * 1024 / (self.total_dim * 4))
-        self.capability = int(self.node_num * 0.2)
+        self.capability = int(part_node_num * 0.2) # 缓存当前分图的20%的数据
         logging.info('Cache Memory: {:.2f}G. Capability: {}'
               .format(available / 1024 / 1024 / 1024, self.capability))
         # Step3: cache
-        if self.capability >= cur_part_node_num:
+        if self.capability >= part_node_num:
             # fully cache
             logging.info('cache the part graph... caching percentage: 100%')
             data_frame = self.get_feat_from_server(
-                cur_sorted_part_nids, embed_names)
+                sorted_part_nids, embed_names)
             # 最终缓存里的node id是full-graph的onid
-            self.cache_fix_data(cur_sorted_part_nids, data_frame, is_full=True)
+            self.cache_fix_data(sorted_part_nids, data_frame, is_full=True)
         else:
             # choose top-cap out-degree nodes to cache
             logging.info('cache the part of graph... caching percentage: {:.4f}'
-                  .format(self.capability / cur_part_node_num))
-            cache_nid = cur_sorted_part_nids[:self.capability]
-            logging.debug(f"rank: {rank}, cached_nid: {cache_nid}")
+                  .format(self.capability / part_node_num))
+            cache_nid = sorted_part_nids[:self.capability]
             data_frame = self.get_feat_from_server(cache_nid, embed_names)
             self.cache_fix_data(cache_nid, data_frame, is_full=False)
 
@@ -173,104 +156,48 @@ class JPGNNGraphCacheServer:
           nodeflow: DGL nodeflow. all nids in nodeflow should
                     under sub-graph space
         """
-
         if self.full_cached:
             self.fetch_from_cache(nodeflow)
             return
-        with torch.autograd.profiler.record_function('cache-idxload'):
+        with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
             nf_nids = nodeflow._node_mapping.tousertensor().cuda(self.gpuid)
             offsets = nodeflow._layer_offsets
-            logging.debug(f'rank: {self.gpuid}, fetch_data batch onid, layer_offset: {nf_nids}, {offsets}')
-        logging.debug(f'rank: {self.gpuid}, nf.nlayers: {nodeflow.num_layers}')
-        logging.debug(f'training rank: {self.gpuid}, training id: {nf_nids[-2:]}')
+            logging.debug(f'fetch_data batch onid, layer_offset: {nf_nids}, {offsets}')
+        logging.debug(f'nf.nlayers: {nodeflow.num_layers}')
         for i in range(nodeflow.num_layers):
-            # all tnid are not got from local/remote gpu
-            self.local_remote_gpu_flag[:] = False
             # with torch.autograd.profiler.record_function('cache-idx-load'):
             #tnid = nodeflow.layer_parent_nid(i).cuda(self.gpuid)
             tnid = nf_nids[offsets[i]:offsets[i+1]]
-            # 建立tnid的反映射，这样远程反传回来的nid的feat可以确定对应在frame中的位置
-            nid2frameidx = {nid.item(): i for i, nid in enumerate(tnid)}
-
-            # # get nids -- overhead ~0.1s
-            # with torch.autograd.profiler.record_function('cache-index'):
-            #   gpu_mask = self.gpu_flag[tnid]
-            #   nids_in_gpu = tnid[gpu_mask] # lnid cached in gpu
-            #   cpu_mask = ~gpu_mask
-            #   nids_in_cpu = tnid[cpu_mask] # lnid cached in cpu
-
-            # distribute nid to each gpu
-            source_lst = [[] for _ in range(dist.get_world_size())]
-            pid_of_tnid = self.nid2pid[tnid]
-            for pid, nid in zip(pid_of_tnid, tnid):
-                if pid != -1:
-                    source_lst[pid].append(nid)
-
-            # scatter require node id to each gpu
-            nid_recv = []
-            tmp_recv_nid = [None]
-            for src in range(dist.get_world_size()):
-                dist.scatter_object_list(tmp_recv_nid, source_lst, src=src)
-                nid_recv.append(tmp_recv_nid)
-                tmp_recv_nid = [None]
-
-            # collecte cached feats
-            # [([hit_nid_lst], {name:graph._node_frame.data[hit_nid_lst]}), ...]
-            response_lst = []
-            for j, nids in enumerate(nid_recv):
-                nids = nids[0]
-                response_lst.append(
-                    self.get_hit_feats_from_local_cache(nids, j))
-
-            # response required nodes' features
-            recv_feats_lst = []  # ([hit_nid_lst], feats_value:frame)
-            tmp_feat_recv = [None]
-            for src in range(dist.get_world_size()):
-                dist.scatter_object_list(tmp_feat_recv, response_lst, src=src)
-                recv_feats_lst.append(tmp_feat_recv)
-                tmp_feat_recv = [None]
-
-            # create return frame
-            with torch.autograd.profiler.record_function('cache-allocate'):
+            # get nids -- overhead ~0.1s
+            with torch.autograd.profiler.record_function('fetch feat overhead'):
+                gpu_mask = self.gpu_flag[tnid]
+                # lnid cached in gpu (part-graph level)
+                nids_in_gpu = tnid[gpu_mask]
+                cpu_mask = ~gpu_mask
+                # lnid cached in cpu (part-graph level)
+                nids_in_cpu = tnid[cpu_mask]
+            # create frame
+            with torch.autograd.profiler.record_function('fetch feat overhead'):
                 with torch.cuda.device(self.gpuid):
                     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
                              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
-            # # for gpu cached tensors: ##NOTE: Make sure it is in-place update!
-            # with torch.autograd.profiler.record_function('cache-gpu feat read'):
-            #   if nids_in_gpu.size(0) != 0:
-            #     cacheid = self.localid2cacheid[nids_in_gpu]
-            #     for name in self.dims:
-            #       frame[name][gpu_mask] = self.gpu_fix_cache[name][cacheid]
-
             # for gpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('cache-gpu feat local read'):
-                for recv_feats in recv_feats_lst:
-                    recv_feats = recv_feats[0]
-                    hit_nid, feats_dict = recv_feats
-                    frame_hit_idx = torch.tensor(
-                        [nid2frameidx[x.item()] for x in hit_nid]).cuda(self.gpuid)  # maybe slow
-                    if hit_nid.size(0) > 0:
-                        for name in self.dims:
-                            frame[name][frame_hit_idx] = feats_dict[name]
-                            # already hit in local/remote gpu
-                            self.local_remote_gpu_flag[hit_nid] = True
-
-            gpu_mask = self.local_remote_gpu_flag[tnid]
-            cpu_mask = ~gpu_mask
-            nids_in_cpu = tnid[cpu_mask]
-
+            with torch.autograd.profiler.record_function('fetch feat from local gpu'):
+                if nids_in_gpu.size(0) != 0:
+                    cacheid = self.localid2cacheid[nids_in_gpu]
+                    for name in self.dims:
+                        frame[name][gpu_mask] = self.gpu_fix_cache[name][cacheid]
             # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('cache-cpu feat read'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu'):
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
                         nids_in_cpu, list(self.dims), to_gpu=True)
                     for name in self.dims:
-                        logging.debug(f'rank: {self.gpuid}, fetch features from cpu for frame["features"].size(): {frame[name].size()}, cpu_mask: {cpu_mask}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
+                        logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[name].size()}, cpu_mask: {cpu_mask}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
                         frame[name][cpu_mask] = cpu_data_frame[name]
-
             with torch.autograd.profiler.record_function('cache-asign'):
-                logging.debug(f'rank: {self.gpuid}, Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
+                logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
             if self.log:
                 self.log_miss_rate(nids_in_cpu.size(0), tnid.size(0))
@@ -280,28 +207,11 @@ class JPGNNGraphCacheServer:
             #nid = dgl.utils.toindex(nodeflow.layer_parent_nid(i))
             with torch.autograd.profiler.record_function('cache-idxload'):
                 tnid = nodeflow.layer_parent_nid(i).cuda(self.gpuid)
-                cacheid = self.localid2cacheid[tnid]
             with torch.autograd.profiler.record_function('cache-gpu'):
                 frame = {}
                 for name in self.gpu_fix_cache:
-                    frame[name] = self.gpu_fix_cache[name][cacheid]
+                    frame[name] = self.gpu_fix_cache[name][tnid]
             nodeflow._node_frames[i] = FrameRef(Frame(frame))
-
-    def get_hit_feats_from_local_cache(self, nids, srcgpuid):
-        nids = torch.tensor([tsr.item() for tsr in nids]).type(
-            torch.LongTensor).cuda(self.gpuid)
-        gpu_cached_mask = self.gpu_flag[nids]
-        nids_in_gpu = nids[gpu_cached_mask]
-        if nids_in_gpu.size(0) > 0:
-            cacheid = self.localid2cacheid[nids_in_gpu]
-            with torch.cuda.device(self.gpuid):
-                frame = {name: torch.cuda.FloatTensor(cacheid.size(0), self.dims[name])
-                         for name in self.dims}
-            for name in self.dims:
-                frame[name] = self.gpu_fix_cache[name][cacheid].to(srcgpuid)
-            return (nids_in_gpu.to(srcgpuid), frame)
-        else:
-            return (torch.tensor([]).cuda(self.gpuid), {})
 
     def log_miss_rate(self, miss_num, total_num):
         self.try_num += total_num
@@ -309,6 +219,7 @@ class JPGNNGraphCacheServer:
 
     def get_miss_rate(self):
         miss_rate = float(self.miss_num) / self.try_num
+        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}', file=f)
         self.miss_num = 0
         self.try_num = 0
         return miss_rate

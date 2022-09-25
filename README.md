@@ -20,6 +20,8 @@
     cd ../python
     python setup.py install
     ```
+    
+    在A100上无法编译dgl的这个版本，需要进行修改，参见dgl的提交 715b3b167d707e397f41881e481408b18eed22cd 和 5cff2f1cb2e3e307617bfa5b225df05555effb4b
 
 6. 如果要使用模拟生成的图，可以安装PaRMAT
     ```
@@ -38,6 +40,11 @@
   ```
   python3 cpu_graph_server.py -ngpu 4
   python3 dgl_from_cpu_gpu_client.py -ngpu 4
+
+  # 运行ogbn-arxiv
+  python3 cpu_graph_server.py -ngpu 100 -d /data/repgnn/ogbn_arxiv
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 jpgnn_from_cpu_client_v2.py -ngpu 4 -s 10-10 -bs 512 -d /data/repgnn/ogbn_arxiv -ncls 40
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 dgl_from_cpu_client.py -ngpu 4 -s 10-10 -bs 512 -d /data/repgnn/ogbn_arxiv -ncls 40
   ```
 
 ### Note
@@ -59,6 +66,6 @@
    6. 同步，等各GPU都完成一个sub-batch的处理；循环3-5步，每k次表示一个batch的数据并行训练完成，因此执行一次梯度同步，即上面的7；
 
 ### Transfer Ogbn Dataset Format
-1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径, NAME为要下载的ogbn的数据集名称
+1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径(不包括文件名), NAME为要下载的ogbn的数据集名称
 2. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh
 

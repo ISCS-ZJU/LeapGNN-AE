@@ -102,7 +102,7 @@ class DGLCPUGPUGraphCacheServer:
         # assume float32 = 4 bytes
         self.capability = int(available / (self.total_dim * 4))
         #self.capability = int(6 * 1024 * 1024 * 1024 / (self.total_dim * 4))
-        self.capability = int(self.node_num * 0.2)
+        self.capability = int(part_node_num * 0.2)
         logging.info('Cache Memory: {:.2f}G. Capability: {}'
               .format(available / 1024 / 1024 / 1024, self.capability))
         # Step3: cache

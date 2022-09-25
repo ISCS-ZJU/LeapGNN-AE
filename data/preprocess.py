@@ -142,8 +142,10 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   if not os.path.exists(args.dataset):
-    print('{}: No such a dataset folder'.format(args.dataset))
-    sys.exit(-1)
+    # print('{}: No such a dataset folder'.format(args.dataset))
+    # sys.exit(-1)
+    os.mkdir(args.dataset)
+    print(f'Created  folder {args.dataset} to store results.')
   
   # generate adj
   adj_file = os.path.join(args.dataset, 'adj.npz')

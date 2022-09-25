@@ -8,7 +8,7 @@ import argparse
 import scipy.sparse as spsp
 import os
 
-
+import logging
 
 
 
@@ -39,15 +39,17 @@ if __name__ == "__main__":
         part_id[pid].append(nid)
     # print(part_id)
     for lst in part_id:
-        lst.sort(key=lambda x: len(adjacency_list[x]), reverse=True)
+        lst.sort(key=lambda x: len(adjacency_list[x]), reverse=True) # 按照出度从大到小排序
     # print(part_id)
 
     # save
     save_folder = os.path.join(args.dataset, f"{args.partition}_metis")
     if not os.path.exists(save_folder):
         os.mkdir(save_folder)
+        logging.info(f"mkdir {save_folder} done")
     for i, partnid in enumerate(part_id):
         np.save(os.path.join(save_folder, f'{i}.npy'), partnid)
+        logging.info(f"write partition nid {save_folder}/{i}.npy file  done")
 
 
 # nodes_part_0 = np.argwhere(np.array(membership) == 0).ravel() # [3, 5, 6]

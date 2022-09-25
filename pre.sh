@@ -1,21 +1,23 @@
 
 SETPATH='/data/repgnn/'
-# NAME='ogbn-arxiv'
-NAME='ogbn-arxiv'
+ORINAME='ogbn-arxiv'
+# NAME='ogbn-products'
+NAME=${ORINAME/-/_}
+RESUTLDIR=$SETPATH$NAME
 
 # data/set/clean.sh
-rm $SETPATH/adj.npz
-rm $SETPATH/feat.npy
-rm $SETPATH/labels.npy
-rm $SETPATH/test.npy
-rm $SETPATH/train.npy
-rm $SETPATH/val.npy
-python ogb_fmt.py -n $NAME -p $SETPATH
+rm $RESUTLDIR/adj.npz
+rm $RESUTLDIR/feat.npy
+rm $RESUTLDIR/labels.npy
+rm $RESUTLDIR/test.npy
+rm $RESUTLDIR/train.npy
+rm $RESUTLDIR/val.npy
+python ogb_fmt.py -n $ORINAME -p $RESUTLDIR
 if [ $? ]
 then
 echo "running with --directed"
-python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH
+python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME
 else
 echo "running without --directed"
-python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH
+python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME
 fi
