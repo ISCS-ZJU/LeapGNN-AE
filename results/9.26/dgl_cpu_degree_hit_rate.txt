@@ -1,0 +1,12 @@
+self.miss_num, self.try_num: 905718, 995839, 0.9095024396513894
+self.miss_num, self.try_num: 902996, 996874, 0.905827617131152
+self.miss_num, self.try_num: 887739, 984991, 0.9012661029390117
+self.miss_num, self.try_num: 881250, 1000272, 0.8810103651806709
+self.miss_num, self.try_num: 860685, 981475, 0.8769301306706743
+self.miss_num, self.try_num: 874545, 1000228, 0.8743456491919842
+self.miss_num, self.try_num: 873771, 991044, 0.8816672115466114
+self.miss_num, self.try_num: 843696, 966182, 0.8732267833596569
+self.miss_num, self.try_num: 862774, 984365, 0.8764777292975675
+self.miss_num, self.try_num: 809863, 964642, 0.839547728587393
+self.miss_num, self.try_num: 838962, 1001339, 0.8378401320631674
+self.miss_num, self.try_num: 822178, 979393, 0.8394771046964804

@@ -15,6 +15,10 @@ from model import gcn
 from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 
+import warnings
+warnings.filterwarnings("ignore")
+
+
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
 logging.basicConfig(level=logging.INFO, filename="./jpgnn_cpu_degree.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
@@ -141,12 +145,14 @@ def run(rank, devices_lst, args):
                             sub_batch_nid.append(batch[cur_gpu_nid_mask]) # 即使是空也会占一个位置
                             if rank==0:
                                 logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
-                # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
-                nf_q = Queue(20)
-                fetch_done = Queue(1)
-                nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q, fetch_done))
-                nf_gen_proc.daemon = True
-                nf_gen_proc.start()
+                
+                with torch.autograd.profiler.record_function('create Queue&Process'):
+                    # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
+                    nf_q = Queue(20)
+                    fetch_done = Queue(1)
+                    nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q, fetch_done))
+                    nf_gen_proc.daemon = True
+                    nf_gen_proc.start()
                 # mp.spawn(generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q), nprocs=1)
                 
                 # 从nf_q中读取nf，开始模型训练
@@ -204,9 +210,10 @@ def run(rank, devices_lst, args):
                                 new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
                                 logging.debug(f'rank: {rank} iter/sub_iter: {iter}/{sub_iter} save grad_ckpt_path with new grad: {load_grad_ckpt_path}')
                             torch.save(new_grad_dict, load_grad_ckpt_path)
-                        
-                    # 同步
-                    dist.barrier()
+                    
+                    with torch.autograd.profiler.record_function('sync for each sub_iter'):    
+                        # 同步
+                        dist.barrier()
                     # 将cur_batch_piece_id左移
                     cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
                     

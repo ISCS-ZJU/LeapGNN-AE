@@ -114,9 +114,12 @@ def run(rank, devices_lst, args):
                 for nf in sampler:
                     wait_sampler.append(time.time()-st)
                     logging.debug(f'iter: {iter}')
-                    with torch.autograd.profiler.record_function('fetch feat'):
-                        # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                        cacher.fetch_data(nf)
+                    if epoch==0 and iter==0:
+                        cacher.fetch_data(nf) # 没有缓存的时候的fetch_data时间不要算入
+                    else:
+                        with torch.autograd.profiler.record_function('fetch feat'):
+                            # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                            cacher.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
                     with torch.autograd.profiler.record_function('fetch label'):
                         labels = part_labels[batch_nid].cuda(
@@ -139,6 +142,7 @@ def run(rank, devices_lst, args):
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+        logging.info(f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
 
 
 def parse_args_func(argv):
