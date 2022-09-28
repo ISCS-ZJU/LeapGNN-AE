@@ -12,7 +12,7 @@ from utils.help import Print
 import storage
 from model import gcn
 
-import logging
+import logging,time
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
 logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
@@ -87,56 +87,68 @@ def run(rank, devices_lst, args):
 
     # start training
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
-        for epoch in range(args.epoch):
-            # 切分训练数据
-            np.random.seed(epoch)
-            np.random.shuffle(fg_train_nid)
-            train_lnid = fg_train_nid[rank *
-                                      ntrain_per_node: (rank+1)*ntrain_per_node]
-            logging.info(f'rank: {rank} epoch train_lnid: {train_lnid}')
-            train_labels = fg_labels[train_lnid]
-            part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
-            part_labels[train_lnid] = train_labels
-            part_labels = torch.LongTensor(part_labels)  # to torch tensors
+        with torch.autograd.profiler.record_function('total epochs time'):
+            for epoch in range(args.epoch):
+                # 切分训练数据
+                with torch.autograd.profiler.record_function('train data prepare'):
+                    np.random.seed(epoch)
+                    np.random.shuffle(fg_train_nid)
+                    train_lnid = fg_train_nid[rank *
+                                            ntrain_per_node: (rank+1)*ntrain_per_node]
+                    logging.info(f'rank: {rank} epoch train_lnid: {train_lnid}')
+                    train_labels = fg_labels[train_lnid]
+                    part_labels = np.zeros(np.max(train_lnid) + 1, dtype=np.int)
+                    part_labels[train_lnid] = train_labels
+                    part_labels = torch.LongTensor(part_labels)  # to torch tensors
 
-            # 构造sampler
-            sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
-                sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+                # 构造sampler
+                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
+                    sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
-            model.train()
-            iter = 0
-            for nf in sampler:
-                logging.info(f"rank: {rank} iter: {iter}")
-                with torch.autograd.profiler.record_function('featch batch data'):
-                    # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                    cacher.fetch_data(nf)
-                    batch_nid = nf.layer_parent_nid(-1)  # part-graph lnid
-                    labels = part_labels[batch_nid].cuda(
-                        rank, non_blocking=True)
-                with torch.autograd.profiler.record_function('gpu-compute'):
-                    pred = model(nf)
-                    loss = loss_fn(pred, labels)
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                iter += 1
-                if epoch == 0 and iter == 1:
-                    cacher.auto_cache(args.dataset, "metis",
-                                      world_size, rank, ['features'])
-                # logging.info(f"rank: {rank}", "=========="*10)
-                # if iter==3:
-                #     import sys
-                #     sys.exit()
-            if cacher.log:
-                miss_rate = cacher.get_miss_rate()
-                logging.info('Epoch miss rate: {:.4f}'.format(miss_rate))
+                model.train()
+                iter = 0
+                wait_sampler = []
+                st = time.time()
+                for nf in sampler:
+                    wait_sampler.append(time.time()-st)
+                    logging.info(f"rank: {rank} iter: {iter}")
+                    if epoch==0 and iter==0:
+                        cacher.fetch_data(nf) # 没有缓存的时候的fetch_data时间不要算入
+                    else:
+                        with torch.autograd.profiler.record_function('fetch feat'):
+                            # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                            cacher.fetch_data(nf)
+                    batch_nid = nf.layer_parent_nid(-1)
+                    with torch.autograd.profiler.record_function('fetch label'):
+                        labels = part_labels[batch_nid].cuda(
+                            rank, non_blocking=True)
+                    with torch.autograd.profiler.record_function('gpu-compute with gradient allreduce'):
+                        pred = model(nf)
+                        loss = loss_fn(pred, labels)
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                    iter += 1
+                    with torch.autograd.profiler.record_function('auto cache time'):
+                        if epoch == 0 and iter == 1:
+                            cacher.auto_cache(args.dataset, "metis",
+                                            world_size, rank, ['features'])
+                    st = time.time()
+                    # logging.info(f"rank: {rank}", "=========="*10)
+                    # if iter==3:
+                    #     import sys
+                    #     sys.exit()
+                if cacher.log:
+                    local_hit_rate,remote_hit_rate = cacher.get_miss_rate()
+                    logging.info('Epoch local hit rate: {:.4f}\nEpoch remote hit rate: {:.4f}'.format(local_hit_rate,remote_hit_rate))
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+        logging.info(f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
 
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, choices=[
+    parser.add_argument('-d', '--dataset', default="/data/pagraph/ogb/set/tmp", type=str, choices=[
                         'ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')
@@ -167,4 +179,5 @@ def parse_args_func(argv):
 
 if __name__ == '__main__':
     args = parse_args_func(None)
-    mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
+    run(0,[0],args)
+    # mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
