@@ -27,6 +27,7 @@ class JPGNNGraphCacheServer:
           graph:   should be created from `dgl.contrib.graph_store`
           node_num: should be sub graph node num
         """
+        # ?
         self.graph = graph  # CPU full graph topo
         self.gpuid = gpuid
         self.node_num = node_num
