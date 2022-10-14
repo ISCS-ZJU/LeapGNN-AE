@@ -162,6 +162,7 @@ def run(rank, devices_lst, args):
                 n_sub_batches = len(sub_batch_nid)
                 logging.debug(f'n_sub_batches:{n_sub_batches}')
 
+                cur_batch_piece_id = rank
                 for sub_iter in range(n_sub_batches):
                     iter = sub_iter // world_size
                     with torch.autograd.profiler.record_function('wait sampler'):
@@ -170,7 +171,6 @@ def run(rank, devices_lst, args):
                         except Exception as e:
                             logging.debug(f'* {repr(e)}') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
                     logging.debug('got sampler results.')
-                    cur_batch_piece_id = rank
                     if nf!=None:
                         with torch.autograd.profiler.record_function('model transfer'):
                             # 加载其他worker写入的模型
