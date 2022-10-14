@@ -191,7 +191,8 @@ class DGLCPUGPUGraphCacheServer:
             tnid = nf_nids[offsets[i]:offsets[i+1]]
             # 建立tnid的反映射，这样远程反传回来的nid的feat可以确定对应在frame中的位置
             with torch.autograd.profiler.record_function('fetch feat overhead'):
-                nid2frameidx = {nid.item(): i for i, nid in enumerate(tnid)}
+                with torch.no_grad():
+                    nid2frameidx = {nid.item(): i for i, nid in enumerate(tnid)}
 
             # # get nids -- overhead ~0.1s
             # with torch.autograd.profiler.record_function('cache-index'):

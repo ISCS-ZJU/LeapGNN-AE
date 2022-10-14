@@ -243,7 +243,7 @@ def run(rank, devices_lst, args):
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/gendemo", type=str, choices=[
+    parser.add_argument('-d', '--dataset', default="/data/cwj/pagraph/gendemo", type=str, choices=[
                         'ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')

@@ -33,21 +33,26 @@
 ### Steps
 + 产生模拟小图数据，10个点，25条边，没有重复，无方向; 图文件保存在pp.txt中；
     ```
-    ./PaRMAT -noDuplicateEdges -undirected -threads 16 -nVertices 20 -nEdges 50 -output /data/pagraph/gendemo/pp.txt
-    python data/preprocess.py --ppfile pp.txt --gen-feature --gen-label --gen-set --dataset /data/pagraph/gendemo
+    ./PaRMAT -noDuplicateEdges -undirected -threads 16 -nVertices 20 -nEdges 50 -output /data/cwj/pagraph/gendemo/pp.txt
+    python data/preprocess.py --ppfile pp.txt --gen-feature --gen-label --gen-set --dataset /data/cwj/pagraph/gendemo
     ```
++ Transfer Ogbn Dataset Format
+    1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径(不包括文件名), NAME为要下载的ogbn的数据集名称
+    2. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh
+
 + 启动server和client，例如4卡运行：使用metis分图，从local/remote gpu, or cpu 取数据
   ```
   python3 cpu_graph_server.py -ngpu 4
   python3 dgl_from_cpu_gpu_client.py -ngpu 4
 
   # 运行ogbn-arxiv
-  python3 cpu_graph_server.py -ngpu 100 -d /data/repgnn/ogbn_arxiv
-  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 jpgnn_from_cpu_client_v2.py -ngpu 4 -s 10-10 -bs 512 -d /data/repgnn/ogbn_arxiv -ncls 40
-  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 dgl_from_cpu_client.py -ngpu 4 -s 10-10 -bs 512 -d /data/repgnn/ogbn_arxiv -ncls 40
+  python3 cpu_graph_server.py -ngpu 100 -d /data/cwj/repgnn/ogbn_arxiv
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 jpgnn_from_cpu_client_v2.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv -ncls 40
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 dgl_from_cpu_client.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv -ncls 40
   ```
 
 ### Note
+### jpgnn_from_cpu_client_v2.py的开发思路：
 1. jpgnn_from_cpu_client_v1.py的实现思路：
    1. 每个GPU从epoch分得的数组中，分离得到一个batch的train nid；
    2. 根据每个target nid判断分图时所在的GPU，进行GPU间train nid的交换；最终得到k组sub-batch nid；(k=ngpu)
@@ -65,7 +70,6 @@
    5. 若之前已经存储过当前模型的grad，那么对grad进行累加；覆写新的grad；否则直接写入新的grad；
    6. 同步，等各GPU都完成一个sub-batch的处理；循环3-5步，每k次表示一个batch的数据并行训练完成，因此执行一次梯度同步，即上面的7；
 
-### Transfer Ogbn Dataset Format
-1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径(不包括文件名), NAME为要下载的ogbn的数据集名称
-2. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh
+### 代码流程：
+#### dgl_from_cpu_client.py
 

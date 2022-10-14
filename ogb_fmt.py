@@ -9,7 +9,7 @@ import argparse
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='data set preprocess')
     parser.add_argument('-n', '--name', default="ogbn-arxiv", type=str, choices=['ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
-    parser.add_argument('-p', '--path', default="/data/pagraph/ogb/set", type=str, help='data store path')
+    parser.add_argument('-p', '--path', default="/data/cwj/pagraph/ogb/set", type=str, help='data store path')
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # label = pd.read_csv(osp.join('/home/qhy/gnn/repgnn/dataset/ogbn_arxiv/raw', 'node-label.csv.gz'), compression='gzip', header = None).values.T.astype(np.int64)
     # print(label)
 
-    # setpath = '/data/pagraph/ogb/set'
+    # setpath = '/data/cwj/pagraph/ogb/set'
     # curpath =  osp.dirname(__file__)
     setpath = args.path
     dataset = NodePropPredDataset(name=args.name,root=setpath)

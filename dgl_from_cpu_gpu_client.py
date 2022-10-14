@@ -14,7 +14,7 @@ from model import gcn
 
 import logging,time
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='w', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, filename="./tmp.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 
 
 # torch.set_logging.infooptions(threshold=np.inf)
@@ -148,8 +148,7 @@ def run(rank, devices_lst, args):
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/ogb/set/tmp", type=str, choices=[
-                        'ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
+    parser.add_argument('-d', '--dataset', default="/data/cwj/pagraph/gendemo", type=str, help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="2-2-2",
@@ -179,5 +178,5 @@ def parse_args_func(argv):
 
 if __name__ == '__main__':
     args = parse_args_func(None)
-    run(0,[0],args)
-    # mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
+    # run(0,[0],args)
+    mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
