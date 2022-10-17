@@ -38,7 +38,8 @@
     ```
 + Transfer Ogbn Dataset Format
     1. 修改pre.sh中的SETPATH为数据最终要存储的文件夹路径(不包括文件名), NAME为要下载的ogbn的数据集名称
-    2. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh
+    2. 修改pre.sh中LEN参数为需要feature长度(0表示不做处理，直接使用原本的feature)
+    3. 然后添加shell脚本可执行权限：chmod u+x pre.sh 最后直接执行pre.sh 
 
 + 启动server和client，例如4卡运行：使用metis分图，从local/remote gpu, or cpu 取数据
   ```
