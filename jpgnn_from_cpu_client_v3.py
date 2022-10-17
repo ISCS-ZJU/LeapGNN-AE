@@ -71,11 +71,11 @@ def run(rank, devices_lst, args):
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
 
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
-    if rank == 0:
-        st = time.time()
-        os.system(
-            f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
-        logging.info(f'It takes {time.time()-st}s on metis algorithm.')
+    # if rank == 0:
+    #     st = time.time()
+    #     os.system(
+    #         f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
+    #     logging.info(f'It takes {time.time()-st}s on metis algorithm.')
     torch.distributed.barrier()
     
     # 1. 每个gpu加载分图的结果，之后用于对train_lnid根据所在GPU进行切分
@@ -176,10 +176,10 @@ def run(rank, devices_lst, args):
                                 logging.debug(f'* {repr(e)}') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
                         logging.debug('got sampler results.')
                         if epoch==0 and sub_iter==0:
-                            cacher.fetch_data(nf) # 没有缓存的时候的fetch_data时间不要算入
+                            cacher.fetch_data(nfs) # 没有缓存的时候的fetch_data时间不要算入
                         else:
                             with torch.autograd.profiler.record_function('fetch feat'):
-                                cacher.fetch_data(nf)
+                                cacher.fetch_data(nfs)
                     nf = nfs[sub_iter % world_size]
                     if nf!=None:
                         with torch.autograd.profiler.record_function('model transfer'):
@@ -271,7 +271,7 @@ def run(rank, devices_lst, args):
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/pagraph/ogb/set/tmp", type=str, help='training dataset name')
+    parser.add_argument('-d', '--dataset', default="/data/cwj/pagraph/gendemo", type=str, help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="2-2-2",
@@ -318,7 +318,6 @@ def generate_nodeflows(sub_batch_nid, fg, sampling, queue, fetch_done):
             for nf in sampler:
                 asure += 1
                 queue.put(nf)
-                print(nf)
             assert asure<=1, 'Error when create sampler'
         else:
             queue.put(None) # 当前sub_batch为空
