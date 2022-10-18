@@ -120,7 +120,7 @@ def run(rank, devices_lst, args):
         return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
 
     # start training
-    
+
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
@@ -145,14 +145,19 @@ def run(rank, devices_lst, args):
                             sub_batch_nid.append(batch[cur_gpu_nid_mask]) # 即使是空也会占一个位置
                             if rank==0:
                                 logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
+                    if epoch == 0:
+                        sampler = dgl.contrib.sampling.NeighborSampler(fg, sub_batch_nid[0].size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid[0], add_self_loop=True)
+                        for i in sampler:
+                            nf = i
+                            break
                 
-                with torch.autograd.profiler.record_function('create Queue&Process'):
-                    # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
-                    nf_q = Queue(20)
-                    fetch_done = Queue(1)
-                    nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q, fetch_done))
-                    nf_gen_proc.daemon = True
-                    nf_gen_proc.start()
+                # with torch.autograd.profiler.record_function('create Queue&Process'):
+                #     # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
+                #     nf_q = Queue(20)
+                #     fetch_done = Queue(1)
+                #     nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q, fetch_done))
+                #     nf_gen_proc.daemon = True
+                #     nf_gen_proc.start()
                 # mp.spawn(generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q), nprocs=1)
                 
                 # 从nf_q中读取nf，开始模型训练
@@ -177,7 +182,7 @@ def run(rank, devices_lst, args):
                                     #     reuse_nf = nf
                                     # else:
                                     #     nf = reuse_nf
-                                    nf = nf_q.get(True)
+                                    # nf = nf_q.get(True)
                                     nfs.append(nf)
                             except Exception as e:
                                 logging.debug(f'* {repr(e)}')
@@ -276,15 +281,15 @@ def run(rank, devices_lst, args):
                     miss_rate = cacher.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
-                fetch_done.put(1)
-                nf_gen_proc.join() # 一个epoch结束
+                # fetch_done.put(1)
+                # nf_gen_proc.join() # 一个epoch结束
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
-    parser.add_argument('-d', '--dataset', default="/data/cwj/pagraph/gendemo", type=str, help='training dataset name')
+    parser.add_argument('-d', '--dataset', default="/data/pagraph/ogb/set/tmp", type=str, help='training dataset name')
     parser.add_argument('-ngpu', '--num-gpu', default=1,
                         type=int, help='# of gpus to train gnn with DDP')
     parser.add_argument('-s', '--sampling', default="2-2-2",
