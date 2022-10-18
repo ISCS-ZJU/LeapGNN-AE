@@ -207,7 +207,7 @@ class NewJPGNNGraphCacheServer:
                     self.node_mask[j][:] = False
                     self.node_mask[j][tnid[j][cpu_mask[j]]] = True
                     self.tol_node_mask[tnid[j][cpu_mask[j]]] = True # ngpu个子树在i层的所有要从cpu取的id都置True
-                    self.tol_try_mask[tnid[j]] = True
+                    self.tol_try_mask[tnid[j]] = True               # ngpu个子树在i层的所有id都置True（不管是否在cpu/gpu）
                 nids_in_cpu = torch.where(self.tol_node_mask==True)[0] # ngpu个子树在第i层的所有要从cpu取的nid（已去重）
                 
             # create frame
