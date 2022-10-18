@@ -9,6 +9,7 @@ import argparse
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='data set preprocess')
     parser.add_argument('-n', '--name', default="ogbn-arxiv", type=str, choices=['ogbn-arxiv', 'ogbn-products', 'ogbn-proteins', 'ogbn-mag'], help='training dataset name')
+    parser.add_argument('-l', '--len', default=0, type=int, help='feature length')
     parser.add_argument('-p', '--path', default="/data/cwj/pagraph/ogb/set", type=str, help='data store path')
     return parser.parse_args(argv)
 
@@ -49,11 +50,21 @@ if __name__ == '__main__':
     labpath = osp.join(savepath,'labels.npy')
     ppath = osp.join(savepath,'pp.txt')
     featpath = osp.join(savepath,'feat.npy')
+    cur_len = len(data[0]['node_feat'][0])
+    new_array = np.array(data[0]['node_feat'])
+    if args.len <= 0:
+        pass
+    elif cur_len < args.len:
+        new_array = np.concatenate((new_array,np.ones((node_num,args.len - cur_len))),axis=1)
+    else:
+        new_array = new_array[:,0:args.len]
     np.save(labpath,labels)
     with open(ppath,'w') as f:
         for i in range(0,edge_num):
             f.write(str(data[0]['edge_index'][0][i]) + "\t" + str(data[0]['edge_index'][1][i]) + "\n")
-    np.save(featpath,np.array(data[0]['node_feat']))
+    np.save(featpath,new_array)
+    print(new_array)
+    print(len(new_array[0]))
     
 
     print(f'end, directed={directed[args.name]}')

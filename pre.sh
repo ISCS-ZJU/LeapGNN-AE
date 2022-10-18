@@ -1,6 +1,7 @@
 
-SETPATH='/data/wj/repgnn/'
+SETPATH='/data/pagraph/ogb/set/'
 ORINAME='ogbn-arxiv'
+LEN=256
 # NAME='ogbn-products'
 NAME=${ORINAME/-/_}
 RESUTLDIR=$SETPATH$NAME
@@ -12,7 +13,7 @@ rm $RESUTLDIR/labels.npy
 rm $RESUTLDIR/test.npy
 rm $RESUTLDIR/train.npy
 rm $RESUTLDIR/val.npy
-python ogb_fmt.py -n $ORINAME -p $SETPATH
+python ogb_fmt.py -n $ORINAME -p $SETPATH -l $LEN
 if [ $? ]
 then
 echo "running with --directed"
