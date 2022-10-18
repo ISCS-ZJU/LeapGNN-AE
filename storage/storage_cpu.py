@@ -194,9 +194,10 @@ class DGLCPUGraphCacheServer:
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
                         nids_in_cpu, list(self.dims), to_gpu=True)
-                    for name in self.dims:
-                        logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[name].size()}, cpu_mask: {cpu_mask}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
-                        frame[name][cpu_mask] = cpu_data_frame[name]
+            with torch.autograd.profiler.record_function('fetch feat from cpu-construct frames'):
+                for name in self.dims:
+                    logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[name].size()}, cpu_mask: {cpu_mask}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
+                    frame[name][cpu_mask] = cpu_data_frame[name]
             with torch.autograd.profiler.record_function('cache-asign'):
                 logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))

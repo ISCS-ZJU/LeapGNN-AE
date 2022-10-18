@@ -122,7 +122,7 @@ def run(rank, devices_lst, args):
     # start training
     
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
-        with torch.autograd.profiler.record_function('avg one epoch'):
+        with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
                     # 切分训练数据
@@ -160,7 +160,7 @@ def run(rank, devices_lst, args):
                 n_batches = useful_fg_train_nid.shape[0]
                 # n_sub_batches = n_batches * world_size
                 n_sub_batches = len(sub_batch_nid)
-                logging.debug(f'n_sub_batches:{n_sub_batches}')
+                logging.info(f'n_sub_batches:{n_sub_batches}')
 
                 cur_batch_piece_id = rank
                 for sub_iter in range(n_sub_batches):

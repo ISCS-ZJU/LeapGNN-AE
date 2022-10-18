@@ -55,6 +55,18 @@ class NewJPGNNGraphCacheServer:
         self.miss_num = 0
         self.f = open('jpgnn_cpu_degree_hit_rate.txt', 'a+')
 
+        # 
+        self.tol_node_mask = torch.zeros(self.node_num).bool().cuda(self.gpuid) # 全图nid数组
+        self.tol_node_mask.requires_grad_(False)
+        self.node_mask = [] # ngpu个全图nid数组，其中要从cpu取的位置是True，其他是False
+        for j in range(self.world_size):
+            self.node_mask.append(torch.zeros(self.node_num).bool().cuda(self.gpuid))
+            self.node_mask[j].requires_grad_(False)
+        if self.log:
+            self.tol_try_mask = torch.zeros(self.node_num).bool().cuda(self.gpuid)
+            self.tol_try_mask.requires_grad_(False)
+
+
     def init_field(self, embed_names):
         with torch.cuda.device(self.gpuid):
             nid = torch.cuda.LongTensor([0])
@@ -164,50 +176,44 @@ class NewJPGNNGraphCacheServer:
             return
         with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
-            nf_nids = []
-            offsets = []
+            nf_nids = [] # ngpu个子树的nid
+            offsets = [] # ngpu个子树不同层的划分界点
             for j in range(self.world_size):
                 nf_nids.append(nodeflow[j]._node_mapping.tousertensor().cuda(self.gpuid))
                 offsets.append(nodeflow[j]._layer_offsets)
             logging.debug(f'fetch_data batch onid, layer_offset: {nf_nids}, {offsets}')
             logging.debug(f'nf.nlayers: {nodeflow[j].num_layers}')
         for i in range(nodeflow[0].num_layers):
-            # with torch.autograd.profiler.record_function('cache-idx-load'):
-            #tnid = nodeflow.layer_parent_nid(i).cuda(self.gpuid)
-            tnid = []
+            tnid = [] # ngpu个树的第i层的nid
             for j in range(self.world_size):
                 tnid.append(nf_nids[j][offsets[j][i]:offsets[j][i+1]])
-            # get nids -- overhead ~0.1s
+            
             with torch.autograd.profiler.record_function('fetch feat overhead'):
 
-                tol_node_mask = torch.zeros(self.node_num).bool().cuda(self.gpuid)
-                tol_node_mask.requires_grad_(False)
+                self.tol_node_mask[:] = False
 
-                gpu_mask = []
+                gpu_mask = [] # ngpu个树第i层的node是否在gpu中
                 # lnid cached in gpu (part-graph level)
-                nids_in_gpu = []
-                cpu_mask = []
-                # lnid cached in cpu (part-graph level)
-
-                node_mask = []
+                nids_in_gpu = [] # ngpu个树第i层的node在gpu中的nid
+                cpu_mask = [] # ngpu个树第i层的node是否在cpu中
+                # lnid cached in cpu (part-graph level)                
                 if self.log:
-                    tol_try_mask = torch.zeros(self.node_num).bool().cuda(self.gpuid)
-                    tol_try_mask.requires_grad_(False)
+                    self.tol_try_mask[:] = False
+                
                 for j in range(self.world_size):
                     gpu_mask.append(self.gpu_flag[tnid[j]])
                     cpu_mask.append(~gpu_mask[j])
                     nids_in_gpu.append(tnid[j][gpu_mask[j]])
-                    node_mask.append(torch.zeros(self.node_num).bool().cuda(self.gpuid))
-                    node_mask[j].requires_grad_(False)
-                    node_mask[j][tnid[j][cpu_mask[j]]] = True
-                    tol_node_mask[tnid[j][cpu_mask[j]]] = True
-                    tol_try_mask[tnid[j]] = True
-                nids_in_cpu = torch.where(tol_node_mask==True)[0]
+                    self.node_mask[j][:] = False
+                    self.node_mask[j][tnid[j][cpu_mask[j]]] = True
+                    self.tol_node_mask[tnid[j][cpu_mask[j]]] = True # ngpu个子树在i层的所有要从cpu取的id都置True
+                    self.tol_try_mask[tnid[j]] = True
+                nids_in_cpu = torch.where(self.tol_node_mask==True)[0] # ngpu个子树在第i层的所有要从cpu取的nid（已去重）
                 
             # create frame
             with torch.autograd.profiler.record_function('fetch feat overhead'):
                 with torch.cuda.device(self.gpuid):
-                    frame = []
+                    frame = [] # ngpu个树第i层的nid构成的frame
                     for j in range(self.world_size):
                         frame.append({name: torch.cuda.FloatTensor(tnid[j].size(0), self.dims[name])
                                 for name in self.dims})  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
@@ -219,20 +225,21 @@ class NewJPGNNGraphCacheServer:
                         for name in self.dims:
                             frame[j][name][gpu_mask[j]] = self.gpu_fix_cache[name][cacheid]
             # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('fetch feat from cpu'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu-pure'):
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
-                        nids_in_cpu, list(self.dims), to_gpu=True)
-                    for j in range(self.world_size):
-                        for name in self.dims:
-                            logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[j][name].size()}, cpu_mask: {cpu_mask[j]}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
-                            frame[j][name][cpu_mask[j]] = cpu_data_frame[name][node_mask[j][tol_node_mask]]
+                        nids_in_cpu, list(self.dims), to_gpu=True) # ngpu个树的第i层缺nid都一次从cpu读取
+            with torch.autograd.profiler.record_function('fetch feat from cpu-construct frames'):
+                for j in range(self.world_size):
+                    for name in self.dims:
+                        logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[j][name].size()}, cpu_mask: {cpu_mask[j]}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
+                        frame[j][name][cpu_mask[j]] = cpu_data_frame[name][self.node_mask[j][self.tol_node_mask]]
             with torch.autograd.profiler.record_function('cache-asign'):
                 for j in range(self.world_size):
                     logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame[j]["features"].size()}\n')
                     nodeflow[j]._node_frames[i] = FrameRef(Frame(frame[j]))
             if self.log:
-                self.log_miss_rate(nids_in_cpu.size(0), torch.where(tol_try_mask==True)[0].size(0))
+                self.log_miss_rate(nids_in_cpu.size(0), torch.where(self.tol_try_mask==True)[0].size(0))
 
     def fetch_from_cache(self, nodeflow):
         for i in range(nodeflow.num_layers):
