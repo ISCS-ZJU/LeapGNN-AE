@@ -2,6 +2,7 @@ from pickle import TRUE
 from ogb.nodeproppred import NodePropPredDataset
 import pandas as pd
 import numpy as np
+import os
 import os.path as osp
 import sys
 import argparse
@@ -47,15 +48,21 @@ if __name__ == '__main__':
     
     dataset_name = args.name.replace('-','_')
     savepath = osp.join(setpath, dataset_name)
+    # 生成的
+    savepath = osp.join(setpath, dataset_name) + f'{args.len}'
+    if not osp.exists(savepath):
+        os.mkdir(savepath)
+        print('Created dir name:', savepath)
     labpath = osp.join(savepath,'labels.npy')
     ppath = osp.join(savepath,'pp.txt')
     featpath = osp.join(savepath,'feat.npy')
     cur_len = len(data[0]['node_feat'][0])
     new_array = np.array(data[0]['node_feat'])
+    print('original features dim:', len(new_array[0]), 'dtype:', new_array.dtype)
     if args.len <= 0:
         pass
     elif cur_len < args.len:
-        new_array = np.concatenate((new_array,np.ones((node_num,args.len - cur_len))),axis=1)
+        new_array = np.concatenate((new_array,np.ones((node_num,args.len - cur_len), dtype=new_array.dtype)),axis=1)
     else:
         new_array = new_array[:,0:args.len]
     np.save(labpath,labels)
@@ -64,7 +71,8 @@ if __name__ == '__main__':
             f.write(str(data[0]['edge_index'][0][i]) + "\t" + str(data[0]['edge_index'][1][i]) + "\n")
     np.save(featpath,new_array)
     print(new_array)
-    print(len(new_array[0]))
+    print('after modified features dim:', len(new_array[0]))
+    print("after modified features memory size:", new_array.size * new_array.itemsize)
     
 
     print(f'end, directed={directed[args.name]}')

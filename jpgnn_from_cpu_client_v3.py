@@ -71,11 +71,11 @@ def run(rank, devices_lst, args):
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
 
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
-    # if rank == 0:
-    #     st = time.time()
-    #     os.system(
-    #         f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
-    #     logging.info(f'It takes {time.time()-st}s on metis algorithm.')
+    if rank == 0:
+        st = time.time()
+        os.system(
+            f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
+        logging.info(f'It takes {time.time()-st}s on metis algorithm.')
     torch.distributed.barrier()
     
     # 1. 每个gpu加载分图的结果，之后用于对train_lnid根据所在GPU进行切分
@@ -120,7 +120,6 @@ def run(rank, devices_lst, args):
         return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
 
     # start training
-
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
@@ -169,6 +168,7 @@ def run(rank, devices_lst, args):
 
                 cur_batch_piece_id = rank
                 reuse_nf = None
+                # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for sub_iter in range(n_sub_batches):
                     logging.debug(f'rank {rank} - sub_iter: {sub_iter}')
                     iter = sub_iter // world_size
@@ -209,7 +209,9 @@ def run(rank, devices_lst, args):
                         batch_nid = nf.layer_parent_nid(-1)
                         with torch.autograd.profiler.record_function('fetch label'):
                             labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
+                        
                         with torch.autograd.profiler.record_function('gpu-compute'):
+                            # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                             pred = model(nf)
                             loss = loss_fn(pred, labels)
                             # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
@@ -258,7 +260,7 @@ def run(rank, devices_lst, args):
                         #         allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
                         #         param.grad = recv.cuda(rank)
                         #             # logging.debug(f'rank: {rank} after allreduce grad: {param_name} {param.grad.data}')
-                        with torch.autograd.profiler.record_function('gpu-compute'):
+                        with torch.autograd.profiler.record_function('optimizer.step'):
                             optimizer.step()
                             # for param_name, param in model.named_parameters():
                                 # logging.debug(f'rank: {rank} after optimizer grad: {param_name} {param}')
@@ -280,6 +282,7 @@ def run(rank, devices_lst, args):
                 if cacher.log:
                     miss_rate = cacher.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
+                    # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
                 # fetch_done.put(1)
                 # nf_gen_proc.join() # 一个epoch结束

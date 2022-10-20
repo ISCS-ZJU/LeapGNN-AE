@@ -111,6 +111,7 @@ def run(rank, devices_lst, args):
                 iter = 0
                 wait_sampler = []
                 st = time.time()
+                # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in sampler:
                     wait_sampler.append(time.time()-st)
                     logging.debug(f'iter: {iter}')
@@ -124,7 +125,8 @@ def run(rank, devices_lst, args):
                     with torch.autograd.profiler.record_function('fetch label'):
                         labels = part_labels[batch_nid].cuda(
                             rank, non_blocking=True)
-                    with torch.autograd.profiler.record_function('gpu-compute with gradient allreduce'):
+                    with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
+                        # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                         pred = model(nf)
                         loss = loss_fn(pred, labels)
                         optimizer.zero_grad()
@@ -139,6 +141,7 @@ def run(rank, devices_lst, args):
                 if cacher.log:
                     miss_rate = cacher.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
+                    # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
     if rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))

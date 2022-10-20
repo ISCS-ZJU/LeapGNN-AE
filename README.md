@@ -47,9 +47,9 @@
   python3 dgl_from_cpu_gpu_client.py -ngpu 4
 
   # 运行ogbn-arxiv
-  python3 cpu_graph_server.py -ngpu 100 -d /data/cwj/repgnn/ogbn_arxiv
-  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 jpgnn_from_cpu_client_v2.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv -ncls 40 -ep 1
-  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 dgl_from_cpu_client.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv -ncls 40 -ep 1
+  python3 cpu_graph_server.py -ngpu 100 -d /data/cwj/repgnn/ogbn_arxiv128
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 jpgnn_from_cpu_client_v3.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv128 -ncls 40 -ep 1
+  CUDA_VISIBLE_DEVICES=2,3,4,5 python3 dgl_from_cpu_client.py -ngpu 4 -s 10-10 -bs 512 -d /data/cwj/repgnn/ogbn_arxiv128 -ncls 40 -ep 1
   ```
 
 ### Note

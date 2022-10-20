@@ -119,7 +119,7 @@ class DGLCPUGraphCacheServer:
         """
         nids = nids.cpu()
         if to_gpu:
-            frame = {name: self.graph._node_frame._frame[name].data[nids].cuda(self.gpuid, non_blocking=True)
+            frame = {name: self.graph._node_frame._frame[name].data[nids].cuda(self.gpuid, non_blocking=False)
                      for name in embed_names}
         else:
             frame = {
@@ -190,11 +190,11 @@ class DGLCPUGraphCacheServer:
                     for name in self.dims:
                         frame[name][gpu_mask] = self.gpu_fix_cache[name][cacheid]
             # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('fetch feat from cpu'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu-data transfer'):
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
                         nids_in_cpu, list(self.dims), to_gpu=True)
-            with torch.autograd.profiler.record_function('fetch feat from cpu-construct frames'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu-complement frames from cpu'):
                 for name in self.dims:
                     logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[name].size()}, cpu_mask: {cpu_mask}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
                     frame[name][cpu_mask] = cpu_data_frame[name]

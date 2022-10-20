@@ -225,11 +225,11 @@ class NewJPGNNGraphCacheServer:
                         for name in self.dims:
                             frame[j][name][gpu_mask[j]] = self.gpu_fix_cache[name][cacheid]
             # for cpu cached tensors: ##NOTE: Make sure it is in-place update!
-            with torch.autograd.profiler.record_function('fetch feat from cpu-pure'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu-data  transfer'):
                 if nids_in_cpu.size(0) != 0:
                     cpu_data_frame = self.get_feat_from_server(
                         nids_in_cpu, list(self.dims), to_gpu=True) # ngpu个树的第i层缺nid都一次从cpu读取
-            with torch.autograd.profiler.record_function('fetch feat from cpu-construct frames'):
+            with torch.autograd.profiler.record_function('fetch feat from cpu-complement frames from cpu'):
                 for j in range(self.world_size):
                     for name in self.dims:
                         logging.debug(f'fetch features from cpu for frame["features"].size(): {frame[j][name].size()}, cpu_mask: {cpu_mask[j]}, cpu_data_frame.shape: {cpu_data_frame[name].size()}')
