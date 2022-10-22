@@ -52,7 +52,7 @@ class DGLCPUGraphCacheServer:
         self.log = True
         self.try_num = 0
         self.miss_num = 0
-        self.f = open('dgl_cpu_degree_hit_rate.txt', 'a+')
+        self.f = open('dgl_cpu_degree_hit_rate_1021.txt', 'a+')
 
     def init_field(self, embed_names):
         with torch.cuda.device(self.gpuid):

@@ -1,8 +1,10 @@
 
 from utils import get_sub_graph
+import sys
+sys.path.append('./')
 import data
 import os
-import sys
+
 import dgl
 from dgl import DGLGraph
 import torch

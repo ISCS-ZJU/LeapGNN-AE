@@ -1,7 +1,7 @@
 
 SETPATH='/data/cwj/repgnn/'
 ORINAME='ogbn-arxiv'
-LEN=600 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
+LEN=4096 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
 NAME=${ORINAME/-/_}
 RESUTLDIR=$SETPATH$NAME$LEN

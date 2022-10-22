@@ -132,7 +132,7 @@ class NewJPGNNGraphCacheServer:
         """
         nids = nids.cpu()
         if to_gpu:
-            frame = {name: self.graph._node_frame._frame[name].data[nids].cuda(self.gpuid, non_blocking=True)
+            frame = {name: self.graph._node_frame._frame[name].data[nids].cuda(self.gpuid)
                      for name in embed_names}
         else:
             frame = {

@@ -14,7 +14,7 @@ from model import gcn
 import logging, time
 
 # logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree_1021.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -41,7 +41,7 @@ def run(rank, devices_lst, args):
         torch.cuda.set_device(dev_id)
         device = torch.device('cuda:' + str(dev_id))
         torch.distributed.init_process_group(
-            backend='gloo', init_method=dist_init_method, world_size=world_size, rank=rank)
+            backend='nccl', init_method=dist_init_method, world_size=world_size, rank=rank)
 
     # connect to cpu graph server
     dataset_name = os.path.basename(args.dataset)
@@ -58,7 +58,8 @@ def run(rank, devices_lst, args):
     fg_labels = data.get_labels(args.dataset)
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
-    ntrain_per_node = int(fg_train_nid.shape[0] / world_size) - 1
+    ntrain_per_node = int(fg_train_nid.shape[0] / world_size)
+    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_node:', ntrain_per_node)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
 
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
@@ -66,9 +67,10 @@ def run(rank, devices_lst, args):
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
     if rank == 0:
         st = time.time()
-        os.system(
-            f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
-        logging.info(f'It takes {time.time()-st}s on metis algorithm.')
+        if not os.path.exists(f'{args.dataset}/{world_size}_metis'):
+            os.system(
+                f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
+            logging.info(f'It takes {time.time()-st}s on metis algorithm cmd: python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}.')
     torch.distributed.barrier()
 
     # construct this partition graph for sampling
@@ -138,6 +140,7 @@ def run(rank, devices_lst, args):
                             cacher.auto_cache(args.dataset, "metis",
                                             world_size, rank, ['features'])
                     st = time.time()
+                logging.info(f'rank: {rank}, iter_num: {iter}')
                 if cacher.log:
                     miss_rate = cacher.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, rank, miss_rate))
