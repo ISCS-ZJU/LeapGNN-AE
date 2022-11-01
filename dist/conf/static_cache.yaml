@@ -1,0 +1,15 @@
+# cache server配置信息
+
+# 接口配置
+rpcport: 18110
+
+# 开发打印配置
+debug: false
+
+# 数据集配置
+dataset: /data/cwj/repgnn/ogbn_arxiv600
+
+# 缓存配置
+cache_type: "static"
+# cache_group: "10.214.243.19, 10.78.18.230"
+cache_group: "10.5.30.43, 10.5.30.44"

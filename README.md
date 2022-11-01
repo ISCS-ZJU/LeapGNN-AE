@@ -75,3 +75,36 @@
 ### 代码流程：
 #### dgl_from_cpu_client.py
 
+
+### 分布式
+branch: distributed_version
+
+grpc-golang related:
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+# install protobuf-compiler
+sudo apt-get remove protobuf-compiler
+PB_REL="https://github.com/protocolbuffers/protobuf/releases"
+curl -LO $PB_REL/download/v3.12.1/protoc-3.12.1-linux-x86_64.zip
+unzip protoc-3.12.1-linux-x86_64.zip -d $HOME/.local
+
+export PATH="$PATH:$HOME/.local/bin"
+
+pip3 install grpcio
+pip3 install grpcio-tools
+```
+
+cache server.go related:
+```bash
+go get github.com/jinzhu/configor
+go get github.com/sbinet/npyio
+go get github.com/sirupsen/logrus
+go get google.golang.org/grpc
+ go get google.golang.org/grpc/codes
+ go get google.golang.org/grpc/status
+ go get google.golang.org/protobuf/reflect/protoreflect
+ go get google.golang.org/protobuf/runtime/protoimpl
+```
+
+启动服务端：`.../repgnn/dist$ go run server.go`
