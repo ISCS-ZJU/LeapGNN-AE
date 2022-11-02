@@ -24,5 +24,6 @@ func yamlparser(configpath string) {
 	fmt.Println("Config.Partition:", Config.Partition)
 	fmt.Println("Config.Cache_type:", Config.Cache_type)
 	fmt.Println("Config.Cache_group:", Config.Cache_group)
+	fmt.Println("Config.Statistic:", Config.Statistic)
 
 }

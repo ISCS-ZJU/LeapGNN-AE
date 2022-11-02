@@ -1,9 +1,12 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"main/common"
+	"main/peerclient"
+	"main/rpc/cache"
 	"os"
 	"sync"
 	"time"
@@ -16,6 +19,10 @@ type Static_cache_mng struct {
 	sync.RWMutex
 	cache         map[int64][]float32 // real cache, key: int64, value: []float64
 	Cached_nitems int64               // cached number of data
+	// client requests
+	Feature_dim     int64 //feature dimension
+	Get_request_num int64 // # of client read requests
+	Local_hit_num   int64 // # of local hit requests
 }
 
 func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
@@ -43,7 +50,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("npy-header: %v\n", r.Header)
+	log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
 	shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
 
 	features := make([]float32, shape[0]*shape[1])
@@ -62,28 +69,87 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	log.Infof("[static_cache.go] successfully cached %v nodes features.", len(gnid))
 	log.Infof("[static_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
 
+	static_cache.Feature_dim = int64(shape[1])
+	static_cache.Get_request_num = 0
+	static_cache.Local_hit_num = 0
+
 	return &static_cache
 }
 
 func (static_cache *Static_cache_mng) Put(idx int64, feature []float32) error {
-	static_cache.RLock()
-	defer static_cache.RUnlock()
+	static_cache.Lock()
+	defer static_cache.Unlock()
 	static_cache.cache[idx] = feature // put feature into cache
 	static_cache.Cached_nitems++
 	return nil
 }
 
 func (static_cache *Static_cache_mng) Get(idx int64) ([]float32, error) {
+	if !common.Config.Statistic {
+		static_cache.RLock()
+		defer static_cache.RUnlock()
+		feature, exist := static_cache.cache[idx]
+		if exist {
+			return feature, nil
+		} else {
+			// return nil, errors.New(string(idx) + "not exists.")
+			// query Nid2Pid and call peerserverget
+			remote_pid := DCRuntime.Nid2Pid[idx]
+			remote_addr := DCRuntime.Ip_slice[remote_pid]
+			ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+			defer cancel()
+			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Idx: idx})
+			if err != nil {
+				return nil, errors.New(string(idx) + ", request to remote peer server error.")
+			} else {
+				feature := ret.GetFeature()
+				return feature, nil
+			}
+		}
+	} else {
+		static_cache.Lock()
+		defer static_cache.Unlock()
+		static_cache.Get_request_num++
+		feature, exist := static_cache.cache[idx]
+		if exist {
+			static_cache.Local_hit_num++
+			return feature, nil
+		} else {
+			// query Nid2Pid and call peerserverget
+			remote_pid := DCRuntime.Nid2Pid[idx]
+			remote_addr := DCRuntime.Ip_slice[remote_pid]
+			ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+			defer cancel()
+			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Idx: idx})
+			if err != nil {
+				return nil, errors.New(string(idx) + ", request to remote peer server error.")
+			} else {
+				feature := ret.GetFeature()
+				return feature, nil
+			}
+		}
+	}
+}
+
+func (static_cache *Static_cache_mng) PeerServerGet(idx int64) ([]float32, error) {
 	static_cache.RLock()
 	defer static_cache.RUnlock()
 	feature, exist := static_cache.cache[idx]
 	if exist {
 		return feature, nil
 	} else {
-		return nil, errors.New(string(idx) + "not exists.")
+		return nil, errors.New(string(idx) + "not exists in peerserverget.")
 	}
 }
 
 func (static_cache *Static_cache_mng) Get_type() string {
 	return "static_cache"
+}
+
+func (static_cache *Static_cache_mng) Get_feat_dim() int64 {
+	return static_cache.Feature_dim
+}
+
+func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, int64) {
+	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num
 }

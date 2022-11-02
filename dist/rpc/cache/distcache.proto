@@ -7,12 +7,25 @@ service Operator {
   rpc DCSubmit(DCRequest) returns (DCReply) {}
 }
 
+enum OpType{
+  get_feature_dim = 0; // client gets feature dim to construct network
+  get_features_by_client = 1; // client gets feature by graph node idx
+  get_features_by_peer_server = 2; // peer server gets feature by graph node idx
+  get_cache_info = 3; // client gets cache basic info
+}
+
 message DCRequest{
-    int64 idx = 1; // graph node idx
+    OpType type = 1; // request type
+    int64 idx = 2; // graph node idx
 }
 
 message DCReply{
     repeated float feature = 1; // feature of one idx
+    int64 featdim = 2; // feature dim
+    int64 partidx = 3; // part id of gnid cached in this server
+    string curaddr = 4; // server addr
+    int64 requestnum = 5; // client requests number
+    int64 localhitnum = 6; // local hit requests number
 }
 
 

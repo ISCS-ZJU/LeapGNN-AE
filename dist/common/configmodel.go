@@ -6,5 +6,6 @@ type Configmodel struct {
 	Dataset     string // raw dataset path
 	Cache_type  string // cache type name
 	Cache_group string
-	Partition   int // number of partition to cache features
+	Partition   int  // number of partition to cache features
+	Statistic   bool // whether statistic hit ratio or not
 }
