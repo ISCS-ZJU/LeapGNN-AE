@@ -1,7 +1,11 @@
+from rpc_client import distcache_pb2_grpc
+from rpc_client import distcache_pb2
+import grpc
 import random
 import torch.backends.cudnn as cudnn
 import argparse
-import os, sys
+import os
+import sys
 import torch
 import torch.multiprocessing as mp
 import torch.nn.functional as F
@@ -21,7 +25,6 @@ logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree_1031.txt", fi
 # torch.set_printoptions(threshold=np.inf)
 
 
-
 #############################
 # WARNING: using DDP for multi-node training
 # ---------------------------
@@ -37,12 +40,13 @@ def main(ngpus_per_node):
     assert args.world_size > 1, 'This version only support distributed GNN training with multiple nodes'
     args.distributed = args.world_size > 1 # using DDP for multi-node training
 
-    
     if args.distributed:
-        args.world_size = ngpus_per_node * args.world_size  # total # of DDP training process
+        # total # of DDP training process
+        args.world_size = ngpus_per_node * args.world_size
         mp.spawn(run, nprocs=ngpus_per_node,
                  args=(ngpus_per_node, args))
     else:
+        # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
 
@@ -50,10 +54,10 @@ def run(gpu, ngpus_per_node, args):
     # print config parameters
     if gpu == 0:
         logging.info(f'Client Args: {args}')
-    
-    args.gpu = gpu # 表示使用本地节点的gpu id
+
+    args.gpu = gpu  # 表示使用本地节点的gpu id
     if args.distributed:
-        args.rank = args.rank * ngpus_per_node + gpu # 传入的rank表示节点个数
+        args.rank = args.rank * ngpus_per_node + gpu  # 传入的rank表示节点个数
     # Initialize distributed training context.
     dist_init_method = args.dist_url
     if torch.cuda.device_count() < 1:
@@ -89,33 +93,48 @@ def run(gpu, ngpus_per_node, args):
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
 
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
-
     torch.distributed.barrier()
+
+    # 与cache server建立连接
+    channel = grpc.insecure_channel(args.grpc_port, options=[
+                                   ('grpc.enable_retries', 1),
+                                   ('grpc.keepalive_timeout_ms', 100000),
+                                   ('grpc.max_receive_message_length',
+                                    20 * 1024 * 1024),  # max grpc size 20MB
+    ])
+    # client can use this stub to request to golang cache server
+    stub = distcache_pb2_grpc.OperatorStub(channel)
 
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式
     fg = DGLGraph(fg_adj, readonly=True)
 
     # build DDP model and helpers
-    model = gcn.GCNSampling(cacher.dims['features'], args.hidden_size, args.n_classes, len(
+    response = stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_feature_dim), timeout=1000) # data is DCReply type response
+    print(f'Got feature dim from server: {response.featdim}')
+    model = gcn.GCNSampling(response.featdim, args.hidden_size, args.n_classes, len(
         sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    model.cuda(rank)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
-    ctx = torch.device(rank)
+    model.cuda(args.gpu)
+    model = torch.nn.parallel.DistributedDataParallel(
+        model, device_ids=[args.gpu])
+    ctx = torch.device(args.gpu)
+
+    sys.exit()
 
     # start training
-    with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
                     # 切分训练数据
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
-                    train_lnid = fg_train_nid[rank *
-                                              ntrain_per_node: (rank+1)*ntrain_per_node]
+                    train_lnid = fg_train_nid[args.rank *
+                                              ntrain_per_node: (args.rank+1)*ntrain_per_node]
                     train_labels = fg_labels[train_lnid]
                     part_labels = np.zeros(
                         np.max(train_lnid) + 1, dtype=np.int)
@@ -197,14 +216,20 @@ def parse_args_func(argv):
                         type=int, help='sampling worker')
     parser.add_argument('-cs', '--cache-size', default=0,
                         type=int, help='cache size in each gpu (GB)')
+    parser.add_argument('--seed', default=None, type=int,
+                        help='seed for initializing training. ')
     # distributed related
     parser.add_argument('--dist-url', default='tcp://127.0.0.1:23456', type=str,
                         help='url used to set up distributed training')
-    parser.add_argument('--rank', default=-1, type=int,
+    parser.add_argument('--world-size', default=1, type=int,
+                        help='number of nodes for distributed training')
+    parser.add_argument('--rank', default=0, type=int,
                         help='node rank for distributed training')
     parser.add_argument('--gpu', default=None, type=int,
                         help='GPU id to use.')
-    
+    parser.add_argument('--grpc-port', default="10.5.30.43:18110", type=str,
+                        help='grpc port to connect with cache servers.')
+
     return parser.parse_args(argv)
 
 
@@ -214,6 +239,6 @@ if __name__ == '__main__':
         ngpus_per_node = torch.cuda.device_count()
     else:
         ngpus_per_node = 1
-    logging.info(f"ngpus_per_node:", ngpus_per_node)
+    logging.info(f"ngpus_per_node: {ngpus_per_node}")
 
     main(ngpus_per_node)
