@@ -7,13 +7,13 @@ rpcport: 18110
 debug: false
 
 # 数据集配置
-dataset: /data/cwj/repgnn/ogbn_arxiv600
+dataset: ./repgnn_data/ogbn_arxiv600
 
 # 缓存配置
 # cache类型
 cache_type: "static"
-# cache_group: "10.214.243.19, 10.78.18.230"
-cache_group: "10.5.30.43"
+cache_group: "10.214.243.19, 10.78.18.230"
+# cache_group: "10.5.30.43"
 
 # 是否统计命中率
 statistic: true

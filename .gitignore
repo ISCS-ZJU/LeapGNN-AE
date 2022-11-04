@@ -8,3 +8,4 @@ parti_results/
 tmp*.txt
 PaRMAT/
 *.txt
+repgnn_data

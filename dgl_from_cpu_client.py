@@ -66,7 +66,7 @@ def run(gpu, ngpus_per_node, args):
             backend='gloo', init_method=dist_init_method, world_size=args.world_size, rank=args.rank)
         logging.info(f'Using CPU for training...')
     else:
-        torch.cuda.set_device(args.rank)
+        torch.cuda.set_device(args.gpu)
         device = torch.device('cuda:' + str(args.rank))
         torch.distributed.init_process_group(
             backend='nccl', init_method=dist_init_method, world_size=args.world_size, rank=args.rank)
@@ -106,7 +106,7 @@ def run(gpu, ngpus_per_node, args):
     stub = distcache_pb2_grpc.OperatorStub(channel)
 
     # construct this partition graph for sampling
-    # TODO: 图的topo之后也要分布式
+    # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
 
     # build DDP model and helpers
