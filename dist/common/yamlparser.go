@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	configor "github.com/jinzhu/configor"
+	log "github.com/sirupsen/logrus"
 )
 
 var Config = Configmodel{}
@@ -25,5 +26,8 @@ func yamlparser(configpath string) {
 	fmt.Println("Config.Cache_type:", Config.Cache_type)
 	fmt.Println("Config.Cache_group:", Config.Cache_group)
 	fmt.Println("Config.Statistic:", Config.Statistic)
+	if Config.Statistic {
+		log.Warnf("You turned on Statistic, thus the training time is not accurate.")
+	}
 
 }

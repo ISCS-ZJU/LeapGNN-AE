@@ -24,6 +24,7 @@ logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree_1031.txt", fi
                     format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
+from storage.storage_dist import DistCacheClient
 
 #############################
 # WARNING: using DDP for multi-node training
@@ -69,8 +70,8 @@ def run(gpu, ngpus_per_node, args):
         torch.cuda.set_device(args.gpu)
         device = torch.device('cuda:' + str(args.rank))
         torch.distributed.init_process_group(
-            backend='nccl', init_method=dist_init_method, world_size=args.world_size, rank=args.rank)
-        logging.info(f'Using {args.world_size} GPUs in total for training...')
+            backend='gloo', init_method=dist_init_method, world_size=args.world_size, rank=args.rank)
+        logging.info(f'Using {args.world_size} distributed GPUs in total for training...')
 
     # # connect to cpu graph server
     # dataset_name = os.path.basename(args.dataset)
@@ -95,25 +96,17 @@ def run(gpu, ngpus_per_node, args):
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     torch.distributed.barrier()
 
-    # 与cache server建立连接
-    channel = grpc.insecure_channel(args.grpc_port, options=[
-                                   ('grpc.enable_retries', 1),
-                                   ('grpc.keepalive_timeout_ms', 100000),
-                                   ('grpc.max_receive_message_length',
-                                    20 * 1024 * 1024),  # max grpc size 20MB
-    ])
-    # client can use this stub to request to golang cache server
-    stub = distcache_pb2_grpc.OperatorStub(channel)
+    # cacheclient
+    cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
 
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
 
     # build DDP model and helpers
-    response = stub.DCSubmit(distcache_pb2.DCRequest(
-        type=distcache_pb2.get_feature_dim), timeout=1000) # data is DCReply type response
-    print(f'Got feature dim from server: {response.featdim}')
-    model = gcn.GCNSampling(response.featdim, args.hidden_size, args.n_classes, len(
+    featdim = cache_client.get_feat_dim()
+    print(f'Got feature dim from server: {featdim}')
+    model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
         sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
@@ -122,8 +115,6 @@ def run(gpu, ngpus_per_node, args):
     model = torch.nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu])
     ctx = torch.device(args.gpu)
-
-    sys.exit()
 
     # start training
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
@@ -154,16 +145,13 @@ def run(gpu, ngpus_per_node, args):
                 for nf in sampler:
                     wait_sampler.append(time.time()-st)
                     logging.debug(f'iter: {iter}')
-                    if epoch == 0 and iter == 0:
-                        cacher.fetch_data(nf)  # 没有缓存的时候的fetch_data时间不要算入
-                    else:
-                        with torch.autograd.profiler.record_function('fetch feat'):
-                            # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                            cacher.fetch_data(nf)
+                    with torch.autograd.profiler.record_function('fetch feat'):
+                        # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
+                        cache_client.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
                     with torch.autograd.profiler.record_function('fetch label'):
                         labels = part_labels[batch_nid].cuda(
-                            rank, non_blocking=True)
+                            args.gpu, non_blocking=True)
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                         pred = model(nf)
@@ -172,19 +160,15 @@ def run(gpu, ngpus_per_node, args):
                         loss.backward()
                         optimizer.step()
                     iter += 1
-                    with torch.autograd.profiler.record_function('auto cache time'):
-                        if epoch == 0 and iter == 1:
-                            cacher.auto_cache(args.dataset, "metis",
-                                              world_size, rank, ['features'])
                     st = time.time()
-                logging.info(f'rank: {rank}, iter_num: {iter}')
-                if cacher.log:
-                    miss_rate = cacher.get_miss_rate()
+                logging.info(f'rank: {args.rank}, iter_num: {iter}')
+                if cache_client.log:
+                    miss_rate = cache_client.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(
-                        epoch, rank, miss_rate))
+                        epoch, args.rank, miss_rate))
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
-    if rank == 0:
+    if args.rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
         logging.info(
             f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
@@ -218,6 +202,8 @@ def parse_args_func(argv):
                         type=int, help='cache size in each gpu (GB)')
     parser.add_argument('--seed', default=None, type=int,
                         help='seed for initializing training. ')
+    parser.add_argument('--log', dest='log', action='store_true',
+                    help='adding this flag means log hit rate information')                    
     # distributed related
     parser.add_argument('--dist-url', default='tcp://127.0.0.1:23456', type=str,
                         help='url used to set up distributed training')

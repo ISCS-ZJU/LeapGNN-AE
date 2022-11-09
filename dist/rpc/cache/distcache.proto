@@ -17,6 +17,7 @@ enum OpType{
 message DCRequest{
     OpType type = 1; // request type
     int64 idx = 2; // graph node idx
+
 }
 
 message DCReply{
