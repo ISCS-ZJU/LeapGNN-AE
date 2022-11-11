@@ -53,11 +53,8 @@ class DistCacheClient:
             # fetch features from cache server
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 # collect features to cpu memory
-                cpu_features = np.empty((len(tnid), self.feat_dim), dtype=np.float32)
-                for cacheid, nid in enumerate(tnid):
-                    feature = list(self.get_feat(nid))
-                    cpu_features[cacheid] = feature
-                    # print('type feature:', type(feature), feature)
+                features = list(self.get_feats_from_server(tnid))
+                cpu_features = np.array(features, dtype=np.float32).reshape(len(tnid), self.feat_dim)
                 # move features to gpu
                 for name in self.dims:
                     frame[name].data = torch.FloatTensor(cpu_features).cuda(self.gpuid)
@@ -74,10 +71,10 @@ class DistCacheClient:
         type=distcache_pb2.get_feature_dim), timeout=1000) # response is DCReply type response
         return response.featdim
     
-    def get_feat(self, nid):
+    def get_feats_from_server(self, nids):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
-        type=distcache_pb2.get_features_by_client), timeout=1000)
-        return response.feature
+        type=distcache_pb2.get_features_by_client, ids=nids), timeout=100000)
+        return response.features
     
     def get_cache_hit_info(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(

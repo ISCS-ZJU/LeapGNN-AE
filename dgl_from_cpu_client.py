@@ -167,7 +167,7 @@ def run(gpu, ngpus_per_node, args):
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(
                         epoch, args.rank, miss_rate))
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
-                print(f'=> cur_epoch {epoch} finished on rank {rank}')
+                print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
     if args.rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
         logging.info(

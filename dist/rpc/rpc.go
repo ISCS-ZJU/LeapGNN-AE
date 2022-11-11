@@ -38,6 +38,14 @@ func run_grpc_server() {
 	} else {
 		log.Infoln("[rpc.go] GRPC服务启动成功") //, "grpc://"+common.Config.Node+":"+strconv.FormatInt(int64(common.Config.Rpcport), 10))
 	}
+	/*
+		// 如果发送大小超出4MB，进行下面的设置
+		var options = []grpc.ServerOption{
+			grpc.MaxRecvMsgSize(recvSize),
+			grpc.MaxSendMsgSize(sendSize),
+		}
+		s := grpc.NewServer(options...)
+	*/
 	s := grpc.NewServer()
 	// hello.Register(s) // 注册 hello grpc 模块
 	Register(s) // 注册

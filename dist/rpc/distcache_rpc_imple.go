@@ -8,25 +8,25 @@ import (
 )
 
 func Grpc_op_imple_get_features_by_client(request *cache.DCRequest) (*cache.DCReply, error) {
-	log.Info("[distcache_rpc_imple.go] get_features_by_client 操作被调用")
+	log.Info("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
 	var reply cache.DCReply
-	feature, err := services.DCRuntime.CacheMng.Get(request.Idx)
+	features, err := services.DCRuntime.CacheMng.Get(request.Ids)
 	if err != nil {
 		log.Fatal("Get error")
 	} else {
-		reply.Feature = feature
+		reply.Features = features
 	}
 	return &reply, nil
 }
 
 func Grpc_op_imple_get_features_by_peer_server(request *cache.DCRequest) (*cache.DCReply, error) {
-	log.Info("[distcache_rpc_imple.go] get_features_by_peer_server 操作被调用")
+	log.Infof("[distcache_rpc_imple.go] get_features_by_peer_server 操作被调用 for %v gnids.", len(request.Ids))
 	var reply cache.DCReply
-	feature, err := services.DCRuntime.CacheMng.PeerServerGet(request.Idx)
+	features, err := services.DCRuntime.CacheMng.PeerServerGet(request.Ids)
 	if err != nil {
 		log.Fatal("Get error")
 	} else {
-		reply.Feature = feature
+		reply.Features = features
 	}
 	return &reply, nil
 }

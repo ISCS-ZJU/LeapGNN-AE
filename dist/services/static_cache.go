@@ -84,62 +84,135 @@ func (static_cache *Static_cache_mng) Put(idx int64, feature []float32) error {
 	return nil
 }
 
-func (static_cache *Static_cache_mng) Get(idx int64) ([]float32, error) {
+func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 	if !common.Config.Statistic {
 		static_cache.RLock()
 		defer static_cache.RUnlock()
-		feature, exist := static_cache.cache[idx]
-		if exist {
-			return feature, nil
-		} else {
-			// return nil, errors.New(string(idx) + "not exists.")
-			// query Nid2Pid and call peerserverget
-			remote_pid := DCRuntime.Nid2Pid[idx]
-			remote_addr := DCRuntime.Ip_slice[remote_pid]
-			ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-			defer cancel()
-			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Idx: idx})
+
+		ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
+		// 将ids中的点根据所在server cache的位置分类
+		ip2ids := make(map[int64][]int64)   // key: server node id; value: requests ids
+		gnid2retid := make(map[int64]int64) // key: graph node id; value: ret_features location
+		server_node_id := int64(-1)
+
+		for retid, nid := range ids {
+			server_node_id = DCRuntime.Nid2Pid[nid]
+			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
+			gnid2retid[nid] = int64(retid)
+		}
+		// 读取本地缓存的数据
+		server_node_id = DCRuntime.PartIdx
+		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
+		for _, local_hit_nid := range ip2ids[server_node_id] {
+			ret_id = gnid2retid[local_hit_nid]
+			st_idx, ed_idx = ret_id*static_cache.Feature_dim, (ret_id+1)*static_cache.Feature_dim
+			copy(ret_features[st_idx:ed_idx], static_cache.cache[local_hit_nid])
+		}
+
+		// 发起peerServerGet请求(从本地id开始++并循回)，将收到的结果进行整理，得到ids的feature，返回结果
+		total_server := int64(len(DCRuntime.Ip_slice))
+		gnid := int64(-1)
+		src_st_idx, src_ed_idx, dst_st_idx, dst_ed_idx := int64(-1), int64(-1), int64(-1), int64(-1)
+		for i := int64(0); i < total_server-1; i++ {
+			server_node_id = (server_node_id + 1) % total_server
+			remote_addr := DCRuntime.Ip_slice[server_node_id]
+			ctx, channel := context.WithTimeout(context.Background(), time.Hour)
+			defer channel()
+			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Ids: ip2ids[server_node_id]})
 			if err != nil {
-				return nil, errors.New(string(idx) + ", request to remote peer server error.")
-			} else {
-				feature := ret.GetFeature()
-				return feature, nil
+				fmt.Println(err)
+				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
+			}
+			fetched_featurs := ret.GetFeatures()
+			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
+			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
+				src_st_idx = j * static_cache.Feature_dim
+				src_ed_idx = (j + 1) * static_cache.Feature_dim
+				gnid = ip2ids[server_node_id][j] // cur graph node id
+				ret_id = gnid2retid[gnid]
+				dst_st_idx = ret_id * static_cache.Feature_dim
+				dst_ed_idx = (ret_id + 1) * static_cache.Feature_dim
+
+				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
 		}
+		return ret_features, nil
 	} else {
+		// 读写锁
 		static_cache.Lock()
 		defer static_cache.Unlock()
-		static_cache.Get_request_num++
-		feature, exist := static_cache.cache[idx]
-		if exist {
-			static_cache.Local_hit_num++
-			return feature, nil
-		} else {
-			// query Nid2Pid and call peerserverget
-			remote_pid := DCRuntime.Nid2Pid[idx]
-			remote_addr := DCRuntime.Ip_slice[remote_pid]
-			ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-			defer cancel()
-			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Idx: idx})
+		static_cache.Get_request_num += int64(len(ids)) // 总请求数增加
+
+		ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
+		// 将ids中的点根据所在server cache的位置分类
+		ip2ids := make(map[int64][]int64)   // key: server node id; value: requests ids
+		gnid2retid := make(map[int64]int64) // key: graph node id; value: ret_features location
+		server_node_id := int64(-1)
+
+		for retid, nid := range ids {
+			server_node_id = DCRuntime.Nid2Pid[nid]
+			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
+			gnid2retid[nid] = int64(retid)
+		}
+		// 读取本地缓存的数据
+		server_node_id = DCRuntime.PartIdx
+		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
+		static_cache.Local_hit_num += int64(len(ip2ids[server_node_id])) // 本地命中数增加
+		for _, local_hit_nid := range ip2ids[server_node_id] {
+			ret_id = gnid2retid[local_hit_nid]
+			st_idx, ed_idx = ret_id*static_cache.Feature_dim, (ret_id+1)*static_cache.Feature_dim
+			copy(ret_features[st_idx:ed_idx], static_cache.cache[local_hit_nid])
+		}
+
+		// 发起peerServerGet请求(从本地id开始++并循回)，将收到的结果进行整理，得到ids的feature，返回结果
+		total_server := int64(len(DCRuntime.Ip_slice))
+		gnid := int64(-1)
+		src_st_idx, src_ed_idx, dst_st_idx, dst_ed_idx := int64(-1), int64(-1), int64(-1), int64(-1)
+		for i := int64(0); i < total_server-1; i++ {
+			server_node_id = (server_node_id + 1) % total_server
+			remote_addr := DCRuntime.Ip_slice[server_node_id]
+			ctx, channel := context.WithTimeout(context.Background(), time.Hour)
+			defer channel()
+			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Ids: ip2ids[server_node_id]})
 			if err != nil {
-				return nil, errors.New(string(idx) + ", request to remote peer server error.")
-			} else {
-				feature := ret.GetFeature()
-				return feature, nil
+				fmt.Println(err)
+				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
+			}
+			fetched_featurs := ret.GetFeatures()
+			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
+			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
+				src_st_idx = j * static_cache.Feature_dim
+				src_ed_idx = (j + 1) * static_cache.Feature_dim
+				gnid = ip2ids[server_node_id][j] // cur graph node id
+				ret_id = gnid2retid[gnid]
+				dst_st_idx = ret_id * static_cache.Feature_dim
+				dst_ed_idx = (ret_id + 1) * static_cache.Feature_dim
+
+				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
 		}
+		return ret_features, nil
 	}
 }
 
-func (static_cache *Static_cache_mng) PeerServerGet(idx int64) ([]float32, error) {
-	static_cache.RLock()
-	defer static_cache.RUnlock()
-	feature, exist := static_cache.cache[idx]
-	if exist {
-		return feature, nil
-	} else {
-		return nil, errors.New(string(idx) + "not exists in peerserverget.")
+func (static_cache *Static_cache_mng) PeerServerGet(ids []int64) ([]float32, error) {
+	// static_cache.RLock()
+	// defer static_cache.RUnlock()
+	ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
+	st_idx, ed_idx := int64(-1), int64(-1)
+	i := int64(0)
+	for _, local_hit_nid := range ids {
+		feature, exist := static_cache.cache[local_hit_nid]
+		if exist {
+			st_idx = i * static_cache.Feature_dim
+			ed_idx = (i + 1) * static_cache.Feature_dim
+			copy(ret_features[st_idx:ed_idx], feature)
+		} else {
+			log.Fatalf("%v not in cur cache", local_hit_nid)
+			return nil, errors.New(string(local_hit_nid) + "not exists in peerserverget.")
+		}
 	}
+	return ret_features, nil
 }
 
 func (static_cache *Static_cache_mng) Get_type() string {
