@@ -20,7 +20,7 @@ from model import gcn
 import logging
 import time
 # logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_degree_1031.txt", filemode='a+',
+logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_dist_1114_bs8000.txt", filemode='a+',
                     format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
@@ -154,11 +154,16 @@ def run(gpu, ngpus_per_node, args):
                             args.gpu, non_blocking=True)
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
-                        pred = model(nf)
-                        loss = loss_fn(pred, labels)
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
+                        with torch.autograd.profiler.record_function('DDP forward'):
+                            pred = model(nf)
+                        with torch.autograd.profiler.record_function('DDP calculate loss'):
+                            loss = loss_fn(pred, labels)
+                        with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
+                            optimizer.zero_grad()
+                        with torch.autograd.profiler.record_function('DDP backward'):
+                            loss.backward()
+                        with torch.autograd.profiler.record_function('DDP optimizer.step()'):
+                            optimizer.step()
                     iter += 1
                     st = time.time()
                 logging.info(f'rank: {args.rank}, iter_num: {iter}')

@@ -40,13 +40,22 @@ func run_grpc_server() {
 	}
 	/*
 		// 如果发送大小超出4MB，进行下面的设置
+		recvSize := 20 * 1024 * 1024
+		sendSize := 20 * 1024 * 1024
 		var options = []grpc.ServerOption{
 			grpc.MaxRecvMsgSize(recvSize),
 			grpc.MaxSendMsgSize(sendSize),
 		}
 		s := grpc.NewServer(options...)
 	*/
-	s := grpc.NewServer()
+	recvSize := 100 * 1024 * 1024
+	sendSize := 100 * 1024 * 1024
+	var options = []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(recvSize),
+		grpc.MaxSendMsgSize(sendSize),
+	}
+	s := grpc.NewServer(options...)
+	// s := grpc.NewServer()
 	// hello.Register(s) // 注册 hello grpc 模块
 	Register(s) // 注册
 	if err := s.Serve(lis); err != nil {

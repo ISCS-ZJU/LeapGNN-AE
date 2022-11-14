@@ -41,7 +41,7 @@ func Build() {
 				log.Infoln("[peerrpc.go] start to connect to grpc server", addr+":"+strconv.Itoa(common.Config.Rpcport))
 				// "google.golang.org/grpc/credentials/insecure"
 				// conn, err := grpc.Dial(addr+":"+strconv.Itoa(common.Config.Rpcport), grpc.WithTransportCredentials(insecure.NewCredentials()))
-				recvSize := 20 * 1024 * 1024 // 20MB
+				recvSize := 100 * 1024 * 1024 // 20MB
 				conn, err := grpc.Dial(addr+":"+strconv.Itoa(common.Config.Rpcport), grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(recvSize)))
 
 				if err != nil {

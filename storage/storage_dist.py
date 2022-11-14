@@ -25,7 +25,7 @@ class DistCacheClient:
                                     ('grpc.enable_retries', 1),
                                     ('grpc.keepalive_timeout_ms', 100000),
                                     ('grpc.max_receive_message_length',
-                                        20 * 1024 * 1024),  # max grpc size 20MB
+                                        100 * 1024 * 1024),  # max grpc size 20MB
         ])
         # client can use this stub to request to golang cache server
         self.stub = distcache_pb2_grpc.OperatorStub(self.channel)
@@ -35,6 +35,9 @@ class DistCacheClient:
         self.feat_dim = self.get_feat_dim()
         self.dims = {'features':self.feat_dim}
         self.log = log
+
+        self.try_num = 0
+        self.miss_num = 0
     
     def fetch_data(self, nodeflow):
         with torch.autograd.profiler.record_function('get nf_nids'):
