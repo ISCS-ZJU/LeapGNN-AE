@@ -132,9 +132,10 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 				fmt.Println(err)
 				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
 			}
-			log.Infof("[static_cache.go] rpc calling until get ret: %v", time.Since(st))
-			// st = time.Now()
 			fetched_featurs := ret.GetFeatures()
+			log.Infof("[static_cache.go] rpc calling until get ret: %v for %v number of float data, total size:%v MB.", time.Since(st), len(fetched_featurs), 4*len(fetched_featurs)/1024/1024)
+			// st = time.Now()
+
 			// log.Infof("[static_cache.go] extract features from ret: %v", time.Since(st))
 			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
 			// st = time.Now()
