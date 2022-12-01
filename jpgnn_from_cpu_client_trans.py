@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename="./jpgnn_cpu_degree.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -199,7 +199,7 @@ def run(rank, ngpus_per_node, args):
                 n_sub_batches = len(sub_batch_nid)
                 logging.info(f'n_sub_batches:{n_sub_batches}')
 
-                cur_batch_piece_id = rank
+                cur_batch_piece_id = args.rank
                 for sub_iter in range(n_sub_batches):
                     iter = sub_iter // world_size
                     with torch.autograd.profiler.record_function('wait sampler'):
@@ -209,12 +209,14 @@ def run(rank, ngpus_per_node, args):
                             logging.debug(f'* {repr(e)}') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
                     logging.debug('got sampler results.')
                     if nf!=None:
-                        # with torch.autograd.profiler.record_function('model transfer'):
+                        with torch.autograd.profiler.record_function('model transfer'):
+                            send_recv(model,args.gpu,args.rank,world_size)
                         #     # 加载其他worker写入的模型
                         #     load_model_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}.pt')
                         #     model.load_state_dict(torch.load(load_model_ckpt_path))
                         #     model.cuda(rank)
                         # 前传反传获取梯度
+
                         if epoch==0 and sub_iter==0:
                             cache_client.fetch_data(nf) # 没有缓存的时候的fetch_data时间不要算入
                         else:
@@ -292,8 +294,8 @@ def run(rank, ngpus_per_node, args):
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 fetch_done.put(1)
                 nf_gen_proc.join() # 一个epoch结束
-    # if args.rank == 0:
-    #     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    if args.rank == 0:
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
 def parse_args_func(argv):
@@ -355,6 +357,22 @@ if __name__ == '__main__':
     # args = parse_args_func(None)
     # mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
 
+
+def send_recv(model,gpu,rank,world_size):
+    for val in model.parameters():
+        val_cpu = val.cpu()
+        new_val = torch.zeros_like(val_cpu)
+        if rank % 2:
+            torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
+            torch.distributed.recv(new_val)
+        else:
+            torch.distributed.recv(new_val)
+            torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
+        with torch.no_grad():
+            val[:] = new_val.cuda(gpu)
+
+        # torch.distributed.barrier()
+    
 
 
 
