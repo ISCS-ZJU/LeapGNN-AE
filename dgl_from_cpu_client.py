@@ -19,19 +19,19 @@ import storage
 from model import gcn
 import logging
 import time
+
+from storage.storage_dist import DistCacheClient
+
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_dist_1114_bs8000.txt", filemode='a+',
                     format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
-from storage.storage_dist import DistCacheClient
 
-#############################
-# WARNING: using DDP for multi-node training
-# ---------------------------
+
 
 def main(ngpus_per_node):
-    # reproduce the same results
+    #################### 固定随机种子，增强实验可复现性 ####################
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -41,6 +41,7 @@ def main(ngpus_per_node):
     assert args.world_size > 1, 'This version only support distributed GNN training with multiple nodes'
     args.distributed = args.world_size > 1 # using DDP for multi-node training
 
+    #################### 为每个GPU卡产生一个训练进程 ####################
     if args.distributed:
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
@@ -52,14 +53,16 @@ def main(ngpus_per_node):
 
 
 def run(gpu, ngpus_per_node, args):
-    # print config parameters
+    #################### 参数正确性检查，打印训练参数 ####################
+    sampling = args.sampling.split('-')
+    assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
     if gpu == 0:
         logging.info(f'Client Args: {args}')
-
+    
+    #################### 构建GNN分布式训练环境 ####################
     args.gpu = gpu  # 表示使用本地节点的gpu id
     if args.distributed:
         args.rank = args.rank * ngpus_per_node + gpu  # 传入的rank表示节点个数
-    # Initialize distributed training context.
     dist_init_method = args.dist_url
     if torch.cuda.device_count() < 1:
         device = torch.device('cpu')
@@ -72,40 +75,28 @@ def run(gpu, ngpus_per_node, args):
         torch.distributed.init_process_group(
             backend='gloo', init_method=dist_init_method, world_size=args.world_size, rank=args.rank)
         logging.info(f'Using {args.world_size} distributed GPUs in total for training...')
-
-    # # connect to cpu graph server
-    # dataset_name = os.path.basename(args.dataset)
-    # cpu_g = dgl.contrib.graph_store.create_graph_from_store(
-    #     dataset_name, "shared_mem", port=8004)
-
-    # rank = 0 partition graph
-    sampling = args.sampling.split('-')
-    assert len(
-        set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
-
-    # get train nid (consider DDP) as corresponding labels
+    
+    #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
     fg_adj = data.get_struct(args.dataset)
     fg_labels = data.get_labels(args.dataset)
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
-    fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
-    ntrain_per_node = int(fg_train_nid.shape[0] / args.world_size)
+    fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
+    ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
     print('fg_train_nid:',
-          fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_node)
+          fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
-
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
-    torch.distributed.barrier()
-
-    # cacheclient
-    cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
-
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
+    torch.distributed.barrier()
 
-    # build DDP model and helpers
+    #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
+    cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
     featdim = cache_client.get_feat_dim()
     print(f'Got feature dim from server: {featdim}')
+
+    #################### 创建分布式训练GNN模型、优化器 ####################
     model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
         sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -114,29 +105,21 @@ def run(gpu, ngpus_per_node, args):
     model.cuda(args.gpu)
     model = torch.nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu])
-    ctx = torch.device(args.gpu)
 
-    # start training
+    #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
-                    # 切分训练数据
+                    ########## 获取当前gpu在当前epoch分配到的training node id ##########
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
-                    train_lnid = fg_train_nid[args.rank *
-                                              ntrain_per_node: (args.rank+1)*ntrain_per_node]
-                    train_labels = fg_labels[train_lnid]
-                    part_labels = np.zeros(
-                        np.max(train_lnid) + 1, dtype=np.int)
-                    part_labels[train_lnid] = train_labels
-                    part_labels = torch.LongTensor(
-                        part_labels)  # to torch tensors
+                    train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
+                    
+                ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
+                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
-                # 构造sampler
-                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(
-                    sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
-
+                ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
                 iter = 0
                 wait_sampler = []
@@ -150,7 +133,7 @@ def run(gpu, ngpus_per_node, args):
                         cache_client.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
                     with torch.autograd.profiler.record_function('fetch label'):
-                        labels = part_labels[batch_nid].cuda(
+                        labels = fg_labels[batch_nid].cuda(
                             args.gpu, non_blocking=True)
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
@@ -167,6 +150,8 @@ def run(gpu, ngpus_per_node, args):
                     iter += 1
                     st = time.time()
                 logging.info(f'rank: {args.rank}, iter_num: {iter}')
+                
+                ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
                 if cache_client.log:
                     miss_rate = cache_client.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(

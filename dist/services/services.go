@@ -20,7 +20,7 @@ func Start() {
 	_, err := os.Stat(partgnid_npy_filepath)
 	if err != nil {
 		if !os.IsExist(err) {
-			cmd := fmt.Sprintf("cd .. && python3 prepartition/metis.py --partition %v --dataset %v && cd dist", common.Config.Partition, common.Config.Dataset)
+			cmd := fmt.Sprintf("cd .. && python3 prepartition/metis.py --partition %v --dataset ./dist/%v && cd dist", common.Config.Partition, common.Config.Dataset)
 			log.Infof("Start %v ...", cmd)
 			start := time.Now()
 			result := Command(cmd)
