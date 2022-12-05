@@ -31,13 +31,12 @@ logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_dist_1114_bs8000.txt
 
 
 def main(ngpus_per_node):
-    #################### 固定随机种子，增强实验可复现性 ####################
+    #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
         cudnn.deterministic = True
     cudnn.benchmark = False
-
     assert args.world_size > 1, 'This version only support distributed GNN training with multiple nodes'
     args.distributed = args.world_size > 1 # using DDP for multi-node training
 
@@ -82,8 +81,7 @@ def run(gpu, ngpus_per_node, args):
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
     ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
-    print('fg_train_nid:',
-          fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
+    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     # construct this partition graph for sampling

@@ -31,108 +31,72 @@ logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='
 # torch.set_printoptions(threshold=np.inf)
 
 
-######################################################################
-# Defining Training Procedure
-# ---------------------------
 
 def main(ngpus_per_node):
-    # reproduce the same results
+    #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
         cudnn.deterministic = True
     cudnn.benchmark = False
-
     assert args.world_size > 1, 'This version only support distributed GNN training with multiple nodes'
     args.distributed = args.world_size > 1 # using DDP for multi-node training
 
+    #################### 为每个GPU卡产生一个训练进程 ####################
     if args.distributed:
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
         mp.spawn(run, nprocs=ngpus_per_node,
                  args=(ngpus_per_node, args))
-        # run(0 ,ngpus_per_node, args)
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
 def run(rank, ngpus_per_node, args):
-    # print config parameters
+    #################### 参数正确性检查，打印训练参数 ####################
+    sampling = args.sampling.split('-')
+    assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
     if rank == 0:
         logging.info(f'Client Args: {args}')
-    args.gpu = rank
+    
+    #################### 构建GNN分布式训练环境 ####################
+    args.gpu = rank  # 表示使用本地节点的gpu id
     if args.distributed:
         args.rank = args.rank * ngpus_per_node + rank  # 传入的rank表示节点个数
-    total_epochs = args.epoch
     world_size = args.world_size
-    # Initialize distributed training context.
-    dev_id = rank
     dist_init_method = args.dist_url
-    # dist_init_method = 'tcp://{master_ip}:{master_port}'.format(
-    #     master_ip='127.0.0.1', master_port='12365')
     if torch.cuda.device_count() < 1:
         device = torch.device('cpu')
         torch.distributed.init_process_group(
             backend='gloo', init_method=dist_init_method, world_size=world_size, rank=args.rank)
+        logging.info(f'Using CPU for training...')
     else:
-        torch.cuda.set_device(dev_id)
-        device = torch.device('cuda:' + str(dev_id))
+        torch.cuda.set_device(args.gpu)
+        device = torch.device('cuda:' + str(args.gpu))
         torch.distributed.init_process_group(
             backend='gloo', init_method=dist_init_method, world_size=world_size, rank=args.rank)
-
-    # connect to cpu graph server
-    # dataset_name = os.path.basename(args.dataset)
-    # cpu_g = dgl.contrib.graph_store.create_graph_from_store(
-    #     dataset_name, "shared_mem", port=8004)
-
-    # rank = 0 partition graph
-    sampling = args.sampling.split('-')
-    assert len(
-        set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
-
-    # get train nid (consider DDP) as corresponding labels
+        logging.info(f'Using {world_size} distributed GPUs in total for training...')
+    
+    #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
     fg_adj = data.get_struct(args.dataset)
-    logging.debug(f'full graph:{fg_adj}')
     fg_labels = data.get_labels(args.dataset)
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
-    fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64)
-    ntrain_per_node = int(fg_train_nid.shape[0] / world_size) - 1
+    fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
+    ntrain_per_gpu = int(fg_train_nid.shape[0] / world_size) # # of training nodes per gpu
+    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
-    
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
+    # construct this partition graph for sampling
+    # TODO: 图的topo之后也要分布式存储
+    fg = DGLGraph(fg_adj, readonly=True)
     torch.distributed.barrier()
 
+    #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
-
-    # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
-    # if rank == 0:
-    #     st = time.time()
-    #     os.system(
-    #         f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
-    #     logging.info(f'It takes {time.time()-st}s on metis algorithm.')
-    # torch.distributed.barrier()
-    
-    # 1. 每个gpu加载分图的结果，之后用于对train_lnid根据所在GPU进行切分
-    max_train_nid = np.max(fg_train_nid)+1
-    nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
-    for pid in range(world_size):
-        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", world_size, pid)
-        necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid]
-        nid2pid[necessary_nid] = pid
-    
-
-    # construct this partition graph for sampling
-    fg = DGLGraph(fg_adj, readonly=True)
-
     featdim = cache_client.get_feat_dim()
     print(f'Got feature dim from server: {featdim}')
 
-    # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个参数用于形成bool数组，判断某个train_nid是否在缓存中
-    # cacher = storage.JPGNNGraphCacheServer(cpu_g, fg_adj.shape[0], rank)
-    # cacher.init_field(['features'])
-
-    # build DDP model and helpers
-    # torch.manual_seed(2022)
+    #################### 创建分布式训练GNN模型、优化器 ####################
     model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
         sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -140,7 +104,14 @@ def run(rank, ngpus_per_node, args):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     model.cuda(rank)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
-    ctx = torch.device(rank)
+
+    #################### 每个训练node id对应到part id ####################
+    max_train_nid = np.max(fg_train_nid)+1
+    nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
+    for pid in range(world_size):
+        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", world_size, pid)
+        necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid] # 只需要training node id即可
+        nid2pid[necessary_nid] = pid
 
     model_idx = rank
     
@@ -155,27 +126,24 @@ def run(rank, ngpus_per_node, args):
         
     def split_fn(a):
         return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
-
-    # start training
     
+    #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
-                    # 切分训练数据
+                    ########## 确定当前epoch每个gpu要训练的batch nid ###########
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
-                    if rank==0:
-                        logging.info(f'=> Shuffled epoch training nid for epoch {epoch}: {fg_train_nid}')
-                    useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_node]
-                    useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_node) # 每行表示一个gpu要训练的epoch train nid
+                    useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_gpu]
+                    useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
                     logging.debug(f'rank: {rank} useful_fg_train_nid:{useful_fg_train_nid}')
                     # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
                     useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
                     logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
                     
-                    # 遍历二维数组中每行的batch nid，收集其中属于当前GPU的等数量的sub-batch nid
-                    sub_batch_nid = [] # k个连续的sub_batch nparray为一组，表示一次iteration中所有的worker中属于当前GPU的nid
+                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中 ###########
+                    sub_batch_nid = []
                     for row in useful_fg_train_nid:
                         for batch in row:
                             cur_gpu_nid_mask = (nid2pid[batch]==rank)
