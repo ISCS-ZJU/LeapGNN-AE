@@ -17,3 +17,8 @@ cd ..
 git add -A
 git commit -m 'update submodule'
 ```
+
+### 文件说明
+dgl_default.py 原始的dgl代码；
+dgl_jpgnn_trans.py 在dgl_default.py的基础上通过传输模型参数和梯度减少feat的通信开销；
+src_modified 需要修改的源代码目录。比如实现NeighborSamplerWithDiffBatchSz类；

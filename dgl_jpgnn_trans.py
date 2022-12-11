@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+# logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -114,15 +114,6 @@ def run(rank, ngpus_per_node, args):
         nid2pid[necessary_nid] = pid
 
     model_idx = rank
-    
-    # remove old ckpt before starting
-    # model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
-    # grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
-    # if os.path.exists(model_ckpt_path):
-    #     os.remove(model_ckpt_path)
-    # torch.save(model.state_dict(), model_ckpt_path) # 保存最初始的模型参数
-    # if os.path.exists(grad_ckpt_path):
-    #     os.remove(grad_ckpt_path)
         
     def split_fn(a):
         return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
@@ -142,126 +133,64 @@ def run(rank, ngpus_per_node, args):
                     useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
                     logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
                     
-                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中 ###########
+                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets ###########
                     sub_batch_nid = []
+                    sub_batch_offsets = [0]
+                    cur_offset = 0
                     for row in useful_fg_train_nid:
                         for batch in row:
                             cur_gpu_nid_mask = (nid2pid[batch]==rank)
-                            sub_batch_nid.append(batch[cur_gpu_nid_mask]) # 即使是空也会占一个位置
+                            sub_batch = batch[cur_gpu_nid_mask]
+                            sub_batch_nid.extend(sub_batch)
+                            cur_offset += len(sub_batch)
+                            sub_batch_offsets.append(cur_offset)
                             if rank==0:
                                 logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
                 
-                with torch.autograd.profiler.record_function('create Queue&Process'):
-                    # 构造sampler生成器，从sub_batch_nid中取一个np.array生成一棵子树，放入queue中，等待主进程被取到后进行前传反传
-                    nf_q = Queue(20)
-                    fetch_done = Queue(1)
-                    nf_gen_proc = Process(target=generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q, fetch_done))
-                    nf_gen_proc.daemon = True
-                    nf_gen_proc.start()
-                # mp.spawn(generate_nodeflows, args=(sub_batch_nid, fg, sampling, nf_q), nprocs=1)
+                with torch.autograd.profiler.record_function('create sampler'):
+                    ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
+                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, add_self_loop=True)
                 
-                # 从nf_q中读取nf，开始模型训练
+                ########## 利用每个sub_batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
-                n_batches = useful_fg_train_nid.shape[0]
-                # n_sub_batches = n_batches * world_size
                 n_sub_batches = len(sub_batch_nid)
                 logging.info(f'n_sub_batches:{n_sub_batches}')
-
-                cur_batch_piece_id = args.rank
-                for sub_iter in range(n_sub_batches):
-                    iter = sub_iter // world_size
-                    with torch.autograd.profiler.record_function('wait sampler'):
-                        try:
-                            nf = nf_q.get(True)
-                        except Exception as e:
-                            logging.debug(f'* {repr(e)}') # TODO: 会有Bug输出，但是似乎还是正常运行，不是很懂为什么
-                    logging.debug('got sampler results.')
-                    if nf!=None:
+                
+                sub_iter = 0
+                for sub_nf in sampler:
+                    if sub_nf!=None:
                         with torch.autograd.profiler.record_function('model transfer'):
+                            ########## 模型参数在分布式GPU间进行传输 ###########
                             send_recv(model,args.gpu,args.rank,world_size)
-                        #     # 加载其他worker写入的模型
-                        #     load_model_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}.pt')
-                        #     model.load_state_dict(torch.load(load_model_ckpt_path))
-                        #     model.cuda(rank)
-                        # 前传反传获取梯度
 
-                        if epoch==0 and sub_iter==0:
-                            cache_client.fetch_data(nf) # 没有缓存的时候的fetch_data时间不要算入
-                        else:
-                            with torch.autograd.profiler.record_function('fetch feat'):
-                                cache_client.fetch_data(nf)
+                        with torch.autograd.profiler.record_function('fetch feat'):
+                            ########## 跨结点获取sub_nf的feature数据 ###########
+                            cache_client.fetch_data(sub_nf)
 
-                        batch_nid = nf.layer_parent_nid(-1)
+                        batch_nid = sub_nf.layer_parent_nid(-1)
                         with torch.autograd.profiler.record_function('fetch label'):
                             labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
                         with torch.autograd.profiler.record_function('gpu-compute'):
-                            pred = model(nf)
+                            pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
-                            # loss = cur_train_batch_piece.size / args.batch_size # for accumulating gradient
                             loss.backward()
-                            # for x in model.named_parameters():
-                            #     logging.info(x[1].grad.size())
-                            logging.debug(f'rank: {rank} local backward done.')
-                        # with torch.autograd.profiler.record_function('model transfer'):
-                        #     new_grad_dict = {}
-                        #     load_grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{cur_batch_piece_id}_grad.pt')
-                        #     if os.path.exists(load_grad_ckpt_path):
-                        #         # load gradient data from previous model
-                        #         with torch.no_grad():
-                        #             pre_grad_dict = torch.load(load_grad_ckpt_path)
-                        #             for x in model.named_parameters():
-                        #                 x[1].grad.data += pre_grad_dict[x[0]].cuda(rank) # accumulate grad
-                        #                 new_grad_dict[x[0]] = x[1].grad.data
-                        #         logging.debug(f'rank: {rank} iter/sub_iter: {iter}/{sub_iter} load and accumulate grad_ckpt_path: {load_grad_ckpt_path}')
-                        #     else:
-                        #         new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
-                        #         logging.debug(f'rank: {rank} iter/sub_iter: {iter}/{sub_iter} save grad_ckpt_path with new grad: {load_grad_ckpt_path}')
-                        #     torch.save(new_grad_dict, load_grad_ckpt_path)
+                            for x in model.named_parameters():
+                                logging.info(x[1].grad.size())
+                            logging.info(f'rank: {rank} sub_batch backward done.')
                     
                     with torch.autograd.profiler.record_function('sync for each sub_iter'):    
                         # 同步
                         dist.barrier()
-                    # 将cur_batch_piece_id左移
-                    cur_batch_piece_id = (cur_batch_piece_id-1+world_size)%world_size
-                    
-                    if (sub_iter+1) % world_size == 0: # 如果已经完成了一个batch的数据并行训练，那么各模型加载对应rank的模型参数、梯度，进行梯度的allreduce，然后使用优化器更新参数；覆写最新的模型参数和归零后的梯度值；
-                        # 加载自己rank的模型参数
-                        # with torch.autograd.profiler.record_function('model transfer'):
-                        #     model_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}.pt')
-                        #     model.load_state_dict(torch.load(load_model_ckpt_path))
-                        #     model.cuda(rank)
-                        #     # 加载自己rank的梯度，然后进行allreduce同步，再更新本地模型参数
-                        #     grad_ckpt_path = os.path.join(args.ckpt_path, f'model_{rank}_grad.pt')
-                        #     batch_grad_dict = torch.load(grad_ckpt_path, map_location=torch.device('cpu'))
-                        # with torch.autograd.profiler.record_function('gradient allreduce'):
-                        #     for param_name, param in model.named_parameters():
-                        #         # logging.debug(f'rank: {rank} before optimizer param: {param_name} {param}')
-                        #         # logging.debug(f'rank: {rank} before allreduce grad: {param_name} {batch_grad_dict[param_name]}')
-                        #         recv = torch.zeros_like(batch_grad_dict[param_name])
-                        #         allreduce(send=batch_grad_dict[param_name], recv=recv) # recv的值已经在allreduce中做了平均处理
-                        #         param.grad = recv.cuda(rank)
-                                    # logging.debug(f'rank: {rank} after allreduce grad: {param_name} {param.grad.data}')
+                    # 如果已经完成了一个batch的数据并行训练
+                    if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step()
-                            # for param_name, param in model.named_parameters():
-                                # logging.debug(f'rank: {rank} after optimizer grad: {param_name} {param}')
-                        
-                        # 覆写新参数、梯度归零、覆写梯度
-                        # with torch.autograd.profiler.record_function('model transfer'):
-                        #     torch.save(model.state_dict(), model_ckpt_path)
-                        #     optimizer.zero_grad()
-                        #     new_grad_dict = {x[0]:x[1].grad.data for x in model.named_parameters()}
-                        #     torch.save(new_grad_dict, grad_ckpt_path)
                         # 至此，一个iteration结束
-                    # with torch.autograd.profiler.record_function('auto cache time'):
-                    #     if epoch == 0 and sub_iter == 0:
-                    #         cache_client.auto_cache(args.dataset, "metis", world_size, rank, ['features'])
                 if cache_client.log:
                     miss_rate = cache_client.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, args.rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-                fetch_done.put(1)
-                nf_gen_proc.join() # 一个epoch结束
+                
     if args.rank == 0:
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 

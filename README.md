@@ -14,15 +14,14 @@
     git submodule update --init --recursive
     sudo apt-get update
     sudo apt-get install -y build-essential python3-dev make cmake
-    mkdir build
+    rm -rf build && mkdir build
     cd build
-    cmake -DUSE_CUDA=ON .. # CUDA build
+    cmake -DUSE_CUDA=ON ..  # CUDA build, 如果提示gcc版本太高，-DCMAKE_CXX_COMPILER=/usr/bin/gcc-4.8
     make -j4
-    cd ../python
-    python setup.py install
+    cd ../python && python setup.py install
     ```
     
-    在A100上无法编译dgl的这个版本，需要进行修改，参见dgl的提交 715b3b167d707e397f41881e481408b18eed22cd 和 5cff2f1cb2e3e307617bfa5b225df05555effb4b
+    在A100上无法编译dgl的这个版本，需要进行CUDA.cmake和binary_reduce_sum.cu的修改，参见dgl的提交 5cff2f1cb2e3e307617bfa5b225df05555effb4b 和 715b3b167d707e397f41881e481408b18eed22cd (array下的cuda目录不用管)
 
 6. 如果要使用模拟生成的图，可以安装PaRMAT
     ```
