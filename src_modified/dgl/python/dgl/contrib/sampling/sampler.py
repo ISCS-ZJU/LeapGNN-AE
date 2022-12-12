@@ -923,4 +923,3 @@ def create_full_nodeflow(g, num_layers, add_self_loop=False):
     return next(iter(sampler))
 
 _init_api('dgl.sampling', __name__)
-

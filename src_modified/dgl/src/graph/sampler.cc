@@ -1487,4 +1487,3 @@ DGL_REGISTER_GLOBAL("sampling._CAPI_GetEdgeSubgraphTail")
 });
 
 }  // namespace dgl
-
