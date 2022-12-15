@@ -22,3 +22,10 @@ git commit -m 'update submodule'
 dgl_default.py 原始的dgl代码；
 dgl_jpgnn_trans.py 在dgl_default.py的基础上通过传输模型参数和梯度减少feat的通信开销；
 src_modified 需要修改的源代码目录。比如实现NeighborSamplerWithDiffBatchSz类；
+
+### golang端添加/修改grpc接口步骤
+example: 实现`storage_dist.py`中的`self.get_statistic()`接口
+1. 由于client不需要传递参数，因此`distcache.proto`文件中的`OpType`中添加`get_statistic = 4;`接口；`DCReply`中添加返回值`bool statistic = 7;`；
+2. 根据distcache.proto中的笔记，对client和server端grpc通信需要的代码进行更新；执行后可以通过`git status`看到`dist/rpc/cache/distcache.pb.go`、`rpc_client/distcache_pb2.py` 以及 `rpc_client/distcache_pb2_grpc.py`发生了修改。（注意：为保证后续运行路径不出错，`rpc_client/distcache_pb2_grpc.py`文件中的`import distcache_pb2 as distcache__pb2`要再次手动改为`import rpc_client.distcache_pb2 as distcache__pb2`）
+3. 在`rpc/distcache_rpc_imple.go`中实现新的函数；
+4. 在`rpc/distcache_rpc.go`中的`DCSubmit`中注册新的grpc函数；

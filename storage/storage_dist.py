@@ -35,6 +35,8 @@ class DistCacheClient:
         self.feat_dim = self.get_feat_dim()
         self.dims = {'features':self.feat_dim}
         self.log = log
+        self.server_log = self.get_statistic()
+        assert self.log==self.server_log, 'client端和server端的log flag不一致'
 
         self.try_num = 0
         self.miss_num = 0
@@ -67,12 +69,17 @@ class DistCacheClient:
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
             if self.log:
                 localhitnum, requestnum = self.get_cache_hit_info()
-                self.log_miss_rate(localhitnum, requestnum)
+                self.log_miss_rate(requestnum-localhitnum, requestnum)
     
     def get_feat_dim(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_feature_dim), timeout=1000) # response is DCReply type response
         return response.featdim
+    
+    def get_statistic(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_statistic), timeout=1000) # response is DCReply type response
+        return response.statistic
     
     def get_feats_from_server(self, nids):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
@@ -90,7 +97,7 @@ class DistCacheClient:
     
     def get_miss_rate(self):
         miss_rate = float(self.miss_num) / self.try_num
-        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}', file=self.f)
+        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}')
         self.miss_num = 0
         self.try_num = 0
         return miss_rate

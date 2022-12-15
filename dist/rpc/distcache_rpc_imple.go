@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"main/common"
 	"main/rpc/cache"
 	"main/services"
 
@@ -47,5 +48,13 @@ func Grpc_op_imple_get_cache_info(request *cache.DCRequest) (*cache.DCReply, err
 	reply.Curaddr = curaddr
 	reply.Requestnum = request_num
 	reply.Localhitnum = local_hit_num
+	return &reply, nil
+}
+
+func Grpc_op_imple_get_statistic(request *cache.DCRequest) (*cache.DCReply, error) {
+	log.Info("[distcache_rpc_imple.go] get_statistic 操作被调用")
+	var reply cache.DCReply
+	statistic := common.Config.Statistic
+	reply.Statistic = statistic
 	return &reply, nil
 }

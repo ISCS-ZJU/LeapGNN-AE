@@ -14,8 +14,7 @@
     git submodule update --init --recursive
     sudo apt-get update
     sudo apt-get install -y build-essential python3-dev make cmake
-    rm -rf build && mkdir build
-    cd build
+    rm -rf build && mkdir build && cd build
     cmake -DUSE_CUDA=ON ..  # CUDA build, 如果提示gcc版本太高，-DCMAKE_CXX_COMPILER=/usr/bin/gcc-4.8
     make -j4
     cd ../python && python setup.py install
@@ -72,9 +71,9 @@ go run server.go # 在多个节点都启动，然后等待服务端启动完毕
 cd repgnn
 conda activate repgnn
 # 可能需要指定 NCCL_SOCKET_IFNAME 和 GLOO_SOCKET_IFNAME 的网卡，如export GLOO_SOCKET_IFNAME=ens5f0 export GLOO_SOCKET_IFNAME=ens9f0
-export GLOO_SOCKET_IFNAME=ens5f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 0 --grpc-port 10.214.243.19:18110 -d ./dist/repgnn_data/ogbn_arxiv128/  # yq2 a100: export NCCL_SOCKET_IFNAME=ens5f0 ; export GLOO_SOCKET_IFNAME=ens5f0
+export GLOO_SOCKET_IFNAME=ens5f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 0 --grpc-port 10.214.243.19:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log  # yq2 a100: export NCCL_SOCKET_IFNAME=ens5f0 ; export GLOO_SOCKET_IFNAME=ens5f0
 export GLOO_SOCKET_IFNAME=ens9f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.78.18.230:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ # zjg1 a100: export NCCL_SOCKET_IFNAME=ens9f0 ; export GLOO_SOCKET_IFNAME=ens9f0
-export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.242.140:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ # yq1/zju 2080ti: export NCCL_SOCKET_IFNAME=eno3 ; export GLOO_SOCKET_IFNAME=eno3
+export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.242.140:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq1/zju 2080ti: export NCCL_SOCKET_IFNAME=eno3 ; export GLOO_SOCKET_IFNAME=eno3
 ```
 
 #### Backup: 

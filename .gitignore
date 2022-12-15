@@ -9,3 +9,4 @@ PaRMAT/
 *.txt
 repgnn_data
 dgl_src
+tmp*

@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-# logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -119,7 +119,7 @@ def run(rank, ngpus_per_node, args):
         return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
     #################### GNN训练 ####################
-    with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
@@ -158,11 +158,11 @@ def run(rank, ngpus_per_node, args):
                 
                 sub_iter = 0
                 for sub_nf in sampler:
-                    if sub_nf!=None:
-                        with torch.autograd.profiler.record_function('model transfer'):
+                    print(f'sub_iter:', sub_iter, sub_nf==None)
+                    with torch.autograd.profiler.record_function('model transfer'):
                             ########## 模型参数在分布式GPU间进行传输 ###########
                             send_recv(model,args.gpu,args.rank,world_size)
-
+                    if sub_nf!=None:
                         with torch.autograd.profiler.record_function('fetch feat'):
                             ########## 跨结点获取sub_nf的feature数据 ###########
                             cache_client.fetch_data(sub_nf)
@@ -191,7 +191,8 @@ def run(rank, ngpus_per_node, args):
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, args.rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 
-    if args.rank == 0:
+    if args.rank == 1:
+        logging.info(prof.export_chrome_trace('tmp.json'))
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 
