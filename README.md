@@ -78,6 +78,11 @@ export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -bs 8000 -ep 1 --d
 ## Cross_test
 用来测试跨节点通信带宽负载均衡，在之前单机多卡的代码上修改，使用时需要运行cpu_graph_server，使用参数和之前单机多卡一致
 
+## Simulate
+存放模拟运行的代码。
+- dgl_default_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的分布规律。
+    + 使用方法：``
+
 #### Backup: 
 + cache server.go related golang libraries:
     ```bash
