@@ -13,6 +13,8 @@ import dgl
 import numpy as np
 import data
 
+import multiprocessing as mpg
+
 from dgl import DGLGraph
 from utils.help import Print
 import storage
@@ -38,10 +40,14 @@ def main(ngpus_per_node):
         cudnn.deterministic = True
     cudnn.benchmark = False
     n_gnn_trainers = args.world_size*ngpus_per_node # total GPU trainers
+    print('Total number of trainers:', n_gnn_trainers)
     assert n_gnn_trainers > 1, 'This version only support distributed GNN training with multiple nodes'
     #################### 产生n_gnn_trainers个进程，模拟分布式训练 ####################
-    barrier = mp.Barrier(n_gnn_trainers) # 用于多进程同步
-    mp.spawn(run, nprocs=n_gnn_trainers, args=(barrier, n_gnn_trainers, args))
+    barrier = mpg.Barrier(n_gnn_trainers) # 用于多进程同步
+    # mpg.spawn(run, nprocs=n_gnn_trainers, args=(barrier, n_gnn_trainers, args))
+    for i in range(n_gnn_trainers):
+        p = mpg.Process(target=run, args=(i, barrier, n_gnn_trainers, args))
+        p.start()
 
 
 
@@ -67,11 +73,18 @@ def run(gpu, barrier, n_gnn_trainers, args):
     barrier.wait()
 
     #################### 各trainer加载分图结果 ####################
-    part_nid_dict = {}
+    part_nid_dict = {} # key: parid, value: graph nid
+    n_total_graph_nodes = 0
     for pid in range(n_gnn_trainers):
         sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", n_gnn_trainers, pid)
         part_nid_dict[pid] = sorted_part_nid # ndarray of graph nodes' id for trainer=pid
-    print(type(part_nid_dict), part_nid_dict.shape)
+        n_total_graph_nodes += sorted_part_nid.size
+    # 建立graph node id 到 part id的映射
+    nid2pid_dict = np.empty(n_total_graph_nodes)
+    for pid, nids in part_nid_dict.items():
+        for nid in nids:
+            nid2pid_dict[nid] = pid
+    # print(type(part_nid_dict[0]), part_nid_dict[0].shape)
     
     #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
     fg_adj = data.get_struct(args.dataset)
@@ -91,7 +104,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
 
     #################### GNN训练 ####################
     batches_n_nodes = [] # 存放每个batch生成的子树的总点数
-    n_remote_hit_nodes = [[] for _ in range(n_gnn_trainers)] # 存放在远程trainer中命中的点数
+    n_remote_hit_nodes = [0 for _ in range(n_gnn_trainers)] # 存放在远程trainer中命中的点数
     for epoch in range(args.epoch):
         ########## 获取当前gpu在当前epoch分配到的training node id ##########
         np.random.seed(epoch)
@@ -107,16 +120,24 @@ def run(gpu, barrier, n_gnn_trainers, args):
         for nf in sampler:
             logging.debug(f'iter: {iter}')
             # 统计一个batch生成的一个nf中，点的总个数（每层已经做过去重）、这些点在每个trainer分图结果中命中的点数
-            nf_nids = nf._node_mapping.tousertensor()
-            offsets = nf._layer_offsets
-            for i in range(nf.num_layers):
-                layer_nid = nf_nids[offsets[i]:offsets[i+1]]
-                print(args.rank, layer_nid)
-                sys.exit(-1)
-            batch_nid = nf.layer_parent_nid(-1)
+            nf_nids = nf._node_mapping.tousertensor() # 一个batch对应的子树的所有graph node （层内点id去重）
+            batches_n_nodes.append(torch.numel(nf_nids))
+            # 统计命中在其他trainer上的点数
+            belongs_pid = nid2pid_dict[nf_nids]
+            unique_pid, counts = np.unique(belongs_pid, return_counts=True)
+            unique_pid_counts_dict = dict(zip(unique_pid, counts))
+            for pid, count in unique_pid_counts_dict.items():
+                pid = int(pid) # np.float64->int
+                if pid != args.rank:
+                    n_remote_hit_nodes[pid] += count
+            # # 查看子树每层的nid        
+            # offsets = nf._layer_offsets
+            # for i in range(nf.num_layers):
+            #     layer_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
             iter += 1
             st = time.time()
         logging.info(f'rank: {args.rank}, iter_num: {iter}')
+        print('rank:', args.rank, 'remote_hits_node_num:', n_remote_hit_nodes)
         print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
 
