@@ -116,7 +116,7 @@ def run(rank, ngpus_per_node, args):
     model_idx = rank
         
     def split_fn(a):
-        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
+        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True, with_stack=True) as prof:
@@ -133,7 +133,7 @@ def run(rank, ngpus_per_node, args):
                     useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
                     logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
                     
-                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets ###########
+                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
                     sub_batch_nid = []
                     sub_batch_offsets = [0]
                     cur_offset = 0
@@ -270,25 +270,3 @@ def send_recv(model,gpu,rank,world_size):
             val[:] = new_val.cuda(gpu)
 
         # torch.distributed.barrier()
-    
-
-
-
-def generate_nodeflows(sub_batch_nid, fg, sampling, queue, fetch_done):
-    sub_iter = 0
-    for sub_batch in sub_batch_nid:
-        # logging.info(f'=> sub_batch in queue to generate nf: {sub_batch}, sub_iter:{sub_iter}')
-        sub_iter += 1
-        if sub_batch.size>0:
-            sampler = dgl.contrib.sampling.NeighborSampler(fg, sub_batch.size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch, add_self_loop=True)
-            asure = 0           
-            for nf in sampler:
-                asure += 1
-                queue.put(nf)
-            assert asure<=1, 'Error when create sampler'
-        else:
-            queue.put(None) # 当前sub_batch为空
-    # time.sleep(2) # TODO: change a way to fix this error
-    while fetch_done.empty():
-        time.sleep(0.1)
-    

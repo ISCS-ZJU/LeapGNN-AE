@@ -24,12 +24,7 @@ import time
 
 from storage.storage_dist import DistCacheClient
 
-# logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_dist_1114_bs8000.txt", filemode='a+',
-                    format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-# torch.set_printoptions(threshold=np.inf)
-
-
+np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 
 
 def main(ngpus_per_node):
@@ -40,7 +35,7 @@ def main(ngpus_per_node):
         cudnn.deterministic = True
     cudnn.benchmark = False
     n_gnn_trainers = args.world_size*ngpus_per_node # total GPU trainers
-    print('Total number of trainers:', n_gnn_trainers)
+    logging.info(f'Total number of trainers: {n_gnn_trainers}')
     assert n_gnn_trainers > 1, 'This version only support distributed GNN training with multiple nodes'
     #################### 产生n_gnn_trainers个进程，模拟分布式训练 ####################
     barrier = mpg.Barrier(n_gnn_trainers) # 用于多进程同步
@@ -67,9 +62,9 @@ def run(gpu, barrier, n_gnn_trainers, args):
             try:
                 os.system(f'python3 prepartition/metis.py --partition {n_gnn_trainers} --dataset {args.dataset}')
             except Exception as e:
-                print(repr(e))
+                logging.error(repr(e))
                 sys.exit(-1)
-        print('metis分图已经完成')
+        logging.info('metis分图已经完成')
     barrier.wait()
 
     #################### 各trainer加载分图结果 ####################
@@ -84,7 +79,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
     for pid, nids in part_nid_dict.items():
         for nid in nids:
             nid2pid_dict[nid] = pid
-    # print(type(part_nid_dict[0]), part_nid_dict[0].shape)
+    # logging.info(type(part_nid_dict[0]), part_nid_dict[0].shape)
     
     #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
     fg_adj = data.get_struct(args.dataset)
@@ -92,16 +87,18 @@ def run(gpu, barrier, n_gnn_trainers, args):
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
     ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
-    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
+    logging.info(f'fg_train_nid: {fg_train_nid.shape[0]} ntrain_per_GPU: {ntrain_per_gpu}')
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
 
-    #################### 创建本地模拟的GNN模型####################
-    model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
+    # #################### 创建本地模拟的GNN模型####################
+    # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
 
+    def split_fn(a):
+        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     #################### GNN训练 ####################
     batches_n_nodes = [] # 存放每个batch生成的子树的总点数
     n_remote_hit_nodes = [0 for _ in range(n_gnn_trainers)] # 存放在远程trainer中命中的点数
@@ -109,13 +106,30 @@ def run(gpu, barrier, n_gnn_trainers, args):
         ########## 获取当前gpu在当前epoch分配到的training node id ##########
         np.random.seed(epoch)
         np.random.shuffle(fg_train_nid)
-        train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
+        useful_fg_train_nid = fg_train_nid[:args.world_size*ntrain_per_gpu]
+        useful_fg_train_nid = useful_fg_train_nid.reshape(args.world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
+        # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
+        useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
+
+        ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
+        sub_batch_nid = []
+        sub_batch_offsets = [0]
+        cur_offset = 0
+        for row in useful_fg_train_nid:
+            for batch in row:
+                cur_gpu_nid_mask = (nid2pid_dict[batch]==args.rank)
+                sub_batch = batch[cur_gpu_nid_mask]
+                sub_batch_nid.extend(sub_batch)
+                cur_offset += len(sub_batch)
+                sub_batch_offsets.append(cur_offset)
+                if args.rank==0:
+                    logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
             
         ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
-        sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+        sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, add_self_loop=True)
 
         ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
-        model.train()
+        # model.train()
         iter = 0
         for nf in sampler:
             logging.debug(f'iter: {iter}')
@@ -136,9 +150,11 @@ def run(gpu, barrier, n_gnn_trainers, args):
             #     layer_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
             iter += 1
             st = time.time()
-        logging.info(f'rank: {args.rank}, iter_num: {iter}')
-        print('rank:', args.rank, 'remote_hits_node_num:', n_remote_hit_nodes)
-        print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+        logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+        logging.info(f"{'=='*10} | rank={args.rank},epoch={epoch} 采样node信息输出 | {'=='*10}")
+        logging.info(f'rank={args.rank}, number of training batches: {len(batches_n_nodes)}')
+        logging.info(f'rank={args.rank}, the number of nodes for each tree spand by batch: {batches_n_nodes}, total nodes: {sum(batches_n_nodes)}')
+        logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes}')
 
 
 def parse_args_func(argv):
@@ -185,6 +201,21 @@ def parse_args_func(argv):
 if __name__ == '__main__':
     args = parse_args_func(None)
     ngpus_per_node = args.ngpus_per_node
-    logging.info(f"ngpus_per_node: {ngpus_per_node}")
+    # 写日志
+    log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    datasetname = args.dataset.strip('/').split('/')[-1]
+    log_filename = os.path.join(log_dir, f'jpgnn_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    if os.path.exists(log_filename):
+        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        if if_delete=='y' or if_delete=='Y':
+            os.remove(log_filename)
+        else:
+            print('已经运行过，无需重跑，直接退出程序')
+            sys.exit(-1)
+    logging.basicConfig(level=logging.INFO, filename=log_filename, filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+    logging.info(f"ngpus_per_trainer: {ngpus_per_node}")
 
+    # 开始执行
     main(ngpus_per_node)

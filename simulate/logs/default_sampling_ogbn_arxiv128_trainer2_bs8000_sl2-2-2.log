@@ -1,0 +1,16 @@
+INFO Fri, 30 Dec 2022 17:22:19 dgl_default_sampling_simulate.py 198 : ngpus_per_trainer: 1
+INFO Fri, 30 Dec 2022 17:22:19 dgl_default_sampling_simulate.py 37 : Total number of trainers: 2
+INFO Fri, 30 Dec 2022 17:22:19 dgl_default_sampling_simulate.py 53 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_arxiv128/', sampling='2-2-2', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='graphsage', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=2, ngpus_per_node=1, featdim=128)
+INFO Fri, 30 Dec 2022 17:22:19 dgl_default_sampling_simulate.py 66 : metis分图已经完成
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 55036
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 55036
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 1
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 133 : ==================== | rank=1,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 134 : rank=1, number of training batches: 7
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 135 : rank=1, the number of nodes for each tree spand by batch: [120285, 121217, 122370, 121173, 121005, 120801, 108535], total nodes: 835386
+INFO Fri, 30 Dec 2022 17:22:20 dgl_default_sampling_simulate.py 136 : rank=1, the number of nodes hits on other trainers: [432545, 0]
+INFO Fri, 30 Dec 2022 17:22:21 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 0
+INFO Fri, 30 Dec 2022 17:22:21 dgl_default_sampling_simulate.py 133 : ==================== | rank=0,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 17:22:21 dgl_default_sampling_simulate.py 134 : rank=0, number of training batches: 7
+INFO Fri, 30 Dec 2022 17:22:21 dgl_default_sampling_simulate.py 135 : rank=0, the number of nodes for each tree spand by batch: [122305, 119610, 120631, 120807, 121573, 119663, 107342], total nodes: 831931
+INFO Fri, 30 Dec 2022 17:22:21 dgl_default_sampling_simulate.py 136 : rank=0, the number of nodes hits on other trainers: [0, 404802]
