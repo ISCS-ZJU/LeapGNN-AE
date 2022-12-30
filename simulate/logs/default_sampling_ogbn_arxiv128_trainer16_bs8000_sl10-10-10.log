@@ -1,0 +1,100 @@
+INFO Fri, 30 Dec 2022 22:36:04 dgl_default_sampling_simulate.py 198 : ngpus_per_trainer: 1
+INFO Fri, 30 Dec 2022 22:36:04 dgl_default_sampling_simulate.py 37 : Total number of trainers: 16
+INFO Fri, 30 Dec 2022 22:36:04 dgl_default_sampling_simulate.py 53 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_arxiv128/', sampling='10-10-10', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='graphsage', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=16, ngpus_per_node=1, featdim=128)
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 66 : metis分图已经完成
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:52 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 6879
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 10
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=10,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=10, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=10, the number of nodes for each tree spand by batch: [223480], total nodes: 223480
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=10, the number of nodes hits on other trainers: [11364, 12943, 12925, 14079, 13141, 12654, 10102, 16316, 12965, 16024, 0, 16004, 17250, 12750, 17777, 14049]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 4
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=4,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=4, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=4, the number of nodes for each tree spand by batch: [222470], total nodes: 222470
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=4, the number of nodes hits on other trainers: [11086, 12629, 12022, 13570, 0, 11705, 10966, 18159, 12552, 15625, 12792, 15548, 17812, 12634, 18054, 14759]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 9
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=9,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=9, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=9, the number of nodes for each tree spand by batch: [225020], total nodes: 225020
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=9, the number of nodes hits on other trainers: [10307, 12924, 11548, 14864, 13055, 11303, 10700, 17067, 13726, 0, 14081, 16041, 17929, 12960, 18322, 14726]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 14
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=14,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=14, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=14, the number of nodes for each tree spand by batch: [222495], total nodes: 222495
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=14, the number of nodes hits on other trainers: [10683, 12254, 12625, 14184, 12282, 12170, 10042, 17378, 13416, 15384, 13607, 15641, 17509, 13830, 0, 13763]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 11
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=11,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=11, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=11, the number of nodes for each tree spand by batch: [227846], total nodes: 227846
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=11, the number of nodes hits on other trainers: [10935, 13295, 11883, 13652, 12396, 11855, 10103, 18996, 13857, 16853, 12988, 0, 18186, 13296, 18419, 14344]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=1,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=1, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=1, the number of nodes for each tree spand by batch: [225939], total nodes: 225939
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=1, the number of nodes hits on other trainers: [11165, 0, 12197, 14531, 13425, 11184, 10868, 19206, 12699, 15126, 13466, 16458, 18114, 12380, 17707, 14432]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 5
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=5,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=5, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=5, the number of nodes for each tree spand by batch: [223240], total nodes: 223240
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=5, the number of nodes hits on other trainers: [11088, 12611, 12701, 13861, 13336, 0, 10509, 18591, 12644, 16309, 13557, 15548, 17458, 12262, 17100, 14109]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 0
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=0,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=0, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=0, the number of nodes for each tree spand by batch: [225274], total nodes: 225274
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 6
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=0, the number of nodes hits on other trainers: [0, 11591, 12226, 14341, 12896, 11869, 10539, 19821, 13213, 15971, 13380, 14966, 18097, 13268, 18342, 13636]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=6,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=6, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=6, the number of nodes for each tree spand by batch: [224873], total nodes: 224873
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=6, the number of nodes hits on other trainers: [11086, 12883, 11900, 14393, 12782, 11116, 0, 18304, 13286, 15994, 12883, 16262, 17127, 12561, 18610, 14617]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 13
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=13,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=13, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=13, the number of nodes for each tree spand by batch: [225806], total nodes: 225806
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 3
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=13, the number of nodes hits on other trainers: [11242, 13037, 12608, 14258, 13416, 12019, 10046, 18042, 12823, 15811, 13310, 16123, 18124, 0, 18051, 14241]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=3,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=3, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=3, the number of nodes for each tree spand by batch: [225681], total nodes: 225681
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=3, the number of nodes hits on other trainers: [11131, 12500, 12917, 0, 13197, 11980, 10612, 17226, 13433, 15791, 13415, 15844, 17770, 13406, 18042, 14143]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 2
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=2,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=2, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=2, the number of nodes for each tree spand by batch: [225894], total nodes: 225894
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=2, the number of nodes hits on other trainers: [11370, 12880, 0, 14047, 13380, 11457, 10400, 17756, 13406, 16219, 13811, 15744, 18080, 13412, 17986, 14122]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 12
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=12,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=12, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=12, the number of nodes for each tree spand by batch: [227942], total nodes: 227942
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=12, the number of nodes hits on other trainers: [11131, 13242, 12325, 14312, 13334, 13157, 10490, 18696, 13404, 15964, 12969, 16239, 0, 12948, 18132, 14173]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 7
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=7,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=7, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=7, the number of nodes for each tree spand by batch: [223879], total nodes: 223879
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=7, the number of nodes hits on other trainers: [10894, 12265, 12241, 14518, 12456, 11852, 10372, 0, 12985, 15927, 13818, 15563, 18030, 13189, 18071, 14100]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 8
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=8,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=8, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=8, the number of nodes for each tree spand by batch: [223394], total nodes: 223394
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=8, the number of nodes hits on other trainers: [10931, 11863, 11817, 14219, 13672, 11215, 10196, 17592, 0, 16664, 13768, 16107, 17209, 13473, 17284, 14148]
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 15
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 133 : ==================== | rank=15,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 134 : rank=15, number of training batches: 1
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 135 : rank=15, the number of nodes for each tree spand by batch: [228937], total nodes: 228937
+INFO Fri, 30 Dec 2022 22:37:53 dgl_default_sampling_simulate.py 136 : rank=15, the number of nodes hits on other trainers: [11115, 12446, 12966, 14283, 12811, 12310, 10702, 17913, 13823, 16051, 14499, 15443, 18272, 14060, 18543, 0]

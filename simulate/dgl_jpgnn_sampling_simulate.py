@@ -98,7 +98,10 @@ def run(gpu, barrier, n_gnn_trainers, args):
     # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
 
     def split_fn(a):
-        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
+        if len(a) <= args.batch_size:
+            return np.split(a, np.array([len(a)])) # 最后会产生一个空的array, necessary
+        else:
+            return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     #################### GNN训练 ####################
     batches_n_nodes = [] # 存放每个batch生成的子树的总点数
     n_remote_hit_nodes = [0 for _ in range(n_gnn_trainers)] # 存放在远程trainer中命中的点数
@@ -110,6 +113,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
         useful_fg_train_nid = useful_fg_train_nid.reshape(args.world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
         # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
         useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
+        
 
         ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
         sub_batch_nid = []
@@ -135,7 +139,8 @@ def run(gpu, barrier, n_gnn_trainers, args):
             logging.debug(f'iter: {iter}')
             # 统计一个batch生成的一个nf中，点的总个数（每层已经做过去重）、这些点在每个trainer分图结果中命中的点数
             nf_nids = nf._node_mapping.tousertensor() # 一个batch对应的子树的所有graph node （层内点id去重）
-            batches_n_nodes.append(torch.numel(nf_nids))
+            if torch.numel(nf_nids)!= 0:
+                batches_n_nodes.append(torch.numel(nf_nids))
             # 统计命中在其他trainer上的点数
             belongs_pid = nid2pid_dict[nf_nids]
             unique_pid, counts = np.unique(belongs_pid, return_counts=True)
