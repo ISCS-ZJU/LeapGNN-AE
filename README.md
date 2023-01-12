@@ -7,20 +7,26 @@
 2. conda activate repgnn
 3. pip3 install torch torchvision # cuda version, like: pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
 4. pip3 install psutil tqdm pymetis grpcio grpcio-tools
-5. install dgl==0.4.1 from source:
+5. clone repgnn库以及三方库
     ```
-    git clone --recurse-submodules https://github.com/dmlc/dgl.git
-    git checkout 263656f89348d882478da2f993d96293e9603a22
-    git submodule update --init --recursive
-    sudo apt-get update
-    sudo apt-get install -y build-essential python3-dev make cmake
+    # clone repgnn库
+    git clone https://gitee.com/nustart/repgnn.git
+    # 切换到分布式分支
+    git checkout --track distributed_version
+    # 继续clone submodule: dgl
+    git submodule init
+    git submodule update
+    # 进入dgl，clone dgl依赖的submodule
+    cd 3rdparties/dgl
+    git submodule init
+    git submodule update
+    # 源码编译安装dgl（已经修改为支持cuda 11的版本，如果cuda版本低于11，可以撤销dgl 9cecc3e 的提交；或者安装cuda 11环境
+    conda install -c "nvidia/label/cuda-11.7.1" cuda-toolkit # 可选
     rm -rf build && mkdir build && cd build
     cmake -DUSE_CUDA=ON ..  # CUDA build, 如果提示gcc版本太高，-DCMAKE_CXX_COMPILER=/usr/bin/gcc-4.8
     make -j4
     cd ../python && python setup.py install
     ```
-    
-    在A100上无法编译dgl的这个版本，需要进行CUDA.cmake和binary_reduce_sum.cu的修改，参见dgl的提交 5cff2f1cb2e3e307617bfa5b225df05555effb4b 和 715b3b167d707e397f41881e481408b18eed22cd (array下的cuda目录不用管)
 
 6. 如果要使用模拟生成的图，可以安装PaRMAT
     ```
@@ -29,7 +35,7 @@
     make
     ```
 ```
-### 1. 生成数据集（2种选择）
+### 1. 数据集（2种选择）
 + 产生模拟小图数据，10个点，25条边，没有重复，无方向; 图文件保存在pp.txt中；
     ```bash
     ./PaRMAT -noDuplicateEdges -undirected -threads 16 -nVertices 20 -nEdges 50 -output /data/cwj/pagraph/gendemo/pp.txt
@@ -61,7 +67,7 @@ export PATH="$PATH:$HOME/.local/bin"
 ```
 ### 2. 挂载数据集，启动go server
 ```bash
-ln -sf src_data_folder_path/cwj/repgnn ./dist/repgnn_data/ # 在dist下创建软连接repgnn_data（代码中通过该软连接的路径进行数据访问）
+ln -sf src_data_folder_path/cwj/repgnn ./dist/repgnn_data # 在dist下创建软连接repgnn_data（代码中通过该软连接的路径进行数据访问）
 cd repgnn/dist
 go run server.go # 在多个节点都启动，然后等待服务端启动完毕
 ```
