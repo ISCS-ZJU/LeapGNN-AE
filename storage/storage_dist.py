@@ -55,10 +55,12 @@ class DistCacheClient:
                 with torch.cuda.device(self.gpuid):
                     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
                              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
+                tnid = tnid.tolist()
             # fetch features from cache server
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 # collect features to cpu memory
-                features = list(self.get_feats_from_server(tnid))
+                features = self.get_feats_from_server(tnid)
+            with torch.autograd.profiler.record_function('fetch feat from cache server-part2'):
                 cpu_features = np.array(features, dtype=np.float32).reshape(len(tnid), self.feat_dim)
                 # move features to gpu
                 for name in self.dims:
@@ -68,7 +70,7 @@ class DistCacheClient:
                 logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
             if self.log:
-                localhitnum, requestnum = self.get_cache_hit_info()
+                requestnum, localhitnum = self.get_cache_hit_info()
                 self.log_miss_rate(requestnum-localhitnum, requestnum)
     
     def get_feat_dim(self):
@@ -97,7 +99,7 @@ class DistCacheClient:
     
     def get_miss_rate(self):
         miss_rate = float(self.miss_num) / self.try_num
-        print(f'self.miss_num, self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}')
+        print(f'self.miss_num, self.try_num, self.miss_num/self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}')
         self.miss_num = 0
         self.try_num = 0
         return miss_rate

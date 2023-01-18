@@ -54,7 +54,7 @@
 # install golang
 wget https://go.dev/dl/go1.19.3.linux-amd64.tar.gz
 sudo bash -c "rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz"
-export PATH=$PATH:/usr/local/go/bin
+export PATH=/usr/local/go/bin:$PATH
 
 # grpc-related
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
@@ -78,8 +78,9 @@ cd repgnn
 conda activate repgnn
 # 可能需要指定 NCCL_SOCKET_IFNAME 和 GLOO_SOCKET_IFNAME 的网卡，如export GLOO_SOCKET_IFNAME=ens5f0 export GLOO_SOCKET_IFNAME=ens9f0
 export GLOO_SOCKET_IFNAME=ens5f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 0 --grpc-port 10.214.243.19:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log  # yq2 a100: export NCCL_SOCKET_IFNAME=ens5f0 ; export GLOO_SOCKET_IFNAME=ens5f0
-export GLOO_SOCKET_IFNAME=ens9f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.78.18.230:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ # zjg1 a100: export NCCL_SOCKET_IFNAME=ens9f0 ; export GLOO_SOCKET_IFNAME=ens9f0
+export GLOO_SOCKET_IFNAME=ens9f0 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.78.18.230:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # zjg1 a100: export NCCL_SOCKET_IFNAME=ens9f0 ; export GLOO_SOCKET_IFNAME=ens9f0
 export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.242.140:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq1/zju 2080ti: export NCCL_SOCKET_IFNAME=eno3 ; export GLOO_SOCKET_IFNAME=eno3
+export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -bs 8000 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.243.20:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq3 a100: export NCCL_SOCKET_IFNAME=ens17f1 ; export GLOO_SOCKET_IFNAME=ens17f1
 ```
 ## Cross_test
 用来测试跨节点通信带宽负载均衡，在之前单机多卡的代码上修改，使用时需要运行cpu_graph_server，使用参数和之前单机多卡一致

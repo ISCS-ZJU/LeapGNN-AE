@@ -27,7 +27,8 @@ warnings.filterwarnings("ignore")
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename="./jpgnn_trans.txt", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename=f"./dgl_jpgnn_trans.txt", filemode='a+', 
+format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -116,7 +117,10 @@ def run(rank, ngpus_per_node, args):
     model_idx = rank
         
     def split_fn(a):
-        return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
+        if len(a) <= args.batch_size:
+            return np.split(a, np.array([len(a)])) # 最后会产生一个空的array, necessary
+        else:
+            return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True, with_stack=True) as prof:
@@ -186,15 +190,15 @@ def run(rank, ngpus_per_node, args):
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step()
                         # 至此，一个iteration结束
+                    sub_iter += 1
                 if cache_client.log:
                     miss_rate = cache_client.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, args.rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-                
-    if args.rank == 1:
+      
+    if args.rank == 0:
         logging.info(prof.export_chrome_trace('tmp.json'))
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
-
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')

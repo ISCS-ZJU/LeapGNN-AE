@@ -23,7 +23,7 @@ import time
 from storage.storage_dist import DistCacheClient
 
 # logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO, filename="./dgl_cpu_dist_1114_bs8000.txt", filemode='a+',
+logging.basicConfig(level=logging.INFO, filename=f"./dgl_default.txt", filemode='a+',
                     format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
