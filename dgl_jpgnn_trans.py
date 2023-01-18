@@ -178,8 +178,8 @@ def run(rank, ngpus_per_node, args):
                             pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
                             loss.backward()
-                            for x in model.named_parameters():
-                                logging.info(x[1].grad.size())
+                            # for x in model.named_parameters():
+                            #     logging.info(x[1].grad.size())
                             logging.info(f'rank: {rank} sub_batch backward done.')
                     
                     with torch.autograd.profiler.record_function('sync for each sub_iter'):    
