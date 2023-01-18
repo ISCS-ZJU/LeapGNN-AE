@@ -51,7 +51,7 @@ class DistCacheClient:
         for i in range(nodeflow.num_layers):
             tnid = nf_nids[offsets[i]:offsets[i+1]]
             # create frame
-            with torch.autograd.profiler.record_function('fetch feat overhead'):
+            with torch.autograd.profiler.record_function('create frames'):
                 with torch.cuda.device(self.gpuid):
                     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
                              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
@@ -60,13 +60,15 @@ class DistCacheClient:
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 # collect features to cpu memory
                 features = self.get_feats_from_server(tnid)
-            with torch.autograd.profiler.record_function('fetch feat from cache server-part2'):
-                cpu_features = np.array(features, dtype=np.float32).reshape(len(tnid), self.feat_dim)
-                # move features to gpu
+            with torch.autograd.profiler.record_function('convert list features to float tensor'):
                 for name in self.dims:
-                    frame[name].data = torch.FloatTensor(cpu_features).cuda(self.gpuid)
+                    frame[name].data = torch.FloatTensor(features).reshape(len(tnid), self.feat_dim)
+            with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
+                # move features from cpu memory to gpu memory
+                for name in self.dims:
+                    frame[name].data = frame[name].data.cuda(self.gpuid)
             # attach features to nodeflow
-            with torch.autograd.profiler.record_function('cache-asign'):
+            with torch.autograd.profiler.record_function('asign frame to nodeflow'):
                 logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
             if self.log:
