@@ -16,7 +16,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn
+from model import gcn, graphsage
 from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 from storage.storage_dist import DistCacheClient
@@ -98,8 +98,12 @@ def run(rank, ngpus_per_node, args):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
-    model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
-        sampling), F.relu, args.dropout)
+    if args.model_name == 'gcn':
+        model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'graphsage':
+        model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -196,9 +200,9 @@ def run(rank, ngpus_per_node, args):
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, args.rank, miss_rate))
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
       
-    if args.rank == 0:
-        logging.info(prof.export_chrome_trace('tmp.json'))
-        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    
+    logging.info(prof.export_chrome_trace('tmp.json'))
+    logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')

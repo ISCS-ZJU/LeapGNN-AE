@@ -16,7 +16,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn
+from model import gcn, graphsage
 import logging
 import time
 
@@ -95,8 +95,12 @@ def run(gpu, ngpus_per_node, args):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
-    model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
-        sampling), F.relu, args.dropout)
+    if args.model_name == 'gcn':
+        model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'graphsage':
+        model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -156,10 +160,10 @@ def run(gpu, ngpus_per_node, args):
                         epoch, args.rank, miss_rate))
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-    if args.rank == 0:
-        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
-        logging.info(
-            f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
+    
+    logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    logging.info(
+        f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
 
 
 def parse_args_func(argv):
