@@ -24,6 +24,8 @@ type Static_cache_mng struct {
 	Feature_dim     int64 //feature dimension
 	Get_request_num int64 // # of client read requests
 	Local_hit_num   int64 // # of local hit requests
+	Local_feats_gather_time []float32 // time of local feats gathering
+	Remote_feats_gather_time []float32 // time of remote feats gathering
 }
 
 func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
@@ -73,6 +75,9 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	static_cache.Feature_dim = int64(shape[1])
 	static_cache.Get_request_num = 0
 	static_cache.Local_hit_num = 0
+
+	static_cache.Local_feats_gather_time = []float32{}
+	static_cache.Remote_feats_gather_time = []float32{}
 
 	return &static_cache
 }
@@ -139,7 +144,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 
 			// log.Infof("[static_cache.go] extract features from ret: %v", time.Since(st))
 			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
-			// st = time.Now()
+			st = time.Now()
 			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
 				src_st_idx = j * static_cache.Feature_dim
 				src_ed_idx = (j + 1) * static_cache.Feature_dim
@@ -150,9 +155,12 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 
 				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
-			// log.Infof("[static_cache.go] copy features to local dest array: %v", time.Since(st))
+			log.Infof("[static_cache.go] copy features to local dest array: %v", time.Since(st)) // 1.5ms
 		}
-		return encodeUnsafe(ret_features), nil
+		// st := time.Now()
+		byte_ret_features := encodeUnsafe(ret_features) // 113ns
+		// log.Infof("[static_cache.go] convert []float to []byte: %v", time.Since(st))
+		return byte_ret_features, nil
 	} else {
 		// 读写锁
 		static_cache.Lock()
@@ -171,6 +179,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			gnid2retid[nid] = int64(retid)
 		}
 		// 读取本地缓存的数据
+		st_local_time := time.Now()
 		server_node_id = DCRuntime.PartIdx
 		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
 		static_cache.Local_hit_num += int64(len(ip2ids[server_node_id])) // 本地命中数增加
@@ -179,11 +188,13 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			st_idx, ed_idx = ret_id*static_cache.Feature_dim, (ret_id+1)*static_cache.Feature_dim
 			copy(ret_features[st_idx:ed_idx], static_cache.cache[local_hit_nid])
 		}
+		static_cache.Local_feats_gather_time = append(static_cache.Local_feats_gather_time, float32(time.Since(st_local_time)/time.Millisecond))
 
 		// 发起peerServerGet请求(从本地id开始++并循回)，将收到的结果进行整理，得到ids的feature，返回结果
 		total_server := int64(len(DCRuntime.Ip_slice))
 		gnid := int64(-1)
 		src_st_idx, src_ed_idx, dst_st_idx, dst_ed_idx := int64(-1), int64(-1), int64(-1), int64(-1)
+		st_remote_time := time.Now()
 		for i := int64(0); i < total_server-1; i++ {
 			server_node_id = (server_node_id + 1) % total_server
 			remote_addr := DCRuntime.Ip_slice[server_node_id]
@@ -207,6 +218,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
 		}
+		static_cache.Remote_feats_gather_time = append(static_cache.Remote_feats_gather_time, float32(time.Since(st_remote_time)/time.Millisecond))
 		return encodeUnsafe(ret_features), nil
 	}
 }
@@ -241,8 +253,8 @@ func (static_cache *Static_cache_mng) Get_feat_dim() int64 {
 	return static_cache.Feature_dim
 }
 
-func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, int64) {
-	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num
+func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, int64, []float32, []float32) {
+	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num, static_cache.Local_feats_gather_time, static_cache.Remote_feats_gather_time
 }
 
 

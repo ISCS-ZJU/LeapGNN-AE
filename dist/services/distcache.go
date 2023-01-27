@@ -21,7 +21,7 @@ type cache_mng_interface interface {
 	Put(int64, []float32) error
 	PeerServerGet([]int64) ([]float32, error)      // 为了区别client端和peer server端的get请求，从而方便统计本地和远程命中率
 	Get_feat_dim() int64                           // 返回feature dim
-	Get_cache_info() (int64, string, int64, int64) // 返回partidx, curaddr, request_num, local_hit_num
+	Get_cache_info() (int64, string, int64, int64, []float32, []float32) // 返回partidx, curaddr, request_num, local_hit_num, local_feats_gather_time, remote_feats_gather_time
 }
 
 type DistCache struct {

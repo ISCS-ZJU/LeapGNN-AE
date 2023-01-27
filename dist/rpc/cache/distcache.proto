@@ -30,6 +30,9 @@ message DCReply{
     int64 localhitnum = 6; // local hit requests number
     bool statistic = 7; // whether cache server counts cache miss/hit times
     repeated float rfeatures = 8; // features fetched from remote machines
+    float local_feats_gather_time = 9; // total local feats gather time
+    float remote_feats_gather_time = 10; // total remote feats gather time
+
 }
 
 

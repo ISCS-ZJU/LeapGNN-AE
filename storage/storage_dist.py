@@ -61,10 +61,8 @@ class DistCacheClient:
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 # collect features to cpu memory
                 features = self.get_feats_from_server(tnid)
-            with torch.autograd.profiler.record_function('convert list features to float tensor'):
+            with torch.autograd.profiler.record_function('convert byte features to float tensor'):
                 for name in self.dims:
-                    # frame[name].data = torch.from_numpy(np.fromiter(features, dtype=np.float32, count=len(tnid)*self.feat_dim)).reshape(len(tnid), self.feat_dim)
-                    # frame[name].data = torch.from_numpy(np.fromiter(features, dtype=np.float32, count=len(tnid)*self.feat_dim)).reshape(len(tnid), self.feat_dim)
                     frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
@@ -75,8 +73,10 @@ class DistCacheClient:
                 logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
             if self.log:
-                requestnum, localhitnum = self.get_cache_hit_info()
+                requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
                 self.log_miss_rate(requestnum-localhitnum, requestnum)
+                self.local_feats_gather_time = local_feats_gather_time
+                self.remote_feats_gather_time = remote_feats_gather_time
     
     def get_feat_dim(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
@@ -96,7 +96,7 @@ class DistCacheClient:
     def get_cache_hit_info(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_cache_info), timeout=1000)
-        return response.requestnum, response.localhitnum
+        return response.requestnum, response.localhitnum, response.local_feats_gather_time, response.remote_feats_gather_time
     
     def log_miss_rate(self, miss_num, total_num):
         self.try_num += total_num
@@ -108,6 +108,11 @@ class DistCacheClient:
         self.miss_num = 0
         self.try_num = 0
         return miss_rate
+    
+    def get_total_local_remote_feats_gather_time(self):
+        """ 输出本地cache读取feats和远程cache读取feats的总时间 """
+
+        return self.local_feats_gather_time, self.remote_feats_gather_time
     
 
 

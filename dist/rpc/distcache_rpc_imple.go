@@ -43,11 +43,20 @@ func Grpc_op_imple_get_feature_dim(request *cache.DCRequest) (*cache.DCReply, er
 func Grpc_op_imple_get_cache_info(request *cache.DCRequest) (*cache.DCReply, error) {
 	log.Info("[distcache_rpc_imple.go] get_cache_info 操作被调用")
 	var reply cache.DCReply
-	partidx, curaddr, request_num, local_hit_num := services.DCRuntime.CacheMng.Get_cache_info()
+	partidx, curaddr, request_num, local_hit_num, local_feats_gather_time, remote_feats_gather_time := services.DCRuntime.CacheMng.Get_cache_info()
 	reply.Partidx = partidx
 	reply.Curaddr = curaddr
 	reply.Requestnum = request_num
 	reply.Localhitnum = local_hit_num
+	total_local_feats_gather_time, total_remote_feats_gather_time := float32(0.0), float32(0.0)
+	for _, t := range local_feats_gather_time{
+		total_local_feats_gather_time += t
+	}
+	for _, t := range remote_feats_gather_time{
+		total_remote_feats_gather_time += t
+	}
+	reply.LocalFeatsGatherTime = total_local_feats_gather_time
+	reply.RemoteFeatsGatherTime = total_remote_feats_gather_time
 	return &reply, nil
 }
 
