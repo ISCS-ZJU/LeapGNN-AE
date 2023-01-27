@@ -27,7 +27,7 @@ func Grpc_op_imple_get_features_by_peer_server(request *cache.DCRequest) (*cache
 	if err != nil {
 		log.Fatal("Get error")
 	} else {
-		reply.Features = features
+		reply.Rfeatures = features
 	}
 	return &reply, nil
 }

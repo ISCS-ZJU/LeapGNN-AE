@@ -22,13 +22,14 @@ message DCRequest{
 }
 
 message DCReply{
-    repeated float features = 1; // feature of one idx
+    bytes features = 1; // feature of one idx
     int64 featdim = 2; // feature dim
     int64 partidx = 3; // part id of gnid cached in this server
     string curaddr = 4; // server addr
     int64 requestnum = 5; // client requests number
     int64 localhitnum = 6; // local hit requests number
     bool statistic = 7; // whether cache server counts cache miss/hit times
+    repeated float rfeatures = 8; // features fetched from remote machines
 }
 
 

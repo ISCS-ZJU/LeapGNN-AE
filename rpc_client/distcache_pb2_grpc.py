@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import rpc_client.distcache_pb2 as distcache__pb2
+import distcache_pb2 as distcache__pb2
 
 
 class OperatorStub(object):

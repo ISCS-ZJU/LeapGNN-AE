@@ -16,5 +16,5 @@ cache_group: "10.214.243.19, 10.214.243.20"
 # cache_group: "10.214.242.140"
 
 # 是否统计命中率
-statistic: true
-# statistic: false
+# statistic: true
+statistic: false

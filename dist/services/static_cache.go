@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"unsafe"
 
 	npyio "github.com/sbinet/npyio"
 	log "github.com/sirupsen/logrus"
@@ -84,7 +85,7 @@ func (static_cache *Static_cache_mng) Put(idx int64, feature []float32) error {
 	return nil
 }
 
-func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
+func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 	if !common.Config.Statistic {
 		static_cache.RLock()
 		defer static_cache.RUnlock()
@@ -132,7 +133,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 				fmt.Println(err)
 				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
 			}
-			fetched_featurs := ret.GetFeatures()
+			fetched_featurs := ret.GetRfeatures()
 			log.Infof("[static_cache.go] rpc calling until get ret: %v for %v number of float data, total size:%v MB.", time.Since(st), len(fetched_featurs), 4*len(fetched_featurs)/1024/1024)
 			// st = time.Now()
 
@@ -151,7 +152,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 			}
 			// log.Infof("[static_cache.go] copy features to local dest array: %v", time.Since(st))
 		}
-		return ret_features, nil
+		return encodeUnsafe(ret_features), nil
 	} else {
 		// 读写锁
 		static_cache.Lock()
@@ -193,7 +194,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 				fmt.Println(err)
 				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
 			}
-			fetched_featurs := ret.GetFeatures()
+			fetched_featurs := ret.GetRfeatures()
 			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
 			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
 				src_st_idx = j * static_cache.Feature_dim
@@ -206,7 +207,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]float32, error) {
 				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
 		}
-		return ret_features, nil
+		return encodeUnsafe(ret_features), nil
 	}
 }
 
@@ -242,4 +243,9 @@ func (static_cache *Static_cache_mng) Get_feat_dim() int64 {
 
 func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, int64) {
 	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num
+}
+
+
+func encodeUnsafe(fs []float32) []byte {
+    return unsafe.Slice((*byte)(unsafe.Pointer(&fs[0])), len(fs)*4)
 }
