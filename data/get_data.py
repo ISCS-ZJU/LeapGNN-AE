@@ -47,14 +47,15 @@ def get_sub_train_graph(dataname, idx, partitions):
   return adj, train2fullid
 
 
-def get_struct(dataname):
+def get_struct(dataname, filename='adj.npz'):
   """
   Params:
     dataname: shoud be a folder name, which contains
               adj.npz in coo matrix format
   """
+  
   adj = scipy.sparse.load_npz(
-    os.path.join(dataname, 'adj.npz')
+    os.path.join(dataname, filename)
   )
   return adj
 
