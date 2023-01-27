@@ -16,6 +16,7 @@ import logging
 from rpc_client import distcache_pb2
 from rpc_client import distcache_pb2_grpc
 import grpc
+import io
 
 class DistCacheClient:
     def __init__(self, grpc_port, gpu, log):
@@ -62,7 +63,9 @@ class DistCacheClient:
                 features = self.get_feats_from_server(tnid)
             with torch.autograd.profiler.record_function('convert list features to float tensor'):
                 for name in self.dims:
-                    frame[name].data = torch.from_numpy(np.fromiter(features, dtype=np.float32, count=len(tnid)*self.feat_dim)).reshape(len(tnid), self.feat_dim)
+                    # frame[name].data = torch.from_numpy(np.fromiter(features, dtype=np.float32, count=len(tnid)*self.feat_dim)).reshape(len(tnid), self.feat_dim)
+                    # frame[name].data = torch.from_numpy(np.fromiter(features, dtype=np.float32, count=len(tnid)*self.feat_dim)).reshape(len(tnid), self.feat_dim)
+                    frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
                 for name in self.dims:
