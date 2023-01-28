@@ -166,7 +166,6 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 		static_cache.Lock()
 		defer static_cache.Unlock()
 		static_cache.Get_request_num += int64(len(ids)) // 总请求数增加
-		fmt.Println(int64(len(ids)))
 
 		ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
 		// 将ids中的点根据所在server cache的位置分类
@@ -179,7 +178,6 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
 			gnid2retid[nid] = int64(retid)
 		}
-		fmt.Println(len(ip2ids[1]))
 		
 		// 读取本地缓存的数据
 		st_local_time := time.Now()

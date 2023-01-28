@@ -150,7 +150,6 @@ def run(gpuid, ngpus_per_node, args):
                             cur_gpu_nid_mask = (nid2pid[batch]==args.rank)
                             sub_batch = batch[cur_gpu_nid_mask]
                             sub_batch_nid.extend(sub_batch)
-                            print(nid2pid[sub_batch_nid[-1]])
                             cur_offset += len(sub_batch)
                             sub_batch_offsets.append(cur_offset)
                             if gpuid==0:
