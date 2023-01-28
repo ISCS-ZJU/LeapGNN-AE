@@ -159,7 +159,7 @@ def run(gpu, ngpus_per_node, args):
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(
                         epoch, args.rank, miss_rate))
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
-                    print(f'Up to now, total_local_feats_gather_time = {time_local*0.001}s, total_local_feats_gather_time = {time_remote*0.001}')
+                    print(f'Up to now, total_local_feats_gather_time = {time_local*0.001}s, total_remote_feats_gather_time = {time_remote*0.001}')
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
     
