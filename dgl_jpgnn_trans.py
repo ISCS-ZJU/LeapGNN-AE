@@ -53,17 +53,17 @@ def main(ngpus_per_node):
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
-def run(rank, ngpus_per_node, args):
+def run(gpuid, ngpus_per_node, args):
     #################### 参数正确性检查，打印训练参数 ####################
     sampling = args.sampling.split('-')
     assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
-    if rank == 0:
+    if gpuid == 0:
         logging.info(f'Client Args: {args}')
     
     #################### 构建GNN分布式训练环境 ####################
-    args.gpu = rank  # 表示使用本地节点的gpu id
+    args.gpu = gpuid  # 表示使用本地节点的gpu id
     if args.distributed:
-        args.rank = args.rank * ngpus_per_node + rank  # 传入的rank表示节点个数
+        args.rank = args.rank * ngpus_per_node + gpuid  # 传入的rank表示节点个数
     world_size = args.world_size
     dist_init_method = args.dist_url
     if torch.cuda.device_count() < 1:
@@ -107,8 +107,8 @@ def run(rank, ngpus_per_node, args):
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    model.cuda(rank)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
+    model.cuda(gpuid)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
 
     #################### 每个训练node id对应到part id ####################
     max_train_nid = np.max(fg_train_nid)+1
@@ -118,7 +118,7 @@ def run(rank, ngpus_per_node, args):
         necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid] # 只需要training node id即可
         nid2pid[necessary_nid] = pid
 
-    model_idx = rank
+    model_idx = args.rank
         
     def split_fn(a):
         if len(a) <= args.batch_size:
@@ -127,7 +127,7 @@ def run(rank, ngpus_per_node, args):
             return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
     #################### GNN训练 ####################
-    with torch.autograd.profiler.profile(enabled=(rank == 0), use_cuda=True, with_stack=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
@@ -136,10 +136,10 @@ def run(rank, ngpus_per_node, args):
                     np.random.shuffle(fg_train_nid)
                     useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_gpu]
                     useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
-                    logging.debug(f'rank: {rank} useful_fg_train_nid:{useful_fg_train_nid}')
+                    logging.debug(f'rank: {args.rank} useful_fg_train_nid:{useful_fg_train_nid}')
                     # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
                     useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
-                    logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
+                    logging.debug(f'rank:{args.rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
                     
                     ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
                     sub_batch_nid = []
@@ -147,12 +147,13 @@ def run(rank, ngpus_per_node, args):
                     cur_offset = 0
                     for row in useful_fg_train_nid:
                         for batch in row:
-                            cur_gpu_nid_mask = (nid2pid[batch]==rank)
+                            cur_gpu_nid_mask = (nid2pid[batch]==args.rank)
                             sub_batch = batch[cur_gpu_nid_mask]
                             sub_batch_nid.extend(sub_batch)
+                            print(nid2pid[sub_batch_nid[-1]])
                             cur_offset += len(sub_batch)
                             sub_batch_offsets.append(cur_offset)
-                            if rank==0:
+                            if gpuid==0:
                                 logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
                 
                 with torch.autograd.profiler.record_function('create sampler'):
@@ -177,14 +178,14 @@ def run(rank, ngpus_per_node, args):
 
                         batch_nid = sub_nf.layer_parent_nid(-1)
                         with torch.autograd.profiler.record_function('fetch label'):
-                            labels = fg_labels[batch_nid].cuda(rank, non_blocking=True)
+                            labels = fg_labels[batch_nid].cuda(gpuid, non_blocking=True)
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
                             loss.backward()
                             # for x in model.named_parameters():
                             #     logging.info(x[1].grad.size())
-                            logging.info(f'rank: {rank} sub_batch backward done.')
+                            logging.info(f'rank: {args.rank} sub_batch backward done.')
                     
                     with torch.autograd.profiler.record_function('sync for each sub_iter'):    
                         # 同步
