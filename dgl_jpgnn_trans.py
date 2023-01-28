@@ -157,7 +157,7 @@ def run(gpuid, ngpus_per_node, args):
                 
                 with torch.autograd.profiler.record_function('create sampler'):
                     ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
-                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, add_self_loop=True)
+                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
                 
                 ########## 利用每个sub_batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
@@ -165,8 +165,11 @@ def run(gpuid, ngpus_per_node, args):
                 logging.info(f'n_sub_batches:{n_sub_batches}')
                 
                 sub_iter = 0
+                wait_sampler = []
+                st = time.time()
                 for sub_nf in sampler:
-                    print(f'sub_iter:', sub_iter, sub_nf==None)
+                    wait_sampler.append(time.time()-st)
+                    # print(f'sub_iter:', sub_iter, sub_nf==None)
                     with torch.autograd.profiler.record_function('model transfer'):
                             ########## 模型参数在分布式GPU间进行传输 ###########
                             send_recv(model,args.gpu,args.rank,world_size)
@@ -195,6 +198,7 @@ def run(gpuid, ngpus_per_node, args):
                             optimizer.step()
                         # 至此，一个iteration结束
                     sub_iter += 1
+                    st = time.time()
                 if cache_client.log:
                     miss_rate = cache_client.get_miss_rate()
                     print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(epoch, args.rank, miss_rate))
@@ -203,8 +207,11 @@ def run(gpuid, ngpus_per_node, args):
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
       
     
-    logging.info(prof.export_chrome_trace('tmp.json'))
+    # logging.info(prof.export_chrome_trace('tmp.json'))
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    logging.info(
+        f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
+
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')

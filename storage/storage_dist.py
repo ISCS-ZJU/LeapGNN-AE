@@ -85,7 +85,7 @@ class DistCacheClient:
     
     def get_feats_from_server(self, nids):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
-        type=distcache_pb2.get_features_by_client, ids=nids), timeout=100000)
+        type=distcache_pb2.get_features_by_client, ids=nids), timeout=100000) # TODO: large nids list occurs high overhead
         return response.features
     
     def get_cache_hit_info(self):
