@@ -27,8 +27,24 @@ if __name__ == "__main__":
     train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
     train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
     # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]每项表示每i个点的邻居点id
-    adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()]
+    print(adj.row, len(adj.row), type(adj.row), np.max(adj.row))
+    # print(adj.col, len(adj.col), type(adj.col), np.max(adj.col))
+    # print(adj.data, len(adj.data), type(adj.data))
+
+    # 构造邻接表
+    # adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()] # OOM for ogbn-products
     # print(adjacency_list)
+    
+    assert np.max(adj.row) == np.max(adj.col)
+    tmp_dict = {k:set() for k in range(np.max(adj.row)+1)}
+    for r,c in zip(adj.row, adj.col):
+        tmp_dict[r].add(c)
+    adjacency_list = []
+    for r in range(np.max(adj.row)+1):
+        tmp_adj_lst = np.array(list(tmp_dict[r]), dtype=np.int64)
+        adjacency_list.append(tmp_adj_lst)
+    # print(adjacency_list)
+
     # n_cuts:边切分的次数，membership:[...]表示从Index=0的点开始被分配到的partition的id
     print('start metis partition')
     n_cuts, membership = pymetis.part_graph(

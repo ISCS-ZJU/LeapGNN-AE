@@ -7,7 +7,8 @@ rpcport: 18110
 debug: false
 
 # 数据集配置
-dataset: ./repgnn_data/ogbn_arxiv128
+# dataset: ./repgnn_data/ogbn_arxiv128
+dataset: ./repgnn_data/ogbn_products0
 
 # 缓存配置
 # cache类型
