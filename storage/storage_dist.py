@@ -26,7 +26,7 @@ class DistCacheClient:
                                     ('grpc.enable_retries', 1),
                                     ('grpc.keepalive_timeout_ms', 100000),
                                     ('grpc.max_receive_message_length',
-                                        100 * 1024 * 1024),  # max grpc size 20MB
+                                        2000 * 1024 * 1024),  # max grpc size 2GB
         ])
         # client can use this stub to request to golang cache server
         self.stub = distcache_pb2_grpc.OperatorStub(self.channel)
@@ -72,11 +72,6 @@ class DistCacheClient:
             with torch.autograd.profiler.record_function('asign frame to nodeflow'):
                 logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
                 nodeflow._node_frames[i] = FrameRef(Frame(frame))
-            if self.log:
-                requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
-                self.log_miss_rate(requestnum-localhitnum, requestnum)
-                self.local_feats_gather_time = local_feats_gather_time
-                self.remote_feats_gather_time = remote_feats_gather_time
     
     def get_feat_dim(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
@@ -98,11 +93,9 @@ class DistCacheClient:
         type=distcache_pb2.get_cache_info), timeout=1000)
         return response.requestnum, response.localhitnum, response.local_feats_gather_time, response.remote_feats_gather_time
     
-    def log_miss_rate(self, miss_num, total_num):
-        self.try_num += total_num
-        self.miss_num += miss_num
-    
     def get_miss_rate(self):
+        requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
+        self.try_num, self.miss_num = requestnum, requestnum-localhitnum
         miss_rate = float(self.miss_num) / self.try_num
         print(f'self.miss_num, self.try_num, self.miss_num/self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}')
         self.miss_num = 0
@@ -111,7 +104,9 @@ class DistCacheClient:
     
     def get_total_local_remote_feats_gather_time(self):
         """ 输出本地cache读取feats和远程cache读取feats的总时间 """
-
+        requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
+        self.local_feats_gather_time = local_feats_gather_time
+        self.remote_feats_gather_time = remote_feats_gather_time
         return self.local_feats_gather_time, self.remote_feats_gather_time
     
 

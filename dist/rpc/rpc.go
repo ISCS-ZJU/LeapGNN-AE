@@ -48,8 +48,8 @@ func run_grpc_server() {
 		}
 		s := grpc.NewServer(options...)
 	*/
-	recvSize := 100 * 1024 * 1024
-	sendSize := 100 * 1024 * 1024
+	recvSize := 2000 * 1024 * 1024
+	sendSize := 2000 * 1024 * 1024
 	var options = []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(recvSize),
 		grpc.MaxSendMsgSize(sendSize),
