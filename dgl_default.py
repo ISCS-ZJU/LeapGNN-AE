@@ -95,6 +95,13 @@ def run(gpu, ngpus_per_node, args):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
+    print(f'dataset:', args.dataset)
+    if 'ogbn_arxiv' in args.dataset:
+        args.n_classes = 40
+    elif 'ogbn_products0' in args.dataset:
+        args.n_classes = 47
+    else:
+        raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
         model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
