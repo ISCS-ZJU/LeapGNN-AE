@@ -115,6 +115,9 @@ def run(gpu, ngpus_per_node, args):
     model = torch.nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu])
 
+    # count number of model params
+    print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
+
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):

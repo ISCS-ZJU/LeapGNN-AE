@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     # load data
     # 加载全图topo（其中的点是从0开始编号的）
-    adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz'))
-    print('load full graph adj')
+    adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz')) # <class 'scipy.sparse._coo.coo_matrix'>
+    print('load full graph adj, type:', type(adj))
     train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
     train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
     # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]每项表示每i个点的邻居点id
@@ -35,12 +35,13 @@ if __name__ == "__main__":
     # adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()] # OOM for ogbn-products
     # print(adjacency_list)
     
-    assert np.max(adj.row) == np.max(adj.col)
-    tmp_dict = {k:set() for k in range(np.max(adj.row)+1)}
+    assert len(adj.row) == len(adj.col) # adj.row和adj.col共同确定矩阵非零值的坐标
+    total_row = adj.shape[0] + 1
+    tmp_dict = {k:set() for k in range(total_row)}
     for r,c in zip(adj.row, adj.col):
         tmp_dict[r].add(c)
     adjacency_list = []
-    for r in range(np.max(adj.row)+1):
+    for r in range(total_row):
         tmp_adj_lst = np.array(list(tmp_dict[r]), dtype=np.int64)
         adjacency_list.append(tmp_adj_lst)
     # print(adjacency_list)
