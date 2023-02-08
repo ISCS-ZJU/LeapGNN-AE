@@ -93,6 +93,8 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
     + 使用方法：如模拟两个node：`python3 simulate/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 - analyze_logs.py 分析上述两个程序跑出来的日志文件。
     + 使用方法：`python3 simulate/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
+- metis出现OOM问题
+    + yq1机器上运行`python3 simulate/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d /data/cwj/repgnn/ogbn_papers100M0`
 
 #### Backup: 
 + cache server.go related golang libraries:

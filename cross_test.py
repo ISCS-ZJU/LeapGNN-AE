@@ -1,7 +1,7 @@
 import argparse
 import os, sys, time
 import torch
-import torch.multiprocessing as mp
+import torch.multiprocessing as m
 import torch.nn.functional as F
 import torch.distributed as dist
 import dgl
@@ -14,7 +14,7 @@ from utils.help import Print
 import storage
 from model import gcn
 from utils.ring_all_reduce_demo import allreduce
-from multiprocessing import Process, Queue
+import multiprocessing
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 import logging
 # logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename="./2022.12.25", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, filename="./2023.1.12", filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
 
 
@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, filename="./2022.12.25", filemode='a+', 
 # Defining Training Procedure
 # ---------------------------
 
-def run(rank, devices_lst, args):
+def run(rank, devices_lst, hit_q, max_q, args):
     # print config parameters
     if rank == 0:
         logging.info(f'Client Args: {args}')
@@ -72,18 +72,19 @@ def run(rank, devices_lst, args):
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
 
     # metis切分图，然后根据切分的结果，每个GPU缓存对应各部分图的热点feat（有不知道缓存量大小，第一个iter结束的时候再缓存）
-    if rank == 0:
-        st = time.time()
-        os.system(
-            f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
-        logging.info(f'It takes {time.time()-st}s on metis algorithm.')
-    torch.distributed.barrier()
+    # if rank == 0:
+    #     st = time.time()
+    #     os.system(
+    #         f"python3 prepartition/metis.py --partition {world_size} --dataset {args.dataset}")
+    #     logging.info(f'It takes {time.time()-st}s on metis algorithm.')
+    # torch.distributed.barrier()
+    # print(123)
     
     # 1. 每个gpu加载分图的结果，之后用于对train_lnid根据所在GPU进行切分
     max_train_nid = np.max(fg_train_nid)+1
     nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
     for pid in range(world_size):
-        sorted_part_nid = data.get_partition_results(args.dataset, "metis", world_size, pid)
+        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,"dist_True"), "metis", world_size, pid)
         necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid]
         nid2pid[necessary_nid] = pid
     
@@ -159,8 +160,10 @@ def run(rank, devices_lst, args):
                 nf_nids = nf._node_mapping.tousertensor()
                 offsets = nf._layer_offsets
                 tol_hit = []
+                hit_num = 0
+                hit_max = 0
                 for j in range(0,args.num_gpu):
-                        tol_hit.append(0)
+                    tol_hit.append(0)
                 for i in range(nf.num_layers):
                     tnid = nf_nids[offsets[i]:offsets[i+1]]
                     layer_hit = []
@@ -175,11 +178,29 @@ def run(rank, devices_lst, args):
                     # dist.barrier()
                     # if rank == 0:
                     #     logging.info(f'')
-                logging.info(f'tol: rank: {rank} : {tol_hit}')
-                dist.barrier()
+                for i in range(0,args.num_gpu):
+                    if i != rank:
+                        hit_num += tol_hit[i]
+                        if tol_hit[i] > hit_max:
+                            hit_max = tol_hit[i]
+                hit_q.put(hit_num)
+                max_q.put(hit_max)
+                for i in range(0,args.num_gpu):
+                    if i == rank:
+                        logging.info(f'tol: rank: {rank} : {tol_hit}')
+                    dist.barrier()
+                
                 if rank == 0:
-                    logging.info(f'')
+                    hit_num = 0
+                    m = 0
+                    for i in range(0,args.num_gpu):
+                        hit_num += hit_q.get()
+                        m = max_q.get()
+                        if m > hit_max:
+                            hit_max = m
+                    # logging.info(f'ave:{hit_num/(args.num_gpu*(args.num_gpu-1))}  max:{hit_max}  max/ave:{hit_max/(hit_num/(args.num_gpu*(args.num_gpu-1)))}')
                 print(f'=> cur_epoch {epoch} finished on rank {rank}')
+                dist.barrier()
                 # fetch_done.put(1)
                 # nf_gen_proc.join() # 一个epoch结束
     # if rank == 0:
@@ -219,7 +240,8 @@ def parse_args_func(argv):
 
 if __name__ == '__main__':
     args = parse_args_func(None)
-    mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
-
-
-    
+    mp = multiprocessing.get_context('spawn')
+    hit_q = mp.Queue(args.num_gpu)
+    max_q = mp.Queue(args.num_gpu)
+    # run(0,list(range(args.num_gpu)), hit_q, max_q, args)
+    m.spawn(run, args=(list(range(args.num_gpu)), hit_q, max_q, args), nprocs=args.num_gpu)
