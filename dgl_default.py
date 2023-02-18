@@ -16,7 +16,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn, graphsage
+from model import gcn, graphsage, gat
 import logging
 import time
 
@@ -108,6 +108,9 @@ def run(gpu, ngpus_per_node, args):
     elif args.model_name == 'graphsage':
         model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
+    elif args.model_name == 'gat':
+        model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -197,7 +200,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
+                        choices=['gat', 'graphsage', 'gcn', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=1,
