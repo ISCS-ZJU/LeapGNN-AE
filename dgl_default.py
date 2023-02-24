@@ -16,7 +16,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn, graphsage, gat
+from model import gcn, graphsage, gat, deep
 import logging
 import time
 
@@ -26,7 +26,6 @@ from storage.storage_dist import DistCacheClient
 logging.basicConfig(level=logging.INFO, filename=f"./dgl_default.txt", filemode='a+',
                     format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
 # torch.set_printoptions(threshold=np.inf)
-
 
 
 
@@ -111,6 +110,10 @@ def run(gpu, ngpus_per_node, args):
     elif args.model_name == 'gat':
         model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+    elif args.model_name == 'deepergcn':
+        args.n_layers = len(sampling)
+        args.in_feats = featdim
+        model = deep.DeeperGCN(args)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -222,7 +225,28 @@ def parse_args_func(argv):
                         help='GPU id to use.')
     parser.add_argument('--grpc-port', default="10.5.30.43:18110", type=str,
                         help='grpc port to connect with cache servers.')
-
+    # args for deepergcn
+    parser.add_argument('--mlp_layers', type=int, default=1,
+                            help='the number of layers of mlp in conv')
+    parser.add_argument('--block', default='res+', type=str,
+                            help='deepergcn layer: graph backbone block type {res+, res, dense, plain}')
+    parser.add_argument('--conv', type=str, default='gen',
+                            help='the type of deepergcn GCN layers')
+    parser.add_argument('--gcn_aggr', type=str, default='max',
+                            help='the aggregator of GENConv [mean, max, add, softmax, softmax_sg, softmax_sum, power, power_sum]')
+    parser.add_argument('--norm', type=str, default='batch',
+                            help='the type of normalization layer')
+    parser.add_argument('--t', type=float, default=1.0,
+                            help='the temperature of SoftMax')
+    parser.add_argument('--p', type=float, default=1.0,
+                            help='the power of PowerMean')
+    parser.add_argument('--y', type=float, default=0.0,
+                            help='the power of degrees')
+    parser.add_argument('--learn_t', action='store_true')
+    parser.add_argument('--learn_p', action='store_true')
+    parser.add_argument('--learn_y', action='store_true')
+    parser.add_argument('--msg_norm', action='store_true')
+    parser.add_argument('--learn_msg_scale', action='store_true')
     return parser.parse_args(argv)
 
 
