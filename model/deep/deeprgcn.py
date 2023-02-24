@@ -1,7 +1,7 @@
-import __init__
+# import __init__
 import torch
-from gcn_lib.sparse.torch_vertex import GENConv
-from gcn_lib.sparse.torch_nn import norm_layer
+from .gcn_lib.sparse.torch_vertex import GENConv
+from .gcn_lib.sparse.torch_nn import norm_layer
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 import logging

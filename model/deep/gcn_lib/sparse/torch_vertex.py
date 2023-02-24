@@ -5,7 +5,7 @@ import torch_geometric as tg
 from .torch_nn import MLP, act_layer, norm_layer, BondEncoder
 from .torch_edge import DilatedKnnGraph
 from .torch_message import GenMessagePassing, MsgNorm
-from utils.pyg_util import scatter_
+from ...utils.pyg_util import scatter_
 from torch_geometric.utils import remove_self_loops, add_self_loops
 
 
