@@ -34,6 +34,18 @@
     cd PaRMAT/Release
     make
     ```
+7. 使用deepgcn
+    pip3 install h5py
+    先安装torch_scatter torch_cluster（需要指定torch，cuda和python版本）
+    https://pytorch-geometric.com/whl/torch-1.10.1%2Bcu113.html 下载
+    torch_scatter-2.0.9-cp39-cp39-linux_x86_64.whl
+    torch_cluster-1.6.0-cp39-cp39-linux_x86_64.whl
+    torch_sparse-0.6.13-cp39-cp39-linux_x86_64.whl
+    进行安装
+    完成后再安装torch_geometric
+    pip3 install torch_geometric
+    如果出现error: metadata-generation-failed报错
+    pip install setuptools==50.3.2
 ```
 ### 1. 数据集（2种选择）
 + 产生模拟小图数据，10个点，25条边，没有重复，无方向; 图文件保存在pp.txt中；
