@@ -7,19 +7,14 @@ from torch.utils.checkpoint import checkpoint
 import logging
 from torch_sparse import SparseTensor
 
-def nf_move_layer_to(h, nf, i):
-    row, col, _ = nf.block_edges(i, remap_local=True)
-    edge_index = SparseTensor(row=row,col=col)
-    h = h[nf.map_from_parent_nid(i - 1,nf.map_to_parent_nid(nf.layer_nid(i)),remap_local=True)]
-    return edge_index, h
-
 class DeeperGCN(torch.nn.Module):
     def __init__(self, args):
         super(DeeperGCN, self).__init__()
 
-        self.num_layers = args.n_layers
+        self.num_layers = args.n_layers + 1
         self.dropout = args.dropout
         self.block = args.block
+        self.gpu = args.gpu
 
         self.checkpoint_grad = False
 
@@ -86,12 +81,11 @@ class DeeperGCN(torch.nn.Module):
     def forward(self, nf):
         x = nf.layers[0].data['features']
         row, col, _ = nf.block_edges(0, remap_local=True)
-        edge_index = SparseTensor(row=row,col=col)
+        edge_index = SparseTensor(row=row,col=col,sparse_sizes=[x.shape[0],x.shape[0]]).cuda(self.gpu)
 
         h = self.node_features_encoder(x)
 
         if self.block == 'res+':
-
             h = self.gcns[0](h, edge_index)
 
             if self.checkpoint_grad:
@@ -106,7 +100,7 @@ class DeeperGCN(torch.nn.Module):
                         h = res + h
                     else:
                         h = self.gcns[layer](h2, edge_index) + h
-                    edge_index, h = nf_move_layer_to(h,nf,layer)
+                    edge_index, h = self.nf_move_layer_to(h,nf,layer)
 
             else:
                 for layer in range(1, self.num_layers):
@@ -114,7 +108,7 @@ class DeeperGCN(torch.nn.Module):
                     h2 = F.relu(h1)
                     h2 = F.dropout(h2, p=self.dropout, training=self.training)
                     h = self.gcns[layer](h2, edge_index) + h
-                    edge_index, h = nf_move_layer_to(h,nf,layer)
+                    edge_index, h = self.nf_move_layer_to(h,nf,layer)
 
 
             h = F.relu(self.norms[self.num_layers - 1](h))
@@ -130,7 +124,7 @@ class DeeperGCN(torch.nn.Module):
                 h2 = self.norms[layer](h1)
                 h = F.relu(h2) + h
                 h = F.dropout(h, p=self.dropout, training=self.training)
-                edge_index, h = nf_move_layer_to(h,nf,layer)
+                edge_index, h = self.nf_move_layer_to(h,nf,layer)
 
 
         elif self.block == 'dense':
@@ -146,12 +140,13 @@ class DeeperGCN(torch.nn.Module):
                 h2 = self.norms[layer](h1)
                 h = F.relu(h2)
                 h = F.dropout(h, p=self.dropout, training=self.training)
-                edge_index, h = nf_move_layer_to(h,nf,layer)
+                edge_index, h = self.nf_move_layer_to(h,nf,layer)
 
         else:
             raise Exception('Unknown block Type')
 
         h = self.node_pred_linear(h)
+        h = h[nf.map_from_parent_nid(self.num_layers - 1,nf.map_to_parent_nid(nf.layer_nid(self.num_layers)),remap_local=True)]
 
         return torch.log_softmax(h, dim=-1)
 
@@ -192,3 +187,9 @@ class DeeperGCN(torch.nn.Module):
                 print('Final s {}'.format(ss))
             else:
                 logging.info('Epoch {}, s {}'.format(epoch, ss))
+
+    def nf_move_layer_to(self, h, nf, i):
+        row, col, _ = nf.block_edges(i, remap_local=True)
+        h = h[nf.map_from_parent_nid(i - 1,nf.map_to_parent_nid(nf.layer_nid(i)),remap_local=True)]
+        edge_index = SparseTensor(row=row,col=col,sparse_sizes=[h.shape[0],h.shape[0]]).cuda(self.gpu)
+        return edge_index, h
