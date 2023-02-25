@@ -38,8 +38,8 @@
 ### 1. 数据集（2种选择）
 + 产生模拟小图数据，10个点，25条边，没有重复，无方向; 图文件保存在pp.txt中；
     ```bash
-    ./PaRMAT -noDuplicateEdges -undirected -threads 16 -nVertices 20 -nEdges 50 -output /data/cwj/pagraph/gendemo/pp.txt
-    python data/preprocess.py --ppfile pp.txt --gen-feature --gen-label --gen-set --dataset /data/cwj/pagraph/gendemo
+    ./PaRMAT/Release/PaRMAT -noDuplicateEdges -undirected -threads 16 -nVertices 20 -nEdges 50 -output ./dist/repgnn_data/gendemo/pp.txt
+    python data/preprocess.py --ppfile pp.txt --gen-feature --gen-label --gen-set --dataset ./dist/repgnn_data/gendemo
     ```
 + 使用OGBN中的开源数据集（ Transfer Ogbn Dataset Format )
     1. 修改pre.sh中的SETPATH为数据要存储的文件夹路径(不包括文件名), NAME为要下载的ogbn的数据集名称
@@ -87,12 +87,17 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 
 ## Simulate
 存放模拟运行的代码。
-- dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/logs目录下。
-    + 使用方法：如模拟两个node：`python3 simulate/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-- dgl_jpgnn_sampling_simulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/sampling/logs目录下。
-    + 使用方法：如模拟两个node：`python3 simulate/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-- analyze_logs.py 分析上述两个程序跑出来的日志文件。
-    + 使用方法：`python3 simulate/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
+- sampling:
+    - sampling/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/sampling/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/sampling/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - sampling/dgl_jpgnn_sampling_simulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/sampling/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/sampling/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - sampling/analyze_logs.py 分析上述两个程序跑出来的日志文件。
+        + 使用方法：`python3 simulate/sampling/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
+- cha1
+    - cha1/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究naive迁移方式下的数据迁移量。日志文件存放在simulate/cha1/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+
 
 
 #### Backup: 

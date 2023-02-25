@@ -16,16 +16,17 @@ import data
 import multiprocessing as mpg
 
 from dgl import DGLGraph
-from utils.help import Print
 import storage
-from model import gcn
+from model_inter import gcn, graphsage, gat
 import logging
 import time
 
 from storage.storage_dist import DistCacheClient
 
-np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+import logging
 
+from dgl.frame import Frame, FrameRef
+import random
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -95,52 +96,42 @@ def run(gpu, barrier, n_gnn_trainers, args):
     fg = DGLGraph(fg_adj, readonly=True)
 
     # #################### 创建本地模拟的GNN模型####################
-    # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
+    if args.model_name == 'gcn':
+        model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'graphsage':
+        model = graphsage.GraphSageSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'gat':
+        model = gat.GATSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+    model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
+    n_model_param = sum([p.numel() for p in model.parameters()])
 
-    def split_fn(a):
-        if len(a) <= args.batch_size:
-            return np.split(a, np.array([len(a)])) # 最后会产生一个空的array, necessary
-        else:
-            return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     #################### GNN训练 ####################
     batches_n_nodes = [] # 存放每个batch生成的子树的总点数
     n_remote_hit_nodes = [0 for _ in range(n_gnn_trainers)] # 存放在远程trainer中命中的点数
+    block_trans_model_opti = [0 for _ in range(len(sampling)+1)] # 存放每block GNN的模型和优化器迁移的参数量
+    block_trans_aggr = [0 for _ in range(len(sampling)+1)] # 存放每block GNN的中间数据aggr的移动参数量
+    nf_trans_comb = [] # 存放每个nf执行完时GNN的中间数据comb的移动参数量
+    nf_trans_actv = [] # 存放每个nf执行完时GNN的中间数据actv的移动参数量
     for epoch in range(args.epoch):
         ########## 获取当前gpu在当前epoch分配到的training node id ##########
         np.random.seed(epoch)
         np.random.shuffle(fg_train_nid)
-        useful_fg_train_nid = fg_train_nid[:args.world_size*ntrain_per_gpu]
-        useful_fg_train_nid = useful_fg_train_nid.reshape(args.world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
-        # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
-        useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
-        
-
-        ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
-        sub_batch_nid = []
-        sub_batch_offsets = [0]
-        cur_offset = 0
-        for row in useful_fg_train_nid:
-            for batch in row:
-                cur_gpu_nid_mask = (nid2pid_dict[batch]==args.rank)
-                sub_batch = batch[cur_gpu_nid_mask]
-                sub_batch_nid.extend(sub_batch)
-                cur_offset += len(sub_batch)
-                sub_batch_offsets.append(cur_offset)
-                if args.rank==0:
-                    logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
+        train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
             
         ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
-        sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, add_self_loop=True)
+        sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
         ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
-        # model.train()
+        model.train()
         iter = 0
         for nf in sampler:
-            logging.debug(f'iter: {iter}')
             # 统计一个batch生成的一个nf中，点的总个数（每层已经做过去重）、这些点在每个trainer分图结果中命中的点数
             nf_nids = nf._node_mapping.tousertensor() # 一个batch对应的子树的所有graph node （层内点id去重）
-            if torch.numel(nf_nids)!= 0:
-                batches_n_nodes.append(torch.numel(nf_nids))
+            print('nf_nids:', nf_nids)
+            batches_n_nodes.append(torch.numel(nf_nids))
             # 统计命中在其他trainer上的点数
             belongs_pid = nid2pid_dict[nf_nids]
             unique_pid, counts = np.unique(belongs_pid, return_counts=True)
@@ -149,10 +140,59 @@ def run(gpu, barrier, n_gnn_trainers, args):
                 pid = int(pid) # np.float64->int
                 if pid != args.rank:
                     n_remote_hit_nodes[pid] += count
-            # # 查看子树每层的nid        
-            # offsets = nf._layer_offsets
-            # for i in range(nf.num_layers):
-            #     layer_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
+            
+            ########## 计算naive方式下数据迁移量 ##########
+            # 查看子树每层的nid        
+            offsets = nf._layer_offsets
+
+            # 填充假数据，从而可以获取每个block执行完后的activation的shape
+            activation_shape = []
+            for i in range(nf.num_layers):
+                layer_nid = nf_nids[offsets[i]:offsets[i+1]]
+                nf._node_frames[i] = FrameRef(Frame({'features': torch.FloatTensor(layer_nid.size(0), args.featdim)}))
+            # model(nf)
+
+            block_num = nf.num_layers - 1
+            # 获取每个block输入的维度用于后续计算aggr迁移量
+            block_input_dim = [] # 只有第一个block输入是featdim，其他都是hiden_size
+            for j in range(block_num):
+                if j==0:
+                    block_input_dim.append(args.featdim)
+                else:
+                    block_input_dim.append(args.hidden_size)
+            # 获取每个nf前传时combine需要传输的数据量
+            fwdoutput, nf_total_comb_size, nf_total_actv_size = model(nf)
+            
+            for i in range(block_num):
+                block_input_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
+                print('block_input_nid:', block_input_nid)
+                # 计算该block的nid跨越的机器数
+                layer_belongs_pid = nid2pid_dict[block_input_nid]
+                layer_unique_pid, layer_counts = np.unique(layer_belongs_pid, return_counts=True)
+                layer_accross_machines = len(layer_unique_pid)
+                # 计算完成该block GNN计算需要的模型参数和优化器的迁移数据量
+                # logging.info(f'i = {i}, len(block_trans_model_opti)={len(block_trans_model_opti)}')
+                block_trans_model_opti[i] += n_model_param * 3 * (layer_accross_machines - 1) # adam优化器的参数量是模型参数量2倍
+                ## 计算完成该block GNN计算需要的中间数据的迁移数据量
+                # 迁移节点顺序
+                trans_machine_sequence = [(args.rank+i)%args.world_size for i in range(layer_accross_machines)]
+                
+                # 模拟该block计算时的迁移过程，计算aggr的迁移数量
+                  # 1. 确定当前machine上gnids的父节点有几个，乘以feat.dim（由于父节点数量难以确定，取[当前block输入层的本机gnids数/fanout, 当前block输出gnids数]
+                  # 2. 累加之前的aggr值，即得到当前m迁移到下一个m时要传输的aggr数据量(由于累加会涉及父节点合并的问题，但不确定有多少，因此通过不累加来估计结果)
+                
+                block_aggr_trans_ndata = 0
+                for mid in trans_machine_sequence[:-1]:
+                    cur_machine_nids = np.count_nonzero[layer_belongs_pid==mid]
+                    rand_parent_nids = random.randint(cur_machine_nids//int(sampling[0]), len(nf_nids[offsets[i+1]:offsets[i+2]]))
+                    block_aggr_trans_ndata += rand_parent_nids * block_input_dim[i]
+                block_trans_aggr[i] += block_aggr_trans_ndata
+            # 计算当前nf的combine迁移数量
+            nf_trans_comb.append(nf_total_comb_size)
+
+            # 确定激活中间结果的大小
+            nf_trans_actv.append(nf_total_actv_size)
+
             iter += 1
             st = time.time()
         logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
@@ -160,6 +200,15 @@ def run(gpu, barrier, n_gnn_trainers, args):
         logging.info(f'rank={args.rank}, number of training batches: {len(batches_n_nodes)}')
         logging.info(f'rank={args.rank}, the number of nodes for each tree spand by batch: {batches_n_nodes}, total nodes: {sum(batches_n_nodes)}')
         logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes}')
+        
+    logging.info(f"{'=='*10} | rank={args.rank}, total_epoch={args.epoch} naive模型迁移方式的数据传输量 | {'=='*10}")
+    logging.info(f'rank={args.rank}, each block model&opt size transfer: {block_trans_model_opti}, total model&opt size transfer: {sum(block_trans_model_opti)}')
+    logging.info(f'rank={args.rank}, each block aggr size transfer: {block_trans_aggr}, total aggr size transfer: {sum(block_trans_aggr)}')
+    logging.info(f'rank={args.rank}, each nf comb size transfer: {nf_trans_comb}, total comb size transfer: {sum(nf_trans_comb)}')
+    logging.info(f'rank={args.rank}, each nf actv size transfer: {nf_trans_actv}, total actv size transfer: {sum(nf_trans_actv)}')
+    logging.info(f'rank={args.rank}, total data transfer: {sum(block_trans_model_opti) + sum(block_trans_aggr) + sum(nf_trans_comb) + sum(nf_trans_actv)}')
+    
+
 
 
 def parse_args_func(argv):
@@ -206,19 +255,20 @@ def parse_args_func(argv):
 if __name__ == '__main__':
     args = parse_args_func(None)
     ngpus_per_node = args.ngpus_per_node
+    
     # 写日志
     log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'jpgnn_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    log_filename = os.path.join(log_dir, f'default_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename)
+            os.remove(log_filename) # 删除已有日志，重新运行
         else:
             print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1)
+            sys.exit(-1) # 退出程序
     logging.basicConfig(level=logging.INFO, filename=log_filename, filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
     logging.info(f"ngpus_per_trainer: {ngpus_per_node}")
 

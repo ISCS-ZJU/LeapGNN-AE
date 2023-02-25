@@ -1,5 +1,5 @@
 import sys, os
-sys.path.append(f'{os.path.dirname(__file__)}/../')
+sys.path.append(f'{os.path.dirname(__file__)}/../../')
 from rpc_client import distcache_pb2_grpc
 from rpc_client import distcache_pb2
 import grpc
