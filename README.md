@@ -99,17 +99,18 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 
 ## Simulate
 存放模拟运行的代码。
-- sampling:
-    - sampling/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/sampling/logs目录下。
-        + 使用方法：如模拟两个node：`python3 simulate/sampling/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-    - sampling/dgl_jpgnn_sampling_simulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/sampling/logs目录下。
-        + 使用方法：如模拟两个node：`python3 simulate/sampling/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-    - sampling/analyze_logs.py 分析上述两个程序跑出来的日志文件。
-        + 使用方法：`python3 simulate/sampling/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
+- motv:
+    - motv/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/motv/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - motv/dgl_jpgnn_sampling_simulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/motv/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - motv/analyze_logs.py 分析上述两个程序跑出来的日志文件。
+        + 使用方法：`python3 simulate/motv/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
 - cha1
     - cha1/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究naive迁移方式下的数据迁移量。日志文件存放在simulate/cha1/logs目录下。
         + 使用方法：如模拟两个node：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-
+- obsv1
+    
 
 
 #### Backup: 

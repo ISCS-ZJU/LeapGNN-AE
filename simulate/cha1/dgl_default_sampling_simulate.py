@@ -105,7 +105,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
     elif args.model_name == 'gat':
         model = gat.GATSampling(args.featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
-    model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
+    # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
     n_model_param = sum([p.numel() for p in model.parameters()])
 
     #################### GNN训练 ####################
@@ -130,7 +130,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
         for nf in sampler:
             # 统计一个batch生成的一个nf中，点的总个数（每层已经做过去重）、这些点在每个trainer分图结果中命中的点数
             nf_nids = nf._node_mapping.tousertensor() # 一个batch对应的子树的所有graph node （层内点id去重）
-            print('nf_nids:', nf_nids)
+            # print('nf_nids:', nf_nids)
             batches_n_nodes.append(torch.numel(nf_nids))
             # 统计命中在其他trainer上的点数
             belongs_pid = nid2pid_dict[nf_nids]
@@ -165,7 +165,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
             
             for i in range(block_num):
                 block_input_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
-                print('block_input_nid:', block_input_nid)
+                # print('block_input_nid:', block_input_nid)
                 # 计算该block的nid跨越的机器数
                 layer_belongs_pid = nid2pid_dict[block_input_nid]
                 layer_unique_pid, layer_counts = np.unique(layer_belongs_pid, return_counts=True)
@@ -183,7 +183,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
                 
                 block_aggr_trans_ndata = 0
                 for mid in trans_machine_sequence[:-1]:
-                    cur_machine_nids = np.count_nonzero[layer_belongs_pid==mid]
+                    cur_machine_nids = np.count_nonzero([layer_belongs_pid==mid])
                     rand_parent_nids = random.randint(cur_machine_nids//int(sampling[0]), len(nf_nids[offsets[i+1]:offsets[i+2]]))
                     block_aggr_trans_ndata += rand_parent_nids * block_input_dim[i]
                 block_trans_aggr[i] += block_aggr_trans_ndata
@@ -255,13 +255,14 @@ def parse_args_func(argv):
 if __name__ == '__main__':
     args = parse_args_func(None)
     ngpus_per_node = args.ngpus_per_node
+    modelname = args.model_name
     
     # 写日志
     log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'default_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    log_filename = os.path.join(log_dir, f'default_sampling_{modelname}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':

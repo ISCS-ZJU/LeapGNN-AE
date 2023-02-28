@@ -1,0 +1,52 @@
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 198 : ngpus_per_trainer: 1
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 37 : Total number of trainers: 8
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 53 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_arxiv128/', sampling='10-10', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='graphsage', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=8, ngpus_per_node=1, featdim=128)
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 66 : metis分图已经完成
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:45 dgl_default_sampling_simulate.py 89 : fg_train_nid: 110072 ntrain_per_GPU: 13759
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=2,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=2, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=2, the number of nodes for each tree spand by batch: [158078, 123750], total nodes: 281828
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=2, the number of nodes hits on other trainers: [32802, 38606, 0, 36920, 39781, 32973, 31985, 31160]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 1
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=1,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=1, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=1, the number of nodes for each tree spand by batch: [159590, 128734], total nodes: 288324
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=1, the number of nodes hits on other trainers: [34437, 0, 39422, 38834, 39734, 34032, 32410, 30526]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 7
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=7,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=7, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=7, the number of nodes for each tree spand by batch: [158240, 128773], total nodes: 287013
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=7, the number of nodes hits on other trainers: [33648, 38460, 38111, 38412, 40166, 34412, 33294, 0]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 6
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=6,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=6, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=6, the number of nodes for each tree spand by batch: [160960, 128890], total nodes: 289850
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=6, the number of nodes hits on other trainers: [33216, 38517, 39722, 38497, 40536, 35644, 0, 31179]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 5
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 3
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=5,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=5, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=5, the number of nodes for each tree spand by batch: [159476, 129074], total nodes: 288550
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=3,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=5, the number of nodes hits on other trainers: [33876, 39503, 40334, 38700, 39339, 0, 32730, 30419]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=3, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=3, the number of nodes for each tree spand by batch: [157763, 129192], total nodes: 286955
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=3, the number of nodes hits on other trainers: [35122, 39421, 39320, 0, 39662, 34122, 31435, 29780]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 4
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=4,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=4, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=4, the number of nodes for each tree spand by batch: [157558, 127697], total nodes: 285255
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=4, the number of nodes hits on other trainers: [33525, 38713, 39417, 38186, 0, 34696, 31439, 29535]
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 132 : => cur_epoch 0 finished on rank 0
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 133 : ==================== | rank=0,epoch=0 采样node信息输出 | ====================
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 134 : rank=0, number of training batches: 2
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 135 : rank=0, the number of nodes for each tree spand by batch: [157099, 129486], total nodes: 286585
+INFO Mon, 06 Feb 2023 21:13:46 dgl_default_sampling_simulate.py 136 : rank=0, the number of nodes hits on other trainers: [0, 38242, 38827, 38216, 42058, 33948, 32221, 30560]

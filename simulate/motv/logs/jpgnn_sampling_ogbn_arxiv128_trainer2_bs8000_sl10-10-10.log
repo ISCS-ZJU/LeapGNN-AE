@@ -1,0 +1,16 @@
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 218 : ngpus_per_trainer: 1
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 38 : Total number of trainers: 2
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 54 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_arxiv128/', sampling='10-10-10', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='graphsage', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=2, ngpus_per_node=1, featdim=128)
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 67 : metis分图已经完成
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 90 : fg_train_nid: 110072 ntrain_per_GPU: 55036
+INFO Fri, 30 Dec 2022 22:32:28 dgl_jpgnn_sampling_simulate.py 90 : fg_train_nid: 110072 ntrain_per_GPU: 55036
+INFO Fri, 30 Dec 2022 22:32:30 dgl_jpgnn_sampling_simulate.py 153 : => cur_epoch 0 finished on rank 1
+INFO Fri, 30 Dec 2022 22:32:30 dgl_jpgnn_sampling_simulate.py 154 : ==================== | rank=1,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:32:30 dgl_jpgnn_sampling_simulate.py 155 : rank=1, number of training batches: 14
+INFO Fri, 30 Dec 2022 22:32:30 dgl_jpgnn_sampling_simulate.py 156 : rank=1, the number of nodes for each tree spand by batch: [136726, 140630, 138266, 142172, 139386, 138025, 134519, 140894, 140721, 142534, 138753, 141804, 128875, 129391], total nodes: 1932696
+INFO Fri, 30 Dec 2022 22:32:30 dgl_jpgnn_sampling_simulate.py 157 : rank=1, the number of nodes hits on other trainers: [609789, 0]
+INFO Fri, 30 Dec 2022 22:32:31 dgl_jpgnn_sampling_simulate.py 153 : => cur_epoch 0 finished on rank 0
+INFO Fri, 30 Dec 2022 22:32:31 dgl_jpgnn_sampling_simulate.py 154 : ==================== | rank=0,epoch=0 采样node信息输出 | ====================
+INFO Fri, 30 Dec 2022 22:32:31 dgl_jpgnn_sampling_simulate.py 155 : rank=0, number of training batches: 14
+INFO Fri, 30 Dec 2022 22:32:31 dgl_jpgnn_sampling_simulate.py 156 : rank=0, the number of nodes for each tree spand by batch: [157297, 152038, 158313, 153989, 154866, 155037, 153881, 157549, 148180, 157692, 152586, 149532, 145402, 150362], total nodes: 2146724
+INFO Fri, 30 Dec 2022 22:32:31 dgl_jpgnn_sampling_simulate.py 157 : rank=0, the number of nodes hits on other trainers: [0, 431003]

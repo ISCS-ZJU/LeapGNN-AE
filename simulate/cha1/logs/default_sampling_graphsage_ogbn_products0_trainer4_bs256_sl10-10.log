@@ -1,0 +1,8 @@
+INFO Sun, 26 Feb 2023 23:46:27 dgl_default_sampling_simulate.py 274 : ngpus_per_trainer: 1
+INFO Sun, 26 Feb 2023 23:46:27 dgl_default_sampling_simulate.py 39 : Total number of trainers: 4
+INFO Sun, 26 Feb 2023 23:46:27 dgl_default_sampling_simulate.py 55 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_products0/', sampling='10-10', hidden_size=256, n_classes=60, batch_size=256, dropout=0.2, lr=0.03, weight_decay=0, model_name='graphsage', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=4, ngpus_per_node=1, featdim=100)
+INFO Sun, 26 Feb 2023 23:46:27 dgl_default_sampling_simulate.py 68 : metis分图已经完成
+INFO Sun, 26 Feb 2023 23:46:36 dgl_default_sampling_simulate.py 91 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Sun, 26 Feb 2023 23:46:36 dgl_default_sampling_simulate.py 91 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Sun, 26 Feb 2023 23:46:36 dgl_default_sampling_simulate.py 91 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Sun, 26 Feb 2023 23:46:36 dgl_default_sampling_simulate.py 91 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
