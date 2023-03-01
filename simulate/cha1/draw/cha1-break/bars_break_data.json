@@ -1,0 +1,19 @@
+{
+    "fig0": {
+        "fig-title": "Data Movement Comparison Between Default and Naive",
+        "x-title": "",
+        "y-title": "Volumn (MB)",
+        "x-labels":"ar-gcn2, ar-gcn3, ar-sage2, ar-sage3, pr-gcn2, pr-gcn3, pr-sage2",
+        "y-labels": "",
+        "legends": [["Default"], ["model&optm", "inter-aggr", "inter-comb", "inter-actv"]],
+        "group-data": {
+            "c0": [[1.39, 3.52, 1.39, 3.52, 6.6, 46.3, 6.6]],
+            "c1": [[3.32, 11.76, 8.76, 26.69, 2.83, 11.02, 7.77],
+                   [1.15, 3.86, 1.13, 3.92, 2.12, 18.38, 2.11],
+                   [2.18, 14.2, 2.18, 14.22, 10.07, 167.73, 10.07],
+                   [0.92, 5.98, 1.84, 6.907, 2.33, 41.95, 4.66]]
+        }
+
+    }
+
+}
