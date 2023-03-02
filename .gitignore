@@ -1,5 +1,5 @@
 dataset
-*/__pycache__/*
+__pycache__/
 *.pt
 PaGraph
 parti_results/
