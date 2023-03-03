@@ -40,7 +40,7 @@ for figname, figitems in data.items():
         xcoor = [i*(blkwdth+1) for i in range(nblks)]
         # draw bars by groups
         for j in range(ncomprs):
-            axs[fid].bar(np.array(xcoor)+args.barwidth*j, grpdata[f'c{j}'], color=clrs[j+3], width=args.barwidth, label=legends[j])
+            axs[fid].bar(np.array(xcoor)+args.barwidth*j, grpdata[f'c{j}'], color=clrs[j+3], width=args.barwidth, label=legends[j], edgecolor='black', linewidth=1.2)
         # set x-labels
         axs[fid].set_xticks(np.array(xcoor)+blkwdth/2 - args.barwidth/2)
         axs[fid].set_xticklabels([xln.strip() for xln in figitems['x-labels'].split(',')])

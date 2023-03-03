@@ -1,0 +1,46 @@
+{
+    "fig0": {
+        "fig-title": "Comparison on ogbn-arxiv",
+        "x-title": "",
+        "y-title": "Time (s)",
+        "x-labels":"gcn-2, sage-2, gcn-10, sage-10",
+        "y-labels": "",
+        "legends": [["sampling stall", "local feats gather", "remote feats gather", "GPU computing", "others"], ["sampling stall", "local feats gather", "remote feats gather", "GPU computing", "others"]],
+        "group-data": {
+            "c0": [[0.21, 0.21, 0.3, 0.31],
+                    [0.09, 0.11, 0.2, 0.17],
+                    [2.74, 2.68, 6.04, 5.78],
+                    [1.94, 0.91, 1.98, 1.1],
+                    [1.5, 1.5, 3.39, 3.44]],
+            "c1": [[0.18, 0.19, 0.23, 0.24],
+                    [0.22, 0.19, 0.26, 0.28],
+                    [0.86, 0.84, 3.79, 3.84],
+                    [2.06, 1.31, 2.25, 1.65],
+                    [1.95, 2.28, 3.77, 4.07]]
+        }
+
+    },
+    "fig1": {
+        "fig-title": "Comparison on ogbn-products",
+        "x-title": "",
+        "y-title": "Time (s)",
+        "x-labels":"gcn-2, sage-2, gcn-10, sage-10",
+        "y-labels": "",
+        "legends": [["sampling stall", "local feats gather", "remote feats gather", "GPU computing", "others"], ["sampling stall", "local feats gather", "remote feats gather", "GPU computing", "others"]],
+        "group-data": {
+            "c0": [[7.6, 7.409, 16.16, 16.043],
+                    [5.31, 5.56, 47.6, 46.318],
+                    [140.03, 140.22, 906.481, 891.806],
+                    [11.58, 18.39, 290.88, 394.817],
+                    [96.88, 93.18, 683.09, 685.71]],
+            "c1": [[7.37, 7.39, 13.612, 14.153],
+                    [9.74, 9.66, 69.614, 69.101],
+                    [14.39, 14.39, 449.976, 450.88],
+                    [20.21, 30.26, 308.676, 367.52],
+                    [97.33, 101.23, 765.93, 780.51]]
+           
+        }
+
+    }
+
+}

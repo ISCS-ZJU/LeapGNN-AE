@@ -23,7 +23,7 @@ data,(rows, cols), (nblks, blkwdth), (ncomprs, legends) = loaddata.load_and_pars
 
 # Create subplots
 fig, axs = plt.subplots(nrows=rows, ncols=args.cols)
-fig.subplots_adjust(hspace=0.5, wspace=0.3)
+fig.subplots_adjust(hspace=0.5, wspace=0.4)
 if rows==args.cols==1:
     axs = [axs]
 else:
@@ -31,6 +31,7 @@ else:
 
 # Define colors
 clrs = colors.get_colors_lst()
+clrs[2], clrs[4] = clrs[4], clrs[2]
 
 # parse data and other metadatas for each subplots from data dict
 for figname, figitems in data.items():
@@ -68,7 +69,7 @@ for figname, figitems in data.items():
         axs[fid].set_ylabel(figitems['y-title'])
         axs[fid].set_title(figitems['fig-title'])
         # show legend
-        axs[fid].legend()
+        # axs[fid].legend(loc='best')
 
 # Save the figure to a file
 plt.savefig(args.outputfile)
