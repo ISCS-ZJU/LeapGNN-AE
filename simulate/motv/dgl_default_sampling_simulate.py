@@ -17,7 +17,8 @@ import multiprocessing as mpg
 
 from dgl import DGLGraph
 import storage
-from model import gcn
+from model import gcn, gat, graphsage
+from model.deep import deepergcn
 import logging
 import time
 
@@ -95,6 +96,19 @@ def run(gpu, barrier, n_gnn_trainers, args):
 
     # #################### 创建本地模拟的GNN模型####################
     # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
+    if args.model_name == 'gcn':
+        model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'graphsage':
+        model = graphsage.GraphSageSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, args.dropout)
+    elif args.model_name == 'gat':
+        model = gat.GATSampling(args.featdim, args.hidden_size, args.n_classes, len(
+            sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+    elif args.model_name == 'deepergcn':
+        model = deepergcn.DeeperGCN(args)
+    n_model_param = sum([p.numel() for p in model.parameters()])
+    print(f'n_model_param = {n_model_param}')
 
     #################### GNN训练 ####################
     batches_n_nodes = [] # 存放每个batch生成的子树的总点数
@@ -155,7 +169,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
+                        choices=['graphsage', 'gcn', 'gat', 'deepergcn', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=1,
@@ -180,13 +194,14 @@ def parse_args_func(argv):
 if __name__ == '__main__':
     args = parse_args_func(None)
     ngpus_per_node = args.ngpus_per_node
+    model_name = args.model_name
     
     # 写日志
     log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'default_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':

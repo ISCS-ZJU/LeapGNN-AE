@@ -1,1 +1,1 @@
-from .deeprgcn import DeeperGCN
+from .deepergcn import DeeperGCN
