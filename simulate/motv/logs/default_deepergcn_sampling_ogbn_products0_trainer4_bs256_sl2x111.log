@@ -1,0 +1,13 @@
+INFO Wed, 08 Mar 2023 18:46:42 dgl_default_sampling_simulate.py 249 : ngpus_per_trainer: 1
+INFO Wed, 08 Mar 2023 18:46:42 dgl_default_sampling_simulate.py 38 : Total number of trainers: 4
+INFO Wed, 08 Mar 2023 18:46:42 dgl_default_sampling_simulate.py 54 : Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_products0/', sampling='2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2', hidden_size=256, n_classes=60, batch_size=256, dropout=0.2, lr=0.03, weight_decay=0, model_name='deepergcn', epoch=1, num_worker=1, cache_size=0, seed=None, log=False, world_size=4, ngpus_per_node=1, featdim=100, mlp_layers=1, block='res+', conv='gen', gcn_aggr='max', norm='batch', t=1.0, p=1.0, y=0.0, learn_t=False, learn_p=False, learn_y=False, msg_norm=False, learn_msg_scale=False)
+INFO Wed, 08 Mar 2023 18:46:42 dgl_default_sampling_simulate.py 67 : metis分图已经完成
+INFO Wed, 08 Mar 2023 18:46:51 dgl_default_sampling_simulate.py 90 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Wed, 08 Mar 2023 18:46:51 dgl_default_sampling_simulate.py 90 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Wed, 08 Mar 2023 18:46:51 dgl_default_sampling_simulate.py 90 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Wed, 08 Mar 2023 18:46:51 dgl_default_sampling_simulate.py 90 : fg_train_nid: 1591868 ntrain_per_GPU: 397967
+INFO Wed, 08 Mar 2023 19:20:38 dgl_default_sampling_simulate.py 152 : => cur_epoch 0 finished on rank 3
+INFO Wed, 08 Mar 2023 19:20:38 dgl_default_sampling_simulate.py 153 : ==================== | rank=3,epoch=0 采样node信息输出 | ====================
+INFO Wed, 08 Mar 2023 19:20:38 dgl_default_sampling_simulate.py 154 : rank=3, number of training batches: 3
+INFO Wed, 08 Mar 2023 19:20:38 dgl_default_sampling_simulate.py 155 : rank=3, the number of nodes for each tree spand by batch: [236313919, 236387337, 236338339], total nodes: 709039595
+INFO Wed, 08 Mar 2023 19:20:38 dgl_default_sampling_simulate.py 156 : rank=3, the number of nodes hits on other trainers: [178117059, 176293009, 176607264, 0]

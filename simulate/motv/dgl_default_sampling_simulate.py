@@ -106,6 +106,9 @@ def run(gpu, barrier, n_gnn_trainers, args):
         model = gat.GATSampling(args.featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
     elif args.model_name == 'deepergcn':
+        args.n_layers = len(sampling)
+        args.in_feats = args.featdim
+        args.gpu = 0
         model = deepergcn.DeeperGCN(args)
     n_model_param = sum([p.numel() for p in model.parameters()])
     print(f'n_model_param = {n_model_param}')
@@ -126,6 +129,9 @@ def run(gpu, barrier, n_gnn_trainers, args):
         # model.train()
         iter = 0
         for nf in sampler:
+            # 对于deepergcn提早结束
+            if len(sampling) > 10 and iter>=3:
+                break
             # 统计一个batch生成的一个nf中，点的总个数（每层已经做过去重）、这些点在每个trainer分图结果中命中的点数
             nf_nids = nf._node_mapping.tousertensor() # 一个batch对应的子树的所有graph node （层内点id去重）
             batches_n_nodes.append(torch.numel(nf_nids))
@@ -187,6 +193,29 @@ def parse_args_func(argv):
                         help='number of GPUs on each training node')
     parser.add_argument('--featdim', default=128, type=int,
                         help='dimension of each feature in simulation')
+    
+    # args for deepergcn
+    parser.add_argument('--mlp_layers', type=int, default=1,
+                            help='the number of layers of mlp in conv')
+    parser.add_argument('--block', default='res+', type=str,
+                            help='deepergcn layer: graph backbone block type {res+, res, dense, plain}')
+    parser.add_argument('--conv', type=str, default='gen',
+                            help='the type of deepergcn GCN layers')
+    parser.add_argument('--gcn_aggr', type=str, default='max',
+                            help='the aggregator of GENConv [mean, max, add, softmax, softmax_sg, softmax_sum, power, power_sum]')
+    parser.add_argument('--norm', type=str, default='batch',
+                            help='the type of normalization layer')
+    parser.add_argument('--t', type=float, default=1.0,
+                            help='the temperature of SoftMax')
+    parser.add_argument('--p', type=float, default=1.0,
+                            help='the power of PowerMean')
+    parser.add_argument('--y', type=float, default=0.0,
+                            help='the power of degrees')
+    parser.add_argument('--learn_t', action='store_true')
+    parser.add_argument('--learn_p', action='store_true')
+    parser.add_argument('--learn_y', action='store_true')
+    parser.add_argument('--msg_norm', action='store_true')
+    parser.add_argument('--learn_msg_scale', action='store_true')
 
     return parser.parse_args(argv)
 
@@ -201,7 +230,14 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    sampling_lst = args.sampling.split('-')
+    if len(args.sampling.split('-')) > 10:
+        fanout = sampling_lst[0]
+        sampling_len = len(sampling_lst)
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+    else:
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':
