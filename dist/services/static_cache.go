@@ -34,7 +34,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	// 根据dc.PartIdx加载对应的node feature到dc.cache中
 	// TODO: 存储的路径可以由python的metis分图后返回
 	partgnid_npy_filepath := fmt.Sprintf("%v/dist_True/%v_metis/%v.npy", common.Config.Dataset, common.Config.Partition, dc.PartIdx)
-	var gnid []int64 // 当前part需要读取的node feature数量
+	var gnid []int64 // 当前part需要读取的node feature id
 	f, _ := os.Open(partgnid_npy_filepath)
 	defer f.Close()
 	err := npyio.Read(f, &gnid)
@@ -238,7 +238,7 @@ func (static_cache *Static_cache_mng) PeerServerGet(ids []int64) ([]float32, err
 			ed_idx = (i + 1) * static_cache.Feature_dim
 			copy(ret_features[st_idx:ed_idx], feature)
 		} else {
-			log.Fatalf("%v not in cur cache", local_hit_nid)
+			log.Fatalf("[static_cache.go] %v not in cur cache", local_hit_nid)
 			return nil, errors.New(string(local_hit_nid) + "not exists in peerserverget.")
 		}
 	}

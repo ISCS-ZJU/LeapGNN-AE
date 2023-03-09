@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # print(adjacency_list)
     
     assert len(adj.row) == len(adj.col) # adj.row和adj.col共同确定矩阵非零值的坐标
-    total_row = adj.shape[0] + 1
+    total_row = adj.shape[0]
     tmp_dict = {k:set() for k in range(total_row)}
     for r,c in zip(adj.row, adj.col):
         tmp_dict[r].add(c)

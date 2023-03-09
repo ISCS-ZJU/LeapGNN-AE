@@ -74,6 +74,8 @@ func initDistCache(dc *DistCache) {
 	if dc.PartIdx == -1 {
 		log.Errorf("PartIdx %v error.", dc.PartIdx)
 		os.Exit(-1)
+	}else{
+		log.Infof("[distcache.go] This machine will cache graph partition %v", dc.PartIdx)
 	}
 
 	// 记录每个gnid对应所在的part id
@@ -92,6 +94,7 @@ func initDistCache(dc *DistCache) {
 		for _, graph_nid := range gnid {
 			dc.Nid2Pid[graph_nid] = int64(pid)
 		}
+		
 	}
 	log.Infof("[distcache.go] It takes %v time to record Nid2Pid.", time.Since(start))
 

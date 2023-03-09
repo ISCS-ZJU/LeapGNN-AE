@@ -1,0 +1,114 @@
+2023-03-09 20:45:44,766 - INFO - Rank 0 | Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_arxiv128/', sampling='10-10', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='gcn', epoch=1, num_worker=1, cache_size=0, seed=None, log=True, dist_url='tcp://10.214.242.140:23456', world_size=2, rank=0, gpu=0, grpc_port='10.214.242.140:18110', mlp_layers=1, block='res+', conv='gen', gcn_aggr='max', norm='batch', t=1.0, p=1.0, y=0.0, learn_t=False, learn_p=False, learn_y=False, msg_norm=False, learn_msg_scale=False, distributed=True)
+2023-03-09 20:45:45,459 - INFO - Rank 0 | Added key: store_based_barrier_key:1 to store for rank: 0
+2023-03-09 20:45:45,460 - INFO - Rank 0 | Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+2023-03-09 20:45:45,460 - INFO - Rank 0 | Using 2 distributed GPUs in total for training...
+2023-03-09 20:45:55,519 - INFO - Rank 0 | Reducer buckets have been rebuilt in this iteration.
+2023-03-09 20:46:00,893 - INFO - Rank 0 | rank: 0, iter_num: 7
+2023-03-09 20:46:02,517 - INFO - Rank 0 | -------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                      total epochs time         3.43%     322.542ms        99.06%        9.326s        9.326s     320.173ms         3.40%        9.324s        9.324s             1  
+                                             fetch feat         0.36%      33.437ms        76.08%        7.162s        1.023s      35.290ms         0.38%        7.161s        1.023s             7  
+                           fetch feat from cache server        71.22%        6.705s        71.23%        6.706s     239.495ms        6.706s        71.31%        6.706s     239.512ms            28  
+                        gpu-compute with optimizer.step         0.06%       5.694ms        19.42%        1.828s     261.181ms       5.088ms         0.05%        1.825s     260.691ms             7  
+                                            DDP forward         0.00%     456.000us        10.22%     962.228ms     137.461ms     337.000us         0.00%     960.550ms     137.221ms             7  
+                        DistributedDataParallel.forward         2.16%     203.286ms        10.21%     961.184ms     137.312ms     315.075ms         3.35%     959.969ms     137.138ms             7  
+                                           DDP backward         8.83%     831.361ms         8.84%     831.980ms     118.854ms     828.226ms         8.81%     828.523ms     118.360ms             7  
+                                             CopyReduce         0.10%       9.480ms         6.13%     577.513ms      27.501ms     580.702ms         6.17%     585.908ms      27.900ms            21  
+                                               aten::to         0.01%     725.000us         3.69%     347.256ms       4.085ms     923.000us         0.01%     353.047ms       4.153ms            85  
+                                         aten::_to_copy         0.01%       1.268ms         3.68%     345.974ms       4.493ms       1.900ms         0.02%     352.124ms       4.573ms            77  
+                                            aten::copy_         0.15%      14.056ms         3.67%     345.197ms       2.615ms     350.734ms         3.73%     350.734ms       2.657ms           132  
+                             move feats from CPU to GPU         0.02%       2.118ms         3.56%     335.530ms      11.983ms       2.762ms         0.03%     334.278ms      11.938ms            28  
+                                          create frames         0.48%      44.736ms         0.52%      48.485ms       1.732ms      42.830ms         0.46%      46.999ms       1.679ms            28  
+autograd::engine::evaluate_function: CopyReduceBackw...         0.01%     552.000us         0.36%      34.043ms       2.432ms     526.000us         0.01%      34.656ms       2.475ms            14  
+                                     CopyReduceBackward         0.10%       9.581ms         0.35%      33.278ms       2.377ms      30.949ms         0.33%      34.130ms       2.438ms            14  
+                                            aten::index         0.23%      22.057ms         0.27%      25.329ms     516.918us      23.843ms         0.25%      25.163ms     513.531us            49  
+                                            aten::zeros         0.05%       4.769ms         0.20%      18.993ms      84.040us       9.116ms         0.10%      21.861ms      96.730us           226  
+                                   DDP optimizer.step()         0.00%     345.000us         0.23%      21.473ms       3.068ms     306.000us         0.00%      21.241ms       3.034ms             7  
+    autograd::engine::evaluate_function: AddmmBackward0         0.01%       1.049ms         0.19%      17.423ms     829.667us     592.000us         0.01%      20.332ms     968.190us            21  
+                               Optimizer.step#Adam.step         0.05%       4.246ms         0.22%      20.590ms       2.941ms       4.294ms         0.05%      18.432ms       2.633ms             7  
+                                            aten::empty         0.08%       7.397ms         0.17%      15.829ms      24.130us      17.766ms         0.19%      17.766ms      27.082us           656  
+                                         AddmmBackward0         0.01%     845.000us         0.13%      12.487ms     594.619us     718.000us         0.01%      17.448ms     830.857us            21  
+                                               aten::mm         0.04%       3.784ms         0.07%       6.417ms     183.343us      14.957ms         0.16%      14.957ms     427.343us            35  
+                                            get nf_nids         0.08%       7.261ms         0.15%      14.277ms       2.040ms       8.219ms         0.09%      13.477ms       1.925ms             7  
+                                            fetch label         0.01%     516.000us         0.06%       6.083ms     869.000us     529.000us         0.01%      11.833ms       1.690ms             7  
+                                           aten::linear         0.00%     278.000us         0.06%       6.009ms     286.143us     230.000us         0.00%       9.968ms     474.667us            21  
+                                          aten::dropout         0.00%     378.000us         0.05%       4.310ms     205.238us     172.000us         0.00%       9.708ms     462.286us            21  
+                                   aten::_fused_dropout         0.01%     943.000us         0.04%       3.709ms     176.619us       6.720ms         0.07%       9.536ms     454.095us            21  
+                                            aten::addmm         0.03%       2.825ms         0.05%       4.620ms     220.000us       9.061ms         0.10%       9.285ms     442.143us            21  
+                                             aten::mul_         0.02%       1.569ms         0.04%       4.157ms      49.488us       7.279ms         0.08%       7.279ms      86.655us            84  
+                                            aten::zero_         0.02%       2.225ms         0.12%      11.039ms      39.285us       6.610ms         0.07%       7.269ms      25.868us           281  
+        autograd::engine::evaluate_function: TBackward0         0.01%     498.000us         0.03%       3.258ms     155.143us     441.000us         0.00%       6.353ms     302.524us            21  
+                                             TBackward0         0.00%     301.000us         0.03%       2.452ms     116.762us       2.676ms         0.03%       5.912ms     281.524us            21  
+autograd::engine::evaluate_function: torch::autograd...         0.03%       2.973ms         0.12%      11.307ms     269.214us       2.090ms         0.02%       5.792ms     137.905us            42  
+                                     DDP calculate loss         0.01%     503.000us         0.03%       3.013ms     430.429us     248.000us         0.00%       5.465ms     780.714us             7  
+                                                aten::t         0.02%       1.890ms         0.08%       7.770ms      79.286us       1.524ms         0.02%       5.462ms      55.735us            98  
+                               aten::cross_entropy_loss         0.00%     116.000us         0.03%       2.398ms     342.571us     121.000us         0.00%       5.192ms     741.714us             7  
+autograd::engine::evaluate_function: FusedDropoutBac...         0.01%     488.000us         0.05%       4.565ms     326.071us     195.000us         0.00%       5.114ms     365.286us            14  
+                                  FusedDropoutBackward0         0.00%     353.000us         0.04%       3.876ms     276.857us     301.000us         0.00%       4.919ms     351.357us            14  
+                                              aten::div         0.02%       2.139ms         0.05%       4.536ms      58.909us       4.863ms         0.05%       4.863ms      63.156us            77  
+                  convert byte features to float tensor         0.03%       2.652ms         0.06%       5.189ms     185.321us       3.281ms         0.03%       4.852ms     173.286us            28  
+                                      aten::nll_loss_nd         0.00%      58.000us         0.02%       1.715ms     245.000us      47.000us         0.00%       4.740ms     677.143us             7  
+                                         aten::randperm         0.02%       1.478ms         0.03%       3.040ms       1.520ms       2.358ms         0.03%       4.715ms       2.357ms             2  
+                                         aten::nll_loss         0.00%      75.000us         0.02%       1.622ms     231.714us      62.000us         0.00%       4.693ms     670.429us             7  
+                                 aten::nll_loss_forward         0.00%     217.000us         0.02%       1.515ms     216.429us       4.588ms         0.05%       4.631ms     661.571us             7  
+                                    aten::_masked_scale         0.01%     731.000us         0.04%       3.339ms     238.500us       3.026ms         0.03%       4.618ms     329.857us            14  
+                                        aten::clamp_min         0.01%     726.000us         0.03%       2.970ms      60.612us       2.439ms         0.03%       4.585ms      93.571us            49  
+                                       aten::empty_like         0.01%     903.000us         0.06%       5.916ms      78.880us     812.000us         0.01%       4.573ms      60.973us            75  
+                                       aten::as_strided         0.04%       3.535ms         0.07%       7.050ms      19.054us       4.457ms         0.05%       4.457ms      12.046us           370  
+                                asign frame to nodeflow         0.04%       3.555ms         0.04%       4.188ms     149.571us       3.782ms         0.04%       3.967ms     141.679us            28  
+                                        aten::transpose         0.01%       1.292ms         0.05%       4.717ms      48.133us       1.113ms         0.01%       3.938ms      40.184us            98  
+     autograd::engine::evaluate_function: ReluBackward0         0.00%     400.000us         0.02%       2.311ms     165.071us      96.000us         0.00%       3.797ms     271.214us            14  
+                                    aten::empty_strided         0.03%       2.654ms         0.05%       4.665ms      33.804us       3.770ms         0.04%       3.770ms      27.319us           138  
+                                          ReluBackward0         0.00%     326.000us         0.02%       1.691ms     120.786us     163.000us         0.00%       3.701ms     264.357us            14  
+                               aten::threshold_backward         0.01%     686.000us         0.01%       1.179ms      84.214us       3.538ms         0.04%       3.538ms     252.714us            14  
+                                            aten::slice         0.02%       1.846ms         0.05%       4.646ms      41.482us       1.837ms         0.02%       2.506ms      22.375us           112  
+                                       aten::zeros_like         0.00%     260.000us         0.03%       2.964ms     247.000us       2.348ms         0.02%       2.468ms     205.667us            12  
+                                          aten::reshape         0.01%       1.208ms         0.04%       3.833ms      36.505us       1.427ms         0.02%       2.368ms      22.552us           105  
+                                     train data prepare         0.03%       2.944ms         0.03%       2.973ms       2.973ms       2.348ms         0.02%       2.349ms       2.349ms             1  
+                                        aten::new_empty         0.01%     570.000us         0.04%       3.438ms      61.393us     665.000us         0.01%       2.340ms      41.786us            56  
+                                             aten::relu         0.00%     284.000us         0.02%       1.724ms     123.143us      43.000us         0.00%       2.252ms     160.857us            14  
+                                              aten::sum         0.02%       1.666ms         0.03%       2.876ms     136.952us       2.125ms         0.02%       2.125ms     101.190us            21  
+                                             aten::add_         0.03%       2.712ms         0.05%       5.055ms      42.125us       2.068ms         0.02%       2.068ms      17.233us           120  
+autograd::engine::evaluate_function: NllLossBackward...         0.00%     388.000us         0.04%       3.592ms     513.143us     188.000us         0.00%       1.776ms     253.714us             7  
+                        torch::autograd::AccumulateGrad         0.01%     771.000us         0.04%       3.976ms      94.667us     724.000us         0.01%       1.712ms      40.762us            42  
+                                       NllLossBackward0         0.00%     236.000us         0.02%       1.956ms     279.429us     168.000us         0.00%       1.588ms     226.857us             7  
+                                aten::nll_loss_backward         0.00%     457.000us         0.02%       1.609ms     229.857us     870.000us         0.01%       1.420ms     202.857us             7  
+                                              aten::mul         0.02%       1.531ms         0.03%       2.652ms      63.143us       1.353ms         0.01%       1.353ms      32.214us            42  
+                                   DDP optimizer.zero()         0.00%     207.000us         0.02%       2.121ms     303.000us     140.000us         0.00%       1.183ms     169.000us             7  
+                                         aten::new_ones         0.00%     205.000us         0.03%       2.838ms     135.143us     802.000us         0.01%       1.167ms      55.571us            21  
+                     Optimizer.zero_grad#Adam.zero_grad         0.00%     338.000us         0.02%       1.582ms     226.000us     359.000us         0.00%     964.000us     137.714us             7  
+                                   aten::_reshape_alias         0.01%       1.223ms         0.02%       1.893ms      18.029us     941.000us         0.01%     941.000us       8.962us           105  
+                                           aten::unbind         0.00%     245.000us         0.02%       1.848ms     264.000us     312.000us         0.00%     931.000us     133.000us             7  
+                                            aten::fill_         0.01%       1.402ms         0.03%       2.703ms      32.566us     883.000us         0.01%     883.000us      10.639us            83  
+autograd::engine::evaluate_function: LogSoftmaxBackw...         0.00%     208.000us         0.01%       1.251ms     178.714us     205.000us         0.00%     826.000us     118.000us             7  
+                                             aten::sqrt         0.01%     976.000us         0.02%       1.625ms      38.690us     810.000us         0.01%     810.000us      19.286us            42  
+                                         aten::addcmul_         0.01%     855.000us         0.02%       1.537ms      36.595us     729.000us         0.01%     729.000us      17.357us            42  
+                                         aten::addcdiv_         0.01%     828.000us         0.02%       1.513ms      36.024us     723.000us         0.01%     723.000us      17.214us            42  
+                                             aten::item         0.00%     454.000us         0.02%       1.576ms      37.524us     443.000us         0.00%     627.000us      14.929us            42  
+                                    LogSoftmaxBackward0         0.00%     278.000us         0.01%     943.000us     134.714us     270.000us         0.00%     621.000us      88.714us             7  
+                                           aten::select         0.00%     427.000us         0.02%       1.530ms      36.429us     442.000us         0.00%     619.000us      14.738us            42  
+                                              aten::cat         0.00%     159.000us         0.01%       1.292ms     184.571us     110.000us         0.00%     609.000us      87.000us             7  
+                                            aten::clamp         0.00%     456.000us         0.01%       1.171ms      55.762us     280.000us         0.00%     538.000us      25.619us            21  
+                                             aten::_cat         0.00%     298.000us         0.01%       1.061ms     151.571us     234.000us         0.00%     499.000us      71.286us             7  
+                aten::_has_compatible_shallow_copy_type         0.00%     368.000us         0.01%     811.000us      14.482us     365.000us         0.00%     365.000us       6.518us            56  
+                                             aten::ones         0.00%     268.000us         0.01%       1.411ms      67.190us     154.000us         0.00%     365.000us      17.381us            21  
+                       aten::_log_softmax_backward_data         0.00%     355.000us         0.01%     574.000us      82.000us     351.000us         0.00%     351.000us      50.143us             7  
+                                      aten::log_softmax         0.00%      94.000us         0.01%     530.000us      75.714us     117.000us         0.00%     331.000us      47.286us             7  
+                                        aten::ones_like         0.00%      62.000us         0.00%     440.000us      62.857us      85.000us         0.00%     275.000us      39.286us             7  
+                                           aten::detach         0.00%      78.000us         0.00%     344.000us      57.333us     147.000us         0.00%     237.000us      39.500us             6  
+                                           aten::expand         0.00%     167.000us         0.01%     492.000us      23.429us     157.000us         0.00%     224.000us      10.667us            21  
+                                     aten::resolve_conj         0.00%     279.000us         0.01%     585.000us      13.929us     203.000us         0.00%     203.000us       4.833us            42  
+                                      aten::resolve_neg         0.00%     254.000us         0.01%     539.000us      12.833us     191.000us         0.00%     191.000us       4.548us            42  
+                                     aten::_log_softmax         0.00%     216.000us         0.00%     329.000us      47.000us     189.000us         0.00%     189.000us      27.000us             7  
+                                           aten::narrow         0.00%      81.000us         0.00%     412.000us      58.857us      79.000us         0.00%     187.000us      26.714us             7  
+                              aten::_local_scalar_dense         0.00%     348.000us         0.01%     722.000us      17.190us     184.000us         0.00%     184.000us       4.381us            42  
+                                             aten::view         0.00%     418.000us         0.01%     710.000us      33.810us     167.000us         0.00%     167.000us       7.952us            21  
+                                          aten::resize_         0.00%     344.000us         0.01%     884.000us      23.892us     100.000us         0.00%     100.000us       2.703us            37  
+                                                 detach         0.00%      91.000us         0.00%     167.000us      27.833us      90.000us         0.00%      90.000us      15.000us             6  
+                                             aten::set_         0.00%     145.000us         0.00%     231.000us      25.667us      72.000us         0.00%      72.000us       8.000us             9  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 9.414s
+Self CUDA time total: 9.405s
+
+2023-03-09 20:46:02,517 - INFO - Rank 0 | wait sampler total time: 0.3154306411743164, total iters: 7, avg iter time:0.04506152016775949
