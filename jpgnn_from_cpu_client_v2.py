@@ -124,7 +124,7 @@ def run(rank, ngpus_per_node, args):
     # construct this partition graph for sampling
     fg = DGLGraph(fg_adj, readonly=True)
 
-    featdim = cache_client.get_feat_dim()
+    featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 
     # 建立当前GPU的cache-第一个参数是cpu-full-graph（因为读取feat要从原图读）, 第二个参数用于形成bool数组，判断某个train_nid是否在缓存中

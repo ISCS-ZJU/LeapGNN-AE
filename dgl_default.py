@@ -22,12 +22,7 @@ import time
 
 from storage.storage_dist import DistCacheClient
 
-# logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO, filename=f"./dgl_default.txt", filemode='a+',
-                    format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-# torch.set_printoptions(threshold=np.inf)
-
-
+from common.log import setup_primary_logging, setup_worker_logging
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -44,13 +39,19 @@ def main(ngpus_per_node):
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
         mp.spawn(run, nprocs=ngpus_per_node,
-                 args=(ngpus_per_node, args))
+                 args=(ngpus_per_node, args, log_queue))
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
 
-def run(gpu, ngpus_per_node, args):
+def run(gpu, ngpus_per_node, args, log_queue):
+    #################### 配置logger ####################
+    args.gpu = gpu  # 表示使用本地节点的gpu id
+    if args.distributed:
+        args.rank = args.rank * ngpus_per_node + gpu  # 传入的rank表示节点个数
+    setup_worker_logging(args.rank, log_queue)
+
     #################### 参数正确性检查，打印训练参数 ####################
     sampling = args.sampling.split('-')
     assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
@@ -58,9 +59,6 @@ def run(gpu, ngpus_per_node, args):
         logging.info(f'Client Args: {args}')
     
     #################### 构建GNN分布式训练环境 ####################
-    args.gpu = gpu  # 表示使用本地节点的gpu id
-    if args.distributed:
-        args.rank = args.rank * ngpus_per_node + gpu  # 传入的rank表示节点个数
     dist_init_method = args.dist_url
     if torch.cuda.device_count() < 1:
         device = torch.device('cpu')
@@ -90,7 +88,7 @@ def run(gpu, ngpus_per_node, args):
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
-    featdim = cache_client.get_feat_dim()
+    featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
@@ -165,6 +163,7 @@ def run(gpu, ngpus_per_node, args):
                             loss.backward()
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
+                        torch.distributed.barrier()
                     iter += 1
                     st = time.time()
                 logging.info(f'rank: {args.rank}, iter_num: {iter}')
@@ -251,11 +250,39 @@ def parse_args_func(argv):
 
 
 if __name__ == '__main__':
+    # Set multiprocessing type to spawn
+    torch.multiprocessing.set_start_method("spawn", force=True)
+
     args = parse_args_func(None)
+    model_name = args.model_name
+    datasetname = args.dataset.strip('/').split('/')[-1]
+
+    # 写日志
+    log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    sampling_lst = args.sampling.split('-')
+    if len(args.sampling.split('-')) > 10:
+        fanout = sampling_lst[0]
+        sampling_len = len(sampling_lst)
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+    else:
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    if os.path.exists(log_filename):
+        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        if if_delete=='y' or if_delete=='Y':
+            os.remove(log_filename) # 删除已有日志，重新运行
+        else:
+            print('已经运行过，无需重跑，直接退出程序')
+            sys.exit(-1) # 退出程序
+    
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()
     else:
         ngpus_per_node = 1
-    logging.info(f"ngpus_per_node: {ngpus_per_node}")
+    
+    # logging for multiprocessing
+    log_queue = setup_primary_logging(log_filename, "error.log")
 
+    # main function
     main(ngpus_per_node)

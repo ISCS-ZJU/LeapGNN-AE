@@ -94,7 +94,7 @@ def run(rank, ngpus_per_node, args):
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
-    featdim = cache_client.get_feat_dim()
+    featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################

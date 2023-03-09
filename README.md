@@ -126,4 +126,4 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
     go get google.golang.org/protobuf/reflect/protoreflect
     go get google.golang.org/protobuf/runtime/protoimpl
     ```
-+ kill remaining processing.  `ps -ef | grep weijian | grep python3 | awk '{print $2}' | xargs kill -9`
++ kill remaining processing.  `ps -ef | grep weijian | grep python3 | grep repgnn | awk '{print $2}' | xargs kill -9`
