@@ -21,11 +21,12 @@ type Static_cache_mng struct {
 	cache         map[int64][]float32 // real cache, key: int64, value: []float64
 	Cached_nitems int64               // cached number of data
 	// client requests
-	Feature_dim     int64 //feature dimension
-	Get_request_num int64 // # of client read requests
-	Local_hit_num   int64 // # of local hit requests
-	Local_feats_gather_time []float32 // time of local feats gathering
+	Feature_dim              int64     //feature dimension
+	Get_request_num          int64     // # of client read requests
+	Local_hit_num            int64     // # of local hit requests
+	Local_feats_gather_time  []float32 // time of local feats gathering
 	Remote_feats_gather_time []float32 // time of remote feats gathering
+	MaxChunkSize             int64     // for stream transfer
 }
 
 func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
@@ -78,6 +79,10 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 
 	static_cache.Local_feats_gather_time = []float32{}
 	static_cache.Remote_feats_gather_time = []float32{}
+
+	// 计算grpc maxchunksize within 4MB
+	static_cache.MaxChunkSize = getMaxNumDivisibleByXYAnd1024(static_cache.Feature_dim, 4)
+	log.Infof("[static_cache.go] max chunk size %v B.", static_cache.MaxChunkSize)
 
 	return &static_cache
 }
@@ -178,7 +183,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
 			gnid2retid[nid] = int64(retid)
 		}
-		
+
 		// 读取本地缓存的数据
 		st_local_time := time.Now()
 		server_node_id = DCRuntime.PartIdx
@@ -258,7 +263,20 @@ func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, in
 	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num, static_cache.Local_feats_gather_time, static_cache.Remote_feats_gather_time
 }
 
+func (static_cache *Static_cache_mng) Get_MaxChunkSize() int64 {
+	return static_cache.MaxChunkSize
+}
 
 func encodeUnsafe(fs []float32) []byte {
-    return unsafe.Slice((*byte)(unsafe.Pointer(&fs[0])), len(fs)*4)
+	return unsafe.Slice((*byte)(unsafe.Pointer(&fs[0])), len(fs)*4)
+}
+
+func getMaxNumDivisibleByXYAnd1024(x int64, y int64) int64 {
+	maxNum := int64(4 * 1024 * 1024) // 4MB
+	for i := maxNum; i > 0; i-- {
+		if i%x == 0 && i%y == 0 && i%1024 == 0 {
+			return i
+		}
+	}
+	return -1 // If no number found
 }

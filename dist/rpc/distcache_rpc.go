@@ -3,6 +3,7 @@ package rpc
 import (
 	context "context"
 	"main/rpc/cache"
+	"main/services"
 
 	log "github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
@@ -53,7 +54,8 @@ func (s *dcrpcserver) DCSubmitFeatures(request *cache.DCRequest, stream cache.Op
 		reply, _ = Grpc_op_imple_get_stream_features_by_client(request)
 	}
 	// log.Info("len of reply.Features:", len(reply.Features))
-	reply_chunks := ChunkBytes(reply.Features, 1024*1024*4) // 4MB is a response chunk
+	// ensure max chunk byte size considering feat_dim
+	reply_chunks := ChunkBytes(reply.Features, int(services.DCRuntime.CacheMng.Get_MaxChunkSize()))
 
 	for i := 0; i < len(reply_chunks); i++ {
 		resp := &cache.DCReply{Features: reply_chunks[i]}
