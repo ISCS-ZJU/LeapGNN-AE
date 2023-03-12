@@ -20,6 +20,18 @@ func Grpc_op_imple_get_features_by_client(request *cache.DCRequest) (*cache.DCRe
 	return &reply, nil
 }
 
+func Grpc_op_imple_get_stream_features_by_client(request *cache.DCRequest) (*cache.DCReplyFeatures, error) {
+	// log.Infof("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
+	var reply cache.DCReplyFeatures
+	features, err := services.DCRuntime.CacheMng.Get(request.Ids)
+	if err != nil {
+		log.Fatal("Get error")
+	} else {
+		reply.Features = features
+	}
+	return &reply, nil
+}
+
 func Grpc_op_imple_get_features_by_peer_server(request *cache.DCRequest) (*cache.DCReply, error) {
 	// log.Infof("[distcache_rpc_imple.go] get_features_by_peer_server 操作被调用 for %v gnids.", len(request.Ids))
 	var reply cache.DCReply
@@ -49,10 +61,10 @@ func Grpc_op_imple_get_cache_info(request *cache.DCRequest) (*cache.DCReply, err
 	reply.Requestnum = request_num
 	reply.Localhitnum = local_hit_num
 	total_local_feats_gather_time, total_remote_feats_gather_time := float32(0.0), float32(0.0)
-	for _, t := range local_feats_gather_time{
+	for _, t := range local_feats_gather_time {
 		total_local_feats_gather_time += t
 	}
-	for _, t := range remote_feats_gather_time{
+	for _, t := range remote_feats_gather_time {
 		total_remote_feats_gather_time += t
 	}
 	reply.LocalFeatsGatherTime = total_local_feats_gather_time

@@ -31,6 +31,16 @@ class DistCacheClient:
         # client can use this stub to request to golang cache server
         self.stub = distcache_pb2_grpc.OperatorStub(self.channel)
 
+        # 与cache server建立stream features的连接
+        self.channel_features = grpc.insecure_channel(self.grpc_port, options=[
+                                    ('grpc.enable_retries', 1),
+                                    ('grpc.keepalive_timeout_ms', 100000),
+                                    ('grpc.max_receive_message_length',
+                                        2000 * 1024 * 1024),  # max grpc size 2GB
+        ])
+        # client can use this stub to request stream features to golang cache server
+        self.stub_features = distcache_pb2_grpc.OperatorFeaturesStub(self.channel_features)
+
         
         self.gpuid = gpu
         self.feat_dim = self.get_feat_dim()
@@ -53,17 +63,26 @@ class DistCacheClient:
             tnid = nf_nids[offsets[i]:offsets[i+1]]
             # create frame
             with torch.autograd.profiler.record_function('create frames'):
-                with torch.cuda.device(self.gpuid):
-                    frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
-                             for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
+                # with torch.cuda.device(self.gpuid):
+                #     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
+                #              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
+                frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
                 tnid = tnid.tolist()
             # fetch features from cache server
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 # collect features to cpu memory
-                features = self.get_feats_from_server(tnid)
-            with torch.autograd.profiler.record_function('convert byte features to float tensor'):
-                for name in self.dims:
-                    frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+            #     features = self.get_feats_from_server(tnid)
+            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+            #     for name in self.dims:
+            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+                row_st_idx, row_ed_idx = 0, 0
+                for sub_features in self.get_stream_feats_from_server(tnid):
+                    for name in self.dims:
+                        sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                        row_ed_idx += sub_tensor.shape[0]
+                        # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+                        frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+                        row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
                 for name in self.dims:
@@ -87,6 +106,12 @@ class DistCacheClient:
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_features_by_client, ids=nids), timeout=100000) # TODO: large nids list occurs high overhead
         return response.features
+    
+    def get_stream_feats_from_server(self, nids):
+        stream = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_stream_features_by_client, ids=nids), timeout=100000)
+        for response in stream:
+            yield response.features
     
     def get_cache_hit_info(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(

@@ -105,3 +105,118 @@ var Operator_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "distcache.proto",
 }
+
+// OperatorFeaturesClient is the client API for OperatorFeatures service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type OperatorFeaturesClient interface {
+	// 针对features太大 DCSubmit的额外时间开销较大的问题
+	DCSubmitFeatures(ctx context.Context, in *DCRequest, opts ...grpc.CallOption) (OperatorFeatures_DCSubmitFeaturesClient, error)
+}
+
+type operatorFeaturesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewOperatorFeaturesClient(cc grpc.ClientConnInterface) OperatorFeaturesClient {
+	return &operatorFeaturesClient{cc}
+}
+
+func (c *operatorFeaturesClient) DCSubmitFeatures(ctx context.Context, in *DCRequest, opts ...grpc.CallOption) (OperatorFeatures_DCSubmitFeaturesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &OperatorFeatures_ServiceDesc.Streams[0], "/rpc.OperatorFeatures/DCSubmitFeatures", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &operatorFeaturesDCSubmitFeaturesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type OperatorFeatures_DCSubmitFeaturesClient interface {
+	Recv() (*DCReplyFeatures, error)
+	grpc.ClientStream
+}
+
+type operatorFeaturesDCSubmitFeaturesClient struct {
+	grpc.ClientStream
+}
+
+func (x *operatorFeaturesDCSubmitFeaturesClient) Recv() (*DCReplyFeatures, error) {
+	m := new(DCReplyFeatures)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// OperatorFeaturesServer is the server API for OperatorFeatures service.
+// All implementations must embed UnimplementedOperatorFeaturesServer
+// for forward compatibility
+type OperatorFeaturesServer interface {
+	// 针对features太大 DCSubmit的额外时间开销较大的问题
+	DCSubmitFeatures(*DCRequest, OperatorFeatures_DCSubmitFeaturesServer) error
+	mustEmbedUnimplementedOperatorFeaturesServer()
+}
+
+// UnimplementedOperatorFeaturesServer must be embedded to have forward compatible implementations.
+type UnimplementedOperatorFeaturesServer struct {
+}
+
+func (UnimplementedOperatorFeaturesServer) DCSubmitFeatures(*DCRequest, OperatorFeatures_DCSubmitFeaturesServer) error {
+	return status.Errorf(codes.Unimplemented, "method DCSubmitFeatures not implemented")
+}
+func (UnimplementedOperatorFeaturesServer) mustEmbedUnimplementedOperatorFeaturesServer() {}
+
+// UnsafeOperatorFeaturesServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to OperatorFeaturesServer will
+// result in compilation errors.
+type UnsafeOperatorFeaturesServer interface {
+	mustEmbedUnimplementedOperatorFeaturesServer()
+}
+
+func RegisterOperatorFeaturesServer(s grpc.ServiceRegistrar, srv OperatorFeaturesServer) {
+	s.RegisterService(&OperatorFeatures_ServiceDesc, srv)
+}
+
+func _OperatorFeatures_DCSubmitFeatures_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DCRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(OperatorFeaturesServer).DCSubmitFeatures(m, &operatorFeaturesDCSubmitFeaturesServer{stream})
+}
+
+type OperatorFeatures_DCSubmitFeaturesServer interface {
+	Send(*DCReplyFeatures) error
+	grpc.ServerStream
+}
+
+type operatorFeaturesDCSubmitFeaturesServer struct {
+	grpc.ServerStream
+}
+
+func (x *operatorFeaturesDCSubmitFeaturesServer) Send(m *DCReplyFeatures) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// OperatorFeatures_ServiceDesc is the grpc.ServiceDesc for OperatorFeatures service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var OperatorFeatures_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "rpc.OperatorFeatures",
+	HandlerType: (*OperatorFeaturesServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "DCSubmitFeatures",
+			Handler:       _OperatorFeatures_DCSubmitFeatures_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "distcache.proto",
+}

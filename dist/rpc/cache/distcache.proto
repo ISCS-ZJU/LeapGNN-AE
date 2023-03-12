@@ -7,12 +7,19 @@ service Operator {
   rpc DCSubmit(DCRequest) returns (DCReply) {}
 }
 
+service OperatorFeatures{
+  // 针对features太大 DCSubmit的额外时间开销较大的问题
+  rpc DCSubmitFeatures(DCRequest) returns (stream DCReplyFeatures) {}
+}
+
+
 enum OpType{
   get_feature_dim = 0; // client gets feature dim to construct network
-  get_features_by_client = 1; // client gets feature by many graph node ids
-  get_features_by_peer_server = 2; // peer server gets feature by many graph node ids
+  get_features_by_client = 1; // client gets features of many graph node ids
+  get_features_by_peer_server = 2; // peer server gets features of many graph node ids
   get_cache_info = 3; // client gets cache basic info
   get_statistic = 4; // get cache server's statistic flag value
+  get_stream_features_by_client = 5; // client gets stream features of many graph node ids
 }
 
 message DCRequest{
@@ -22,7 +29,7 @@ message DCRequest{
 }
 
 message DCReply{
-    bytes features = 1; // feature of one idx
+    bytes features = 1; // feature of graph nodes to return
     int64 featdim = 2; // feature dim
     int64 partidx = 3; // part id of gnid cached in this server
     string curaddr = 4; // server addr
@@ -33,6 +40,10 @@ message DCReply{
     float local_feats_gather_time = 9; // total local feats gather time
     float remote_feats_gather_time = 10; // total remote feats gather time
 
+}
+
+message DCReplyFeatures{
+    bytes features = 1; // features of graph nodes to return
 }
 
 

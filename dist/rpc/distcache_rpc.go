@@ -10,6 +10,7 @@ import (
 
 type dcrpcserver struct {
 	cache.UnimplementedOperatorServer
+	cache.UnimplementedOperatorFeaturesServer
 }
 
 // Op func imple
@@ -31,7 +32,40 @@ func (s *dcrpcserver) DCSubmit(ctx context.Context, request *cache.DCRequest) (*
 	return reply, nil
 }
 
+func ChunkBytes(b []byte, chunkSize int) [][]byte {
+	var chunks [][]byte
+	for len(b) > 0 {
+		// log.Infof("len(b)=%v", len(b))
+		if len(b) < chunkSize {
+			chunkSize = len(b)
+		}
+		chunks = append(chunks, b[:chunkSize])
+		b = b[chunkSize:]
+	}
+	return chunks
+}
+
+// Op func imple
+func (s *dcrpcserver) DCSubmitFeatures(request *cache.DCRequest, stream cache.OperatorFeatures_DCSubmitFeaturesServer) error {
+	var reply *cache.DCReplyFeatures
+	switch request.Type {
+	case cache.OpType_get_stream_features_by_client:
+		reply, _ = Grpc_op_imple_get_stream_features_by_client(request)
+	}
+	// log.Info("len of reply.Features:", len(reply.Features))
+	reply_chunks := ChunkBytes(reply.Features, 1024*1024*4) // 4MB is a response chunk
+
+	for i := 0; i < len(reply_chunks); i++ {
+		resp := &cache.DCReplyFeatures{Features: reply_chunks[i]}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Register(s *grpc.Server) {
 	log.Info("[distcache_rpc.go] grpc通信代理服务注册")
 	cache.RegisterOperatorServer(s, &dcrpcserver{}) // 进行注册 grpc 通信代理服务
+	cache.RegisterOperatorFeaturesServer(s, &dcrpcserver{})
 }

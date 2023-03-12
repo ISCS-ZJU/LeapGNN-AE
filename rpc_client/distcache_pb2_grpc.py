@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import rpc_client.distcache_pb2 as distcache__pb2
+from rpc_client import distcache_pb2 as distcache__pb2
 
 
 class OperatorStub(object):
@@ -63,5 +63,67 @@ class Operator(object):
         return grpc.experimental.unary_unary(request, target, '/rpc.Operator/DCSubmit',
             distcache__pb2.DCRequest.SerializeToString,
             distcache__pb2.DCReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class OperatorFeaturesStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.DCSubmitFeatures = channel.unary_stream(
+                '/rpc.OperatorFeatures/DCSubmitFeatures',
+                request_serializer=distcache__pb2.DCRequest.SerializeToString,
+                response_deserializer=distcache__pb2.DCReplyFeatures.FromString,
+                )
+
+
+class OperatorFeaturesServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def DCSubmitFeatures(self, request, context):
+        """针对features太大 DCSubmit的额外时间开销较大的问题
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_OperatorFeaturesServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'DCSubmitFeatures': grpc.unary_stream_rpc_method_handler(
+                    servicer.DCSubmitFeatures,
+                    request_deserializer=distcache__pb2.DCRequest.FromString,
+                    response_serializer=distcache__pb2.DCReplyFeatures.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'rpc.OperatorFeatures', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class OperatorFeatures(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def DCSubmitFeatures(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/rpc.OperatorFeatures/DCSubmitFeatures',
+            distcache__pb2.DCRequest.SerializeToString,
+            distcache__pb2.DCReplyFeatures.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
