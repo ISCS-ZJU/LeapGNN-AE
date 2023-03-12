@@ -9,7 +9,7 @@ service Operator {
 
 service OperatorFeatures{
   // 针对features太大 DCSubmit的额外时间开销较大的问题
-  rpc DCSubmitFeatures(DCRequest) returns (stream DCReplyFeatures) {}
+  rpc DCSubmitFeatures(DCRequest) returns (stream DCReply) {}
 }
 
 
@@ -40,10 +40,6 @@ message DCReply{
     float local_feats_gather_time = 9; // total local feats gather time
     float remote_feats_gather_time = 10; // total remote feats gather time
 
-}
-
-message DCReplyFeatures{
-    bytes features = 1; // features of graph nodes to return
 }
 
 

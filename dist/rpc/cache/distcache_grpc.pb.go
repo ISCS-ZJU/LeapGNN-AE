@@ -138,7 +138,7 @@ func (c *operatorFeaturesClient) DCSubmitFeatures(ctx context.Context, in *DCReq
 }
 
 type OperatorFeatures_DCSubmitFeaturesClient interface {
-	Recv() (*DCReplyFeatures, error)
+	Recv() (*DCReply, error)
 	grpc.ClientStream
 }
 
@@ -146,8 +146,8 @@ type operatorFeaturesDCSubmitFeaturesClient struct {
 	grpc.ClientStream
 }
 
-func (x *operatorFeaturesDCSubmitFeaturesClient) Recv() (*DCReplyFeatures, error) {
-	m := new(DCReplyFeatures)
+func (x *operatorFeaturesDCSubmitFeaturesClient) Recv() (*DCReply, error) {
+	m := new(DCReply)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func _OperatorFeatures_DCSubmitFeatures_Handler(srv interface{}, stream grpc.Ser
 }
 
 type OperatorFeatures_DCSubmitFeaturesServer interface {
-	Send(*DCReplyFeatures) error
+	Send(*DCReply) error
 	grpc.ServerStream
 }
 
@@ -200,7 +200,7 @@ type operatorFeaturesDCSubmitFeaturesServer struct {
 	grpc.ServerStream
 }
 
-func (x *operatorFeaturesDCSubmitFeaturesServer) Send(m *DCReplyFeatures) error {
+func (x *operatorFeaturesDCSubmitFeaturesServer) Send(m *DCReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 

@@ -79,7 +79,7 @@ class OperatorFeaturesStub(object):
         self.DCSubmitFeatures = channel.unary_stream(
                 '/rpc.OperatorFeatures/DCSubmitFeatures',
                 request_serializer=distcache__pb2.DCRequest.SerializeToString,
-                response_deserializer=distcache__pb2.DCReplyFeatures.FromString,
+                response_deserializer=distcache__pb2.DCReply.FromString,
                 )
 
 
@@ -99,7 +99,7 @@ def add_OperatorFeaturesServicer_to_server(servicer, server):
             'DCSubmitFeatures': grpc.unary_stream_rpc_method_handler(
                     servicer.DCSubmitFeatures,
                     request_deserializer=distcache__pb2.DCRequest.FromString,
-                    response_serializer=distcache__pb2.DCReplyFeatures.SerializeToString,
+                    response_serializer=distcache__pb2.DCReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -124,6 +124,6 @@ class OperatorFeatures(object):
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/rpc.OperatorFeatures/DCSubmitFeatures',
             distcache__pb2.DCRequest.SerializeToString,
-            distcache__pb2.DCReplyFeatures.FromString,
+            distcache__pb2.DCReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -47,7 +47,7 @@ func ChunkBytes(b []byte, chunkSize int) [][]byte {
 
 // Op func imple
 func (s *dcrpcserver) DCSubmitFeatures(request *cache.DCRequest, stream cache.OperatorFeatures_DCSubmitFeaturesServer) error {
-	var reply *cache.DCReplyFeatures
+	var reply *cache.DCReply
 	switch request.Type {
 	case cache.OpType_get_stream_features_by_client:
 		reply, _ = Grpc_op_imple_get_stream_features_by_client(request)
@@ -56,7 +56,7 @@ func (s *dcrpcserver) DCSubmitFeatures(request *cache.DCRequest, stream cache.Op
 	reply_chunks := ChunkBytes(reply.Features, 1024*1024*4) // 4MB is a response chunk
 
 	for i := 0; i < len(reply_chunks); i++ {
-		resp := &cache.DCReplyFeatures{Features: reply_chunks[i]}
+		resp := &cache.DCReply{Features: reply_chunks[i]}
 		if err := stream.Send(resp); err != nil {
 			return err
 		}

@@ -20,9 +20,9 @@ func Grpc_op_imple_get_features_by_client(request *cache.DCRequest) (*cache.DCRe
 	return &reply, nil
 }
 
-func Grpc_op_imple_get_stream_features_by_client(request *cache.DCRequest) (*cache.DCReplyFeatures, error) {
+func Grpc_op_imple_get_stream_features_by_client(request *cache.DCRequest) (*cache.DCReply, error) {
 	// log.Infof("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
-	var reply cache.DCReplyFeatures
+	var reply cache.DCReply
 	features, err := services.DCRuntime.CacheMng.Get(request.Ids)
 	if err != nil {
 		log.Fatal("Get error")
