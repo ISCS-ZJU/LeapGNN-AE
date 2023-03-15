@@ -26,10 +26,7 @@ warnings.filterwarnings("ignore")
 
 
 import logging
-# logging.basicConfig(level=logging.DEBUG) # 级别升序：DEBUG INFO WARNING ERROR CRITICAL；需要记录到文件则添加filename=path参数；
-logging.basicConfig(level=logging.INFO, filename=f"./dgl_jpgnn_trans.txt", filemode='a+', 
-format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-# torch.set_printoptions(threshold=np.inf)
+from common.log import setup_primary_logging, setup_worker_logging
 
 
 
@@ -48,12 +45,18 @@ def main(ngpus_per_node):
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
         mp.spawn(run, nprocs=ngpus_per_node,
-                 args=(ngpus_per_node, args))
+                 args=(ngpus_per_node, args, log_queue))
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
-def run(gpuid, ngpus_per_node, args):
+def run(gpuid, ngpus_per_node, args, log_queue):
+    #################### 配置logger ####################
+    args.gpu = gpuid  # 表示使用本地节点的gpu id
+    if args.distributed:
+        args.rank = args.rank * ngpus_per_node + gpuid  # 传入的rank表示节点个数
+    setup_worker_logging(args.rank, log_queue)
+
     #################### 参数正确性检查，打印训练参数 ####################
     sampling = args.sampling.split('-')
     assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
@@ -145,6 +148,9 @@ def run(gpuid, ngpus_per_node, args):
                     logging.debug(f'rank:{args.rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
                     
                     ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
+                    cache_partidx = cache_client.get_cache_partid()
+                    assert cache_partidx == args.rank, 'rank设置需要与partidx相同，否则影响命中率'
+                    
                     sub_batch_nid = []
                     sub_batch_offsets = [0]
                     cur_offset = 0
@@ -174,17 +180,17 @@ def run(gpuid, ngpus_per_node, args):
 
                 sampler_iterator = iter(sampler)
 
-                for sub_nf_id in range(n_sub_batches):
-                    with torch.autograd.profiler.record_function('model transfer'):
-                        ########## 模型参数在分布式GPU间进行传输 ###########
-                        send_recv(model,args.gpu,args.rank,world_size)
+                for sub_nf_id in range(len(sub_batch_offsets)-1):
                     ########## 获取sub_nfs，跨结点获取sub_nfs的feature数据 ###########
                     st = time.time()
                     if sub_nf_id % world_size == 0:
                         # 一次获取world_size个nf，进行预取
                         sub_nfs_lst = [] # 存放提前预取的包含features的nf
                         for j in range(world_size):
-                            sub_nfs_lst.append(next(sampler_iterator)) # 获取子图topo
+                            try:
+                                sub_nfs_lst.append(next(sampler_iterator)) # 获取子图topo
+                            except StopIteration:
+                                continue # 可能不足batch size个
                         wait_sampler.append(time.time() - st)
                     with torch.autograd.profiler.record_function('fetch feat'):
                         cache_client.fetch_multiple_nfs(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
@@ -209,8 +215,11 @@ def run(gpuid, ngpus_per_node, args):
                     # 如果已经完成了一个batch的数据并行训练
                     if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
-                            optimizer.step()
-                        # 至此，一个iteration结束
+                            optimizer.step() # 至此，一个iteration结束
+                    with torch.autograd.profiler.record_function('model transfer'):
+                        ########## 模型参数在分布式GPU间进行传输 ###########
+                        send_recv(model,args.gpu,args.rank,world_size)
+                        
                     sub_iter += 1
                     st = time.time()
                 if cache_client.log:
@@ -275,16 +284,42 @@ def parse_args_func(argv):
 
 
 if __name__ == '__main__':
+     # Set multiprocessing type to spawn
+    torch.multiprocessing.set_start_method("spawn", force=True)
+
     args = parse_args_func(None)
+    model_name = args.model_name
+    datasetname = args.dataset.strip('/').split('/')[-1]
+
+    # 写日志
+    log_dir = os.path.dirname(os.path.abspath(__file__))+'/logs'
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    sampling_lst = args.sampling.split('-')
+    if len(args.sampling.split('-')) > 10:
+        fanout = sampling_lst[0]
+        sampling_len = len(sampling_lst)
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+    else:
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+    if os.path.exists(log_filename):
+        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        if if_delete=='y' or if_delete=='Y':
+            os.remove(log_filename) # 删除已有日志，重新运行
+        else:
+            print('已经运行过，无需重跑，直接退出程序')
+            sys.exit(-1) # 退出程序
+
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()
     else:
         ngpus_per_node = 1
     logging.info(f"ngpus_per_node: {ngpus_per_node}")
 
+    # logging for multiprocessing
+    log_queue = setup_primary_logging(log_filename, "error.log")
+
     main(ngpus_per_node)
-    # args = parse_args_func(None)
-    # mp.spawn(run, args=(list(range(args.num_gpu)), args), nprocs=args.num_gpu)
 
 
 def send_recv(model,gpu,rank,world_size):

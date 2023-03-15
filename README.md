@@ -6,7 +6,7 @@
 1. conda create -n repgnn python==3.9 -y
 2. conda activate repgnn
 3. pip3 install torch torchvision # cuda version, like: pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py
+4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4
 5. clone repgnn库以及三方库
     ```
     # clone repgnn库
