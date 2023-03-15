@@ -93,6 +93,7 @@ export GLOO_SOCKET_IFNAME=ens5f0 && time python3 dgl_default.py -mn gcn -bs 8000
 export GLOO_SOCKET_IFNAME=ens9f0 && time python3 dgl_default.py -mn gcn -bs 8000 -s 10-10-10 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.78.18.230:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # zjg1 a100: export NCCL_SOCKET_IFNAME=ens9f0 ; export GLOO_SOCKET_IFNAME=ens9f0
 export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -mn gcn -bs 8000 -s 10-10-10 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.242.140:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq1/zju 2080ti: export NCCL_SOCKET_IFNAME=eno3 ; export GLOO_SOCKET_IFNAME=eno3
 export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 8000 -s 10-10-10 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.243.20:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq3 a100: export NCCL_SOCKET_IFNAME=ens17f1 ; export GLOO_SOCKET_IFNAME=ens17f1
+# 跑 dgl_jpgnn_trans.py 和 dgl_jpgnn_trans_multiplenfs.py 只需要替换上的 dgl_default.py 即可，其他保持不变
 ```
 ## Cross_test
 用来测试跨节点通信带宽负载均衡，在之前单机多卡的代码上修改，使用时需要运行cpu_graph_server，使用参数和之前单机多卡一致
