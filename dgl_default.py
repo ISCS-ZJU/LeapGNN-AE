@@ -170,13 +170,13 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 
                 ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
                 if cache_client.log:
-                    miss_rate = cache_client.get_miss_rate()
-                    print('Epoch miss rate for epoch {} on rank {}: {:.4f}'.format(
-                        epoch, args.rank, miss_rate))
+                    miss_num, try_num, miss_rate = cache_client.get_miss_rate()
+                    logging.info(f'Epoch miss rate ( miss_num/try_num ) for epoch {epoch} on rank {args.rank}: {miss_num} / {try_num} = {miss_rate}')
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
-                    print(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
+                    logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+                logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
     
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(

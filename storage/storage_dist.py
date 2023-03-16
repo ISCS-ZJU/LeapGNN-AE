@@ -125,32 +125,53 @@ class DistCacheClient:
                     for name in self.dims:
                         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                         n_sub_tensor_row = sub_tensor.shape[0]
-                        # 如果填充得下当前的frame剩余的空间
-                        if (row_st_idx + n_sub_tensor_row) <= n_rows[frame_id] - row_ed_idx:
-                            row_ed_idx += n_sub_tensor_row
-                            frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor
-                            # 如果正好填充满了当前的frame
-                            if row_ed_idx == n_rows[frame_id]:
-                                row_st_idx, row_ed_idx = 0, 0
+
+                    with torch.autograd.profiler.record_function('fetch feat from cache server - python while'):
+                        # sub_tensor_st_idx = 0
+                        while n_sub_tensor_row: # 直到将要填充的sub_tensor为空
+                            cur_frame_remains_rows = n_rows[frame_id] - row_ed_idx
+                            fill_rows = min(cur_frame_remains_rows, n_sub_tensor_row)
+                            row_ed_idx += fill_rows
+                            frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor[:fill_rows, :]
+                            # frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor[sub_tensor_st_idx: sub_tensor_st_idx+fill_rows, :]
+                            sub_tensor = sub_tensor[fill_rows:, :]
+                            # sub_tensor_st_idx += fill_rows
+                            n_sub_tensor_row -= fill_rows
+                            if n_sub_tensor_row > 0 or row_ed_idx == n_rows[frame_id]:
+                                # 为填充下一个frame准备
                                 frame_id += 1
+                                row_st_idx = row_ed_idx = 0
                             else:
                                 row_st_idx = row_ed_idx
-                        # 如果当前frame填充不下，可能往下填充一个或多个
-                        else:
-                            sub_tensor_st_idx = 0
-                            while n_sub_tensor_row: # 直到将要填充的sub_tensor为空
-                                cur_frame_remains_rows = n_rows[frame_id] - row_ed_idx
-                                fill_rows = min(cur_frame_remains_rows, n_sub_tensor_row)
-                                row_ed_idx += fill_rows
-                                frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor[sub_tensor_st_idx:sub_tensor_st_idx + fill_rows, :]
-                                sub_tensor_st_idx += fill_rows
-                                n_sub_tensor_row -= fill_rows
-                                if n_sub_tensor_row > 0:
-                                    # 为填充下一个frame准备
-                                    frame_id += 1
-                                    row_st_idx = row_ed_idx = 0
-                                else:
-                                    row_st_idx = row_ed_idx
+
+
+
+                        # # 如果填充得下当前的frame剩余的空间
+                        # if (row_st_idx + n_sub_tensor_row) <= n_rows[frame_id] - row_ed_idx:
+                        #     row_ed_idx += n_sub_tensor_row
+                        #     frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor
+                        #     # 如果正好填充满了当前的frame
+                        #     if row_ed_idx == n_rows[frame_id]:
+                        #         row_st_idx, row_ed_idx = 0, 0
+                        #         frame_id += 1
+                        #     else:
+                        #         row_st_idx = row_ed_idx
+                        # # 如果当前frame填充不下，可能往下填充一个或多个
+                        # else:
+                        #     sub_tensor_st_idx = 0
+                        #     while n_sub_tensor_row: # 直到将要填充的sub_tensor为空
+                        #         cur_frame_remains_rows = n_rows[frame_id] - row_ed_idx
+                        #         fill_rows = min(cur_frame_remains_rows, n_sub_tensor_row)
+                        #         row_ed_idx += fill_rows
+                        #         frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor[sub_tensor_st_idx:sub_tensor_st_idx + fill_rows, :]
+                        #         sub_tensor_st_idx += fill_rows
+                        #         n_sub_tensor_row -= fill_rows
+                        #         if n_sub_tensor_row > 0:
+                        #             # 为填充下一个frame准备
+                        #             frame_id += 1
+                        #             row_st_idx = row_ed_idx = 0
+                        #         else:
+                        #             row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move multiple features from cpu memory to gpu memory
                 for j in range(world_size):
@@ -193,10 +214,10 @@ class DistCacheClient:
         requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
         self.try_num, self.miss_num = requestnum, requestnum-localhitnum
         miss_rate = float(self.miss_num) / self.try_num
-        print(f'self.miss_num, self.try_num, self.miss_num/self.try_num: {self.miss_num}, {self.try_num}, {self.miss_num/self.try_num}')
+        ret = (self.miss_num, self.try_num, miss_rate)
         self.miss_num = 0
         self.try_num = 0
-        return miss_rate
+        return ret
     
     def get_total_local_remote_feats_gather_time(self):
         """ 输出本地cache读取feats和远程cache读取feats的总时间 """
