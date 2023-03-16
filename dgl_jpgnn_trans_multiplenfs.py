@@ -192,8 +192,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             except StopIteration:
                                 continue # 可能不足batch size个
                         wait_sampler.append(time.time() - st)
-                    with torch.autograd.profiler.record_function('fetch feat'):
-                        cache_client.fetch_multiple_nfs(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
+                        with torch.autograd.profiler.record_function('fetch feat'):
+                            cache_client.fetch_multiple_nfs(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
                     # 选择其中一个sub_nf参与后续计算
                     sub_nf = sub_nfs_lst[sub_nf_id%world_size]
 
