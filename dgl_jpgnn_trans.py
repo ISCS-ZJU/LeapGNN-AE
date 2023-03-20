@@ -90,6 +90,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     ntrain_per_gpu = int(fg_train_nid.shape[0] / world_size) # # of training nodes per gpu
     print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    val_nid = np.nonzero(fg_val_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
@@ -216,8 +217,25 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-      
-    
+
+    num_acc = 0  
+    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                                                 expand_factor=int(sampling[0]),
+                                                 neighbor_type='in',
+                                                 num_workers=args.num_worker,
+                                                 num_hops=len(sampling)+1,
+                                                 seed_nodes=test_nid,
+                                                 prefetch=True,
+                                                 add_self_loop=True):
+        model.eval()
+        with torch.no_grad():
+            cache_client.fetch_data(nf)
+            pred = model(nf)
+            batch_nids = nf.layer_parent_nid(-1)
+            batch_labels = fg_labels[batch_nids].cuda(gpuid)
+            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+        
+    logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
     # logging.info(prof.export_chrome_trace('tmp.json'))
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
