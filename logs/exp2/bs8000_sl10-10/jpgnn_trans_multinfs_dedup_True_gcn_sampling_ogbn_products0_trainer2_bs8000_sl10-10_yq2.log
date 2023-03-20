@@ -1,0 +1,317 @@
+2023-03-17 14:32:35,807 - INFO - Rank 1 | Client Args: Namespace(dataset='./dist/repgnn_data/ogbn_products0/', num_gpu=1, sampling='10-10', hidden_size=256, n_classes=60, batch_size=8000, dropout=0.2, lr=0.03, weight_decay=0, model_name='gcn', epoch=1, num_worker=1, cache_size=0, ckpt_path='/dev/shm', seed=None, log=True, dist_url='tcp://10.214.242.140:23456', world_size=2, rank=1, gpu=0, grpc_port='10.214.243.19:18110', deduplicate=True, distributed=True)
+2023-03-17 14:32:35,853 - INFO - Rank 1 | Added key: store_based_barrier_key:1 to store for rank: 1
+2023-03-17 14:32:35,864 - INFO - Rank 1 | Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+2023-03-17 14:32:35,864 - INFO - Rank 1 | Using 2 distributed GPUs in total for training...
+2023-03-17 14:32:51,134 - INFO - Rank 1 | n_sub_batches:796398
+2023-03-17 14:33:16,079 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:16,108 - INFO - Rank 1 | Reducer buckets have been rebuilt in this iteration.
+2023-03-17 14:33:16,775 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:21,730 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:22,571 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:28,663 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:29,458 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:34,968 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:35,767 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:41,320 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:42,142 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:47,338 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:48,112 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:53,488 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:54,292 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:33:59,250 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:00,048 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:05,233 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:05,972 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:11,332 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:12,108 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:21,074 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:21,768 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:26,790 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:32,468 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:37,531 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:38,354 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:43,826 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:44,682 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:49,632 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:50,390 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:55,164 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:34:55,687 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:00,371 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:01,117 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:05,793 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:06,477 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:11,352 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:12,059 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:16,939 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:17,608 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:22,229 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:22,910 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:27,514 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:28,229 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:33,884 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:35:34,558 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:21,288 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:22,110 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:27,160 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:27,890 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:32,663 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:33,307 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:37,794 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:38,495 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:43,140 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:43,857 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:48,505 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:49,159 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:53,587 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:54,246 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:59,083 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:36:59,819 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:04,430 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:05,078 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:09,619 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:10,278 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:15,059 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:15,709 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:20,540 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:21,181 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:25,566 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:26,200 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:30,863 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:31,590 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:36,272 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:37,161 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:41,987 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:42,724 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:47,451 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:49,045 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:53,753 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:54,387 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:59,089 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:37:59,773 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:04,435 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:05,117 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:09,647 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:10,292 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:14,990 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:15,479 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:19,858 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:20,493 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:24,987 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:25,638 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:30,548 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:31,445 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:36,217 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:36,896 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:41,365 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:42,023 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:46,541 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:47,269 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:51,909 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:52,541 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:57,242 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:38:57,912 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:02,406 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:03,077 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:07,444 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:08,218 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:13,282 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:13,941 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:18,796 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:19,567 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:24,271 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:25,098 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:29,945 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:30,743 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:35,208 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:35,901 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:40,516 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:41,182 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:46,050 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:46,757 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:51,195 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:51,884 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:56,540 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:39:57,296 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:01,955 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:02,632 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:11,332 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:12,197 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:17,157 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:17,945 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:22,528 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:23,210 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:27,752 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:28,249 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:33,278 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:33,964 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:38,705 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:39,418 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:44,274 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:44,981 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:49,944 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:50,679 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:55,421 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:40:56,104 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:00,759 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:01,542 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:06,323 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:07,091 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:11,681 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:12,510 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:17,066 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:17,752 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:22,467 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:23,294 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:27,930 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:28,619 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:33,126 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:33,833 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:38,616 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:39,387 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:43,896 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:44,576 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:49,405 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:50,194 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:54,503 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:41:55,289 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:00,099 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:00,818 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:05,419 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:05,945 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:10,552 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:11,338 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:16,186 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:16,932 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:21,650 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:22,266 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:27,056 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:27,870 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:32,773 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:33,560 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:38,398 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:39,220 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:43,935 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:44,458 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:49,012 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:49,781 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:54,471 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:42:55,220 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:02,661 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:03,394 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:08,338 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:09,158 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:14,028 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:14,737 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:17,666 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:17,982 - INFO - Rank 1 | rank: 1 sub_batch backward done.
+2023-03-17 14:43:18,002 - INFO - Rank 1 | Epoch miss rate ( miss_num/try_num ) for epoch 0 on rank 1: 15673072 / 151448513 = 0.10348779059983243
+2023-03-17 14:43:18,003 - INFO - Rank 1 | Up to now, total_local_feats_gather_time = 53.86 s, total_remote_feats_gather_time = 86.169 s
+2023-03-17 14:43:18,003 - INFO - Rank 1 | => cur_epoch 0 finished on rank 1
+2023-03-17 14:44:30,197 - INFO - Rank 1 | -------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                      total epochs time         1.60%       10.047s        99.59%      627.041s      627.041s       10.065s         1.60%      627.036s      627.036s             1  
+                                             fetch feat         1.31%        8.230s        58.85%      370.565s        3.706s        8.267s         1.31%      370.550s        3.705s           100  
+                fetch feat from cache server and concat        44.22%      278.420s        46.23%      291.057s     727.642ms      278.686s        44.27%      291.049s     727.623ms           400  
+                                            gpu-compute        25.77%      162.281s        38.40%      241.759s     805.864ms      162.283s        25.78%      241.756s     805.853ms           300  
+                        DistributedDataParallel.forward         9.14%       57.567s        12.54%       78.983s     394.917ms       70.814s        11.25%       78.990s     394.950ms           200  
+                                      deduplicate tnids         5.49%       34.587s         5.50%       34.643s      86.607ms       34.638s         5.50%       34.639s      86.599ms           400  
+                                            aten::copy_         0.89%        5.578s         2.89%       18.191s       2.020ms       18.188s         2.89%       18.188s       2.020ms          9004  
+                             move feats from CPU to GPU         0.62%        3.890s         2.43%       15.295s      38.239ms        3.901s         0.62%       15.288s      38.219ms           400  
+                                            fill frames         0.67%        4.241s         2.40%       15.142s      37.854ms        4.271s         0.68%       15.142s      37.854ms           400  
+                                               aten::to         0.02%     143.427ms         2.19%       13.777s       2.087ms     167.135ms         0.03%       13.732s       2.080ms          6602  
+                                         aten::_to_copy         0.04%     258.840ms         2.16%       13.591s       2.427ms     313.350ms         0.05%       13.565s       2.422ms          5600  
+                                            aten::index         1.23%        7.771s         1.28%        8.055s       3.661ms        7.805s         1.24%        8.020s       3.645ms          2200  
+                                              aten::cat         0.00%      21.249ms         1.23%        7.764s      19.410ms      23.492ms         0.00%        7.761s      19.401ms           400  
+                                             aten::_cat         1.07%        6.744s         1.23%        7.740s      19.351ms        6.827s         1.08%        7.737s      19.343ms           400  
+                                            aten::slice         0.08%     502.146ms         0.97%        6.120s     311.252us        5.787s         0.92%        6.012s     305.757us         19664  
+                                          aten::reshape         0.10%     630.050ms         0.80%        5.067s     290.160us     668.025ms         0.11%        4.766s     272.918us         17464  
+                                             CopyReduce         0.24%        1.485s         0.52%        3.292s       5.487ms        4.335s         0.69%        4.503s       7.506ms           600  
+                                   aten::_reshape_alias         0.04%     220.430ms         0.67%        4.222s     241.743us        4.098s         0.65%        4.098s     234.667us         17464  
+                                         model transfer         0.43%        2.732s         0.63%        3.957s      19.787ms        2.745s         0.44%        3.959s      19.797ms           200  
+autograd::engine::evaluate_function: CopyReduceBackw...         0.00%      11.631ms         0.19%        1.213s       3.032ms      17.123ms         0.00%        1.223s       3.057ms           400  
+                                     CopyReduceBackward         0.03%     198.665ms         0.19%        1.197s       2.992ms        1.149s         0.18%        1.206s       3.014ms           400  
+                                           aten::narrow         0.04%     272.809ms         0.15%     972.009ms      66.285us     339.056ms         0.05%     891.488ms      60.794us         14664  
+    autograd::engine::evaluate_function: AddmmBackward0         0.00%      22.339ms         0.05%     340.548ms     567.580us      22.667ms         0.00%     429.612ms     716.020us           600  
+                                            get nf_nids         0.00%      19.537ms         0.06%     395.267ms       3.953ms      20.605ms         0.00%     382.739ms       3.827ms           100  
+                               Optimizer.step#Adam.step         0.03%     184.138ms         0.06%     374.981ms       3.750ms     222.575ms         0.04%     370.443ms       3.704ms           100  
+                                          aten::dropout         0.00%      20.296ms         0.03%     165.088ms     275.147us      17.490ms         0.00%     350.669ms     584.448us           600  
+                                   aten::_fused_dropout         0.01%      54.606ms         0.02%     138.415ms     230.692us     277.842ms         0.04%     333.179ms     555.298us           600  
+     autograd::engine::evaluate_function: ReluBackward0         0.00%       8.309ms         0.03%     219.754ms     549.385us     177.946ms         0.03%     319.581ms     798.952us           400  
+                                         AddmmBackward0         0.00%      20.075ms         0.04%     251.140ms     418.567us      28.395ms         0.00%     294.640ms     491.067us           600  
+                                           aten::linear         0.01%      34.363ms         0.04%     227.643ms     379.405us      15.950ms         0.00%     293.358ms     488.930us           600  
+                                            aten::zeros         0.03%     179.553ms         0.05%     311.178ms      81.824us     221.907ms         0.04%     285.633ms      75.107us          3803  
+                                       aten::as_strided         0.03%     184.973ms         0.07%     447.890ms      16.921us     272.432ms         0.04%     272.432ms      10.292us         26470  
+                                            aten::addmm         0.01%      92.594ms         0.02%     134.309ms     223.848us     244.138ms         0.04%     254.484ms     424.140us           600  
+                                 sync for each sub_iter         0.03%     210.271ms         0.03%     216.427ms       1.082ms     224.577ms         0.04%     226.198ms       1.131ms           200  
+                                               aten::mm         0.01%      78.778ms         0.02%     120.475ms     120.475us     198.264ms         0.03%     198.264ms     198.264us          1000  
+                                            fetch label         0.00%      18.737ms         0.03%     196.477ms     982.385us      20.735ms         0.00%     197.655ms     988.275us           200  
+                                        aten::clamp_min         0.01%      44.576ms         0.02%      97.607ms      69.719us     100.021ms         0.02%     192.758ms     137.684us          1400  
+                                       aten::zeros_like         0.01%      52.862ms         0.03%     203.520ms     167.921us      67.559ms         0.01%     188.271ms     155.339us          1212  
+                                    aten::empty_strided         0.02%     155.923ms         0.03%     214.988ms      26.180us     163.156ms         0.03%     163.156ms      19.868us          8212  
+                                            aten::empty         0.03%     176.060ms         0.05%     291.480ms      20.507us     159.390ms         0.03%     159.390ms      11.214us         14214  
+autograd::engine::evaluate_function: torch::autograd...         0.01%      64.522ms         0.04%     237.942ms     198.285us      44.435ms         0.01%     152.810ms     127.342us          1200  
+autograd::engine::evaluate_function: FusedDropoutBac...         0.00%       9.869ms         0.01%      73.577ms     183.942us       5.770ms         0.00%     147.233ms     368.082us           400  
+                                          ReluBackward0         0.00%       6.809ms         0.03%     208.172ms     520.430us       4.613ms         0.00%     141.635ms     354.087us           400  
+                                  FusedDropoutBackward0         0.00%       6.488ms         0.01%      60.233ms     150.583us       6.788ms         0.00%     141.463ms     353.658us           400  
+                                     train data prepare         0.02%     137.188ms         0.02%     137.222ms     137.222ms     137.210ms         0.02%     137.214ms     137.214ms             1  
+                               aten::threshold_backward         0.00%      15.152ms         0.00%      23.768ms      59.420us     137.022ms         0.02%     137.022ms     342.555us           400  
+                                    aten::_masked_scale         0.00%      18.074ms         0.01%      50.465ms     126.162us     116.681ms         0.02%     134.675ms     336.688us           400  
+                                              aten::div         0.01%      46.656ms         0.01%      70.690ms      44.181us     126.478ms         0.02%     126.478ms      79.049us          1600  
+                                       aten::empty_like         0.01%      73.846ms         0.03%     160.151ms      53.171us      81.868ms         0.01%     124.868ms      41.457us          3012  
+                                            aten::zero_         0.01%      46.079ms         0.02%     149.201ms      28.610us      54.897ms         0.01%     120.854ms      23.174us          5215  
+                                                aten::t         0.01%      62.625ms         0.03%     196.934ms      70.334us      52.729ms         0.01%     114.567ms      40.917us          2800  
+                                              aten::sum         0.01%      32.326ms         0.01%      48.341ms      80.568us     108.374ms         0.02%     108.374ms     180.623us           600  
+                                             aten::relu         0.00%      15.509ms         0.01%      69.671ms     174.178us       2.664ms         0.00%      98.085ms     245.213us           400  
+                               aten::cross_entropy_loss         0.00%      10.327ms         0.01%      63.391ms     316.955us      10.816ms         0.00%      79.434ms     397.170us           200  
+                                            aten::fill_         0.01%      83.377ms         0.02%     101.676ms      83.891us      76.681ms         0.01%      76.681ms      63.268us          1212  
+                                asign frame to nodeflow         0.01%      65.440ms         0.01%      73.226ms     183.065us      67.651ms         0.01%      69.672ms     174.180us           400  
+                                             aten::add_         0.01%      57.099ms         0.02%      96.646ms      40.370us      67.397ms         0.01%      67.397ms      28.152us          2394  
+                                        aten::new_empty         0.01%      38.235ms         0.01%      87.070ms      54.419us      36.614ms         0.01%      64.701ms      40.438us          1600  
+                                        aten::transpose         0.01%      44.350ms         0.02%     112.145ms      40.052us      43.960ms         0.01%      61.838ms      22.085us          2800  
+                        torch::autograd::AccumulateGrad         0.00%      17.717ms         0.01%      82.820ms      69.017us      22.490ms         0.00%      59.771ms      49.809us          1200  
+                                          create frames         0.01%      40.918ms         0.01%      59.690ms     149.225us      45.986ms         0.01%      59.032ms     147.580us           400  
+autograd::engine::evaluate_function: NllLossBackward...         0.00%      10.168ms         0.01%      65.584ms     327.920us       7.132ms         0.00%      54.678ms     273.390us           200  
+                                      aten::nll_loss_nd         0.00%       3.918ms         0.00%      30.829ms     154.145us       3.812ms         0.00%      49.335ms     246.675us           200  
+                                       NllLossBackward0         0.00%       7.600ms         0.01%      48.437ms     242.185us       7.237ms         0.00%      47.546ms     237.730us           200  
+        autograd::engine::evaluate_function: TBackward0         0.00%      10.295ms         0.01%      65.082ms     108.470us      14.507ms         0.00%      47.451ms      79.085us           600  
+                                         aten::nll_loss         0.00%       5.161ms         0.00%      26.346ms     131.730us       5.050ms         0.00%      45.523ms     227.615us           200  
+                                 aten::nll_loss_forward         0.00%      11.707ms         0.00%      20.609ms     103.045us      38.963ms         0.01%      40.473ms     202.365us           200  
+                                aten::nll_loss_backward         0.00%      13.050ms         0.01%      38.730ms     193.650us      23.263ms         0.00%      40.309ms     201.545us           200  
+                                             aten::mul_         0.00%      25.764ms         0.01%      44.842ms      37.368us      39.602ms         0.01%      39.602ms      33.002us          1200  
+                                              aten::mul         0.01%      31.734ms         0.01%      51.588ms      42.990us      34.843ms         0.01%      34.843ms      29.036us          1200  
+                                         create sampler         0.01%      33.998ms         0.01%      34.102ms      34.102ms      34.049ms         0.01%      34.097ms      34.097ms             1  
+                                             TBackward0         0.00%       6.903ms         0.01%      48.823ms      81.372us       9.282ms         0.00%      32.944ms      54.907us           600  
+                                         aten::new_ones         0.00%      16.105ms         0.01%      83.830ms     139.717us       4.024ms         0.00%      22.812ms      38.020us           600  
+autograd::engine::evaluate_function: LogSoftmaxBackw...         0.00%       4.883ms         0.00%      26.982ms     134.910us       6.899ms         0.00%      22.565ms     112.825us           200  
+                                             aten::sqrt         0.00%      17.267ms         0.00%      27.284ms      45.473us      21.038ms         0.00%      21.038ms      35.063us           600  
+                                            aten::clamp         0.00%      25.486ms         0.01%      46.376ms      77.293us      12.252ms         0.00%      19.702ms      32.837us           600  
+                                      aten::log_softmax         0.00%       7.544ms         0.00%      21.385ms     106.925us       8.620ms         0.00%      19.283ms      96.415us           200  
+                                             aten::ones         0.00%      27.694ms         0.01%      64.447ms     107.412us       8.995ms         0.00%      18.788ms      31.313us           600  
+                                         aten::addcmul_         0.00%      13.979ms         0.00%      26.749ms      44.582us      18.497ms         0.00%      18.497ms      30.828us           600  
+                                         aten::addcdiv_         0.00%      12.963ms         0.00%      21.672ms      36.120us      17.415ms         0.00%      17.415ms      29.025us           600  
+                                    LogSoftmaxBackward0         0.00%       5.047ms         0.00%      20.119ms     100.595us       5.635ms         0.00%      15.666ms      78.330us           200  
+                                          aten::resize_         0.00%      19.474ms         0.00%      26.039ms      21.699us      15.234ms         0.00%      15.234ms      12.695us          1200  
+                                           aten::expand         0.00%      17.588ms         0.00%      25.524ms      42.540us       8.436ms         0.00%      10.346ms      17.243us           600  
+                       aten::_log_softmax_backward_data         0.00%       8.146ms         0.00%      13.235ms      66.175us      10.031ms         0.00%      10.031ms      50.155us           200  
+                                        aten::ones_like         0.00%       6.233ms         0.00%      19.669ms      98.345us       3.747ms         0.00%       9.758ms      48.790us           200  
+                                     aten::_log_softmax         0.00%       7.993ms         0.00%      10.697ms      53.485us       9.218ms         0.00%       9.218ms      46.090us           200  
+                                      aten::resolve_neg         0.00%       4.207ms         0.00%       6.872ms       8.590us       5.218ms         0.00%       5.218ms       6.522us           800  
+                                             aten::view         0.00%       8.524ms         0.00%      13.602ms      22.670us       3.931ms         0.00%       3.931ms       6.552us           600  
+                aten::_has_compatible_shallow_copy_type         0.00%       4.832ms         0.00%       9.449ms      11.811us       3.717ms         0.00%       3.717ms       4.646us           800  
+                                     aten::resolve_conj         0.00%       4.472ms         0.00%       7.318ms       9.148us       3.386ms         0.00%       3.386ms       4.232us           800  
+                                             aten::set_         0.00%       3.459ms         0.00%       4.615ms      22.847us       1.710ms         0.00%       1.710ms       8.465us           202  
+                                           aten::detach         0.00%      70.000us         0.00%     249.000us      41.500us      96.000us         0.00%     152.000us      25.333us             6  
+                                                 detach         0.00%      73.000us         0.00%     121.000us      20.167us      56.000us         0.00%      56.000us       9.333us             6  
+                                          aten::detach_         0.00%      20.000us         0.00%      31.000us      31.000us      22.000us         0.00%      27.000us      27.000us             1  
+                                                detach_         0.00%       7.000us         0.00%       9.000us       9.000us       5.000us         0.00%       5.000us       5.000us             1  
+                                        cudaEventCreate         1.60%       10.060s         1.60%       10.060s      24.824us       0.000us         0.00%       0.000us       0.000us        405254  
+                                        cudaEventRecord         0.14%     868.306ms         0.14%     868.306ms       2.136us       0.000us         0.00%       0.000us       0.000us        406522  
+                                  cudaStreamIsCapturing         0.00%     810.000us         0.00%     810.000us       1.266us       0.000us         0.00%       0.000us       0.000us           640  
+                                             cudaMalloc         1.88%       11.835s         1.88%       11.835s       3.218ms       0.000us         0.00%       0.000us       0.000us          3678  
+                                        cudaMemcpyAsync         1.94%       12.230s         1.94%       12.230s       1.697ms       0.000us         0.00%       0.000us       0.000us          7206  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 629.625s
+Self CUDA time total: 629.481s
+
+2023-03-17 14:44:30,198 - INFO - Rank 1 | wait sampler total time: 9.651664018630981, total sub_iters: 100, avg sub_iter time:0.09651664018630982

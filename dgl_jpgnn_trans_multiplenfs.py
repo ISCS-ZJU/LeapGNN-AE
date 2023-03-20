@@ -132,7 +132,17 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         else:
             return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
-    #################### GNN训练 ####################
+    #################### GNN训练 ####################\
+    # 选择client的fetch函数
+    if args.deduplicate:
+        fetch_func = cache_client.fetch_multiple_nfs_elimredun
+        print('-> 将调用去冗余的 fetch_multiple_nfs_elimredun 函数')
+        logging.info('-> 调用去冗余的 fetch_multiple_nfs_elimredun 函数')
+    else:
+        fetch_func = cache_client.fetch_multiple_nfs_v2
+        print('-> 将调用不去冗余的 fetch_multiple_nfs_v2 函数')
+        logging.info('-> 调用不去冗余的 fetch_multiple_nfs_v2 函数')
+
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
@@ -193,7 +203,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                                 continue # 可能不足batch size个
                         wait_sampler.append(time.time() - st)
                         with torch.autograd.profiler.record_function('fetch feat'):
-                            cache_client.fetch_multiple_nfs(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
+                            fetch_func(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
                     # 选择其中一个sub_nf参与后续计算
                     sub_nf = sub_nfs_lst[sub_nf_id%world_size]
 
@@ -207,7 +217,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             loss.backward()
                             # for x in model.named_parameters():
                             #     logging.info(x[1].grad.size())
-                            logging.info(f'rank: {args.rank} sub_batch backward done.')
+                            # logging.info(f'rank: {args.rank} sub_batch backward done.')
                     
                     with torch.autograd.profiler.record_function('sync for each sub_iter'):    
                         # 同步
@@ -281,6 +291,9 @@ def parse_args_func(argv):
                         help='GPU id to use.')
     parser.add_argument('--grpc-port', default="10.5.30.43:18110", type=str,
                         help='grpc port to connect with cache servers.')
+    # --nodedup的时候，会把该参数设置为false，否则默认就是true
+    parser.add_argument('--nodedup', dest='deduplicate', action='store_false', default=True)
+
     return parser.parse_args(argv)
 
 
@@ -300,9 +313,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
     else:
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':

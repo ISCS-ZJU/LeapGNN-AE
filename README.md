@@ -86,6 +86,9 @@ go run server.go # 在多个节点都启动，然后等待服务端启动完毕
 
 ### 3. 运行client
 ```bash
+# dgl_default.py 表示默认的方法，跑的命令如下
+# dgl_jpgnn_trans.py 表示使用jpgnn策略，移动模型后的方法，跑的命令和dgl_default.py的一样，只是py文件名换一下
+# dgl_jpgnn_trans_multiplenfs 表示在trans的基础上将多个nfs合并的方法，默认会去重，如果不去重需添加 --nodedup 的参数选项
 cd repgnn
 conda activate repgnn
 # 可能需要指定 NCCL_SOCKET_IFNAME 和 GLOO_SOCKET_IFNAME 的网卡，如export GLOO_SOCKET_IFNAME=ens5f0 export GLOO_SOCKET_IFNAME=ens9f0

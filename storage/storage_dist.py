@@ -96,14 +96,14 @@ class DistCacheClient:
     def fetch_multiple_nfs(self, nfs):
         world_size = len(nfs)
         with torch.autograd.profiler.record_function('get nf_nids'):
-            nf_nids = [] # ngpu个子树的nid
-            offsets = [] # ngpu个子树不同层的划分界点
+            nf_nids = [] # world_size个子树的nid
+            offsets = [] # world_size个子树不同层的划分界点
             for j in range(world_size):
                 nf_nids.append(nfs[j]._node_mapping.tousertensor().cuda(self.gpuid))
                 offsets.append(nfs[j]._layer_offsets)
         
         for i in range(nfs[0].num_layers):
-            tnid = [] # ngpu个树的第i层的nid
+            tnid = [] # world_size个树的第i层的nid
             tnids_flat = []
             for j in range(world_size):
                 tnid.append(nf_nids[j][offsets[j][i]:offsets[j][i+1]])
@@ -114,7 +114,7 @@ class DistCacheClient:
             n_rows = []
             with torch.autograd.profiler.record_function('fetch feat overhead'):
                 with torch.cuda.device(self.gpuid):
-                    frames = [] # ngpu个树第i层的nid构成的frame
+                    frames = [] # world_size个树第i层的nid构成的frame
                     for j in range(world_size):
                         frames.append({name: torch.empty(len(tnid[j]), self.dims[name]) for name in self.dims})
                         n_rows.extend([len(tnid[j]) for name in self.dims])
@@ -143,35 +143,6 @@ class DistCacheClient:
                                 row_st_idx = row_ed_idx = 0
                             else:
                                 row_st_idx = row_ed_idx
-
-
-
-                        # # 如果填充得下当前的frame剩余的空间
-                        # if (row_st_idx + n_sub_tensor_row) <= n_rows[frame_id] - row_ed_idx:
-                        #     row_ed_idx += n_sub_tensor_row
-                        #     frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor
-                        #     # 如果正好填充满了当前的frame
-                        #     if row_ed_idx == n_rows[frame_id]:
-                        #         row_st_idx, row_ed_idx = 0, 0
-                        #         frame_id += 1
-                        #     else:
-                        #         row_st_idx = row_ed_idx
-                        # # 如果当前frame填充不下，可能往下填充一个或多个
-                        # else:
-                        #     sub_tensor_st_idx = 0
-                        #     while n_sub_tensor_row: # 直到将要填充的sub_tensor为空
-                        #         cur_frame_remains_rows = n_rows[frame_id] - row_ed_idx
-                        #         fill_rows = min(cur_frame_remains_rows, n_sub_tensor_row)
-                        #         row_ed_idx += fill_rows
-                        #         frames[frame_id][name][row_st_idx:row_ed_idx, :] = sub_tensor[sub_tensor_st_idx:sub_tensor_st_idx + fill_rows, :]
-                        #         sub_tensor_st_idx += fill_rows
-                        #         n_sub_tensor_row -= fill_rows
-                        #         if n_sub_tensor_row > 0:
-                        #             # 为填充下一个frame准备
-                        #             frame_id += 1
-                        #             row_st_idx = row_ed_idx = 0
-                        #         else:
-                        #             row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move multiple features from cpu memory to gpu memory
                 for j in range(world_size):
@@ -182,7 +153,123 @@ class DistCacheClient:
                 for j in range(world_size):
                     logging.debug(f'Final nfs._node_frames:{i}, frames[j]["features"].size(): {frames[j]["features"].size()}\n')
                     nfs[j]._node_frames[i] = FrameRef(Frame(frames[j]))
+    
+    def fetch_multiple_nfs_elimredun(self, nfs):
+        world_size = len(nfs)
+        with torch.autograd.profiler.record_function('get nf_nids'):
+            nf_nids = [] # world_size个子树的nid
+            offsets = [] # world_size个子树不同层的划分界点
+            for j in range(world_size):
+                nf_nids.append(nfs[j]._node_mapping.tousertensor().cuda(self.gpuid))
+                offsets.append(nfs[j]._layer_offsets)
+        
+        for i in range(nfs[0].num_layers):
+            tnid = [] # world_size个树的第i层的nid
+            offs = [0]
+            for j in range(world_size):
+                tnid.append(nf_nids[j][offsets[j][i]:offsets[j][i+1]])
+                tnid[j] = tnid[j].tolist()
+                offs.append(offs[j] + len(tnid[j])) # 标记frame之间的界限，共world_size+1个数
             
+            with torch.autograd.profiler.record_function('deduplicate tnids'):
+                # 对tnids_flat去重
+                mapping_idx = [] # 存放每个frame中的graph node id到fetch结果表的行号映射
+                unique_tnids_flat, index = self.merge_lists(tnid)
+                unique_tnids_flat = unique_tnids_flat.tolist() # unique_tnids_flat = [x for x in unique_tnids_flat.flat]
+                for idx in range(len(offs)-1):
+                    mapping_idx.append(index[offs[idx]:offs[idx+1]])
+
+            # create frames
+            n_rows = []
+            with torch.autograd.profiler.record_function('create frames'):
+                with torch.cuda.device(self.gpuid):
+                    frames = [] # world_size个树第i层的nid构成的frame
+                    for j in range(world_size):
+                        frames.append({name: torch.empty(len(tnid[j]), self.dims[name]) for name in self.dims})
+                        n_rows.extend([len(tnid[j]) for name in self.dims])
+            # fetch features from cache server
+            tmp_tensor_lst = []
+            with torch.autograd.profiler.record_function('fetch feat from cache server'):
+                for sub_features in self.get_stream_feats_from_server(unique_tnids_flat):
+                    sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                    # n_sub_tensor_row = sub_tensor.shape[0]
+                    tmp_tensor_lst.append(sub_tensor)
+            with torch.autograd.profiler.record_function('concat all fetched feats'):
+                # 所有feats暂存在一个tensor中
+                fetched_unique_tensor = torch.cat(tmp_tensor_lst, dim=0)
+            with torch.autograd.profiler.record_function('fill frames'):
+                for j in range(world_size):
+                    for name in self.dims:
+                        frames[j][name][:, :] = fetched_unique_tensor[mapping_idx[j]]
+            with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
+                # move multiple features from cpu memory to gpu memory
+                for j in range(world_size):
+                    for name in self.dims:
+                        frames[j][name].data = frames[j][name].data.cuda(self.gpuid)
+            # attach features to nodeflow
+            with torch.autograd.profiler.record_function('asign frame to nodeflow'):
+                for j in range(world_size):
+                    logging.debug(f'Final nfs._node_frames:{i}, frames[j]["features"].size(): {frames[j]["features"].size()}\n')
+                    nfs[j]._node_frames[i] = FrameRef(Frame(frames[j]))
+    
+    def fetch_multiple_nfs_v2(self, nfs):
+        # 代码流程和fetch_multiple_nfs_elimredun相同的另一个fetch_multiple_nfs版本，效率相对更低一点
+        world_size = len(nfs)
+        with torch.autograd.profiler.record_function('get nf_nids'):
+            nf_nids = [] # world_size个子树的nid
+            offsets = [] # world_size个子树不同层的划分界点
+            for j in range(world_size):
+                nf_nids.append(nfs[j]._node_mapping.tousertensor().cuda(self.gpuid))
+                offsets.append(nfs[j]._layer_offsets)
+        
+        for i in range(nfs[0].num_layers):
+            tnid = [] # world_size个树的第i层的nid
+            offs = [0]
+            for j in range(world_size):
+                tnid.append(nf_nids[j][offsets[j][i]:offsets[j][i+1]])
+                tnid[j] = tnid[j].tolist()
+                offs.append(offs[j] + len(tnid[j])) # 标记frame之间的界限，共world_size+1个数
+            
+            with torch.autograd.profiler.record_function('deduplicate tnids'):
+                # 对tnids_flat去重
+                mapping_idx = [] # 存放每个frame中的graph node id到fetch结果表的行号映射
+                unique_tnids_flat, index = self.merge_lists_wodedupli(tnid)
+                unique_tnids_flat = unique_tnids_flat.tolist() # unique_tnids_flat = [x for x in unique_tnids_flat.flat]
+                for idx in range(len(offs)-1):
+                    mapping_idx.append(index[offs[idx]:offs[idx+1]])
+
+            # create frames
+            n_rows = []
+            with torch.autograd.profiler.record_function('create frames'):
+                with torch.cuda.device(self.gpuid):
+                    frames = [] # world_size个树第i层的nid构成的frame
+                    for j in range(world_size):
+                        frames.append({name: torch.empty(len(tnid[j]), self.dims[name]) for name in self.dims})
+                        n_rows.extend([len(tnid[j]) for name in self.dims])
+            # fetch features from cache server
+            tmp_tensor_lst = []
+            with torch.autograd.profiler.record_function('fetch feat from cache server'):
+                for sub_features in self.get_stream_feats_from_server(unique_tnids_flat):
+                    sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                    # n_sub_tensor_row = sub_tensor.shape[0]
+                    tmp_tensor_lst.append(sub_tensor)
+            with torch.autograd.profiler.record_function('concat all fetched feats'):
+                # 所有feats暂存在一个tensor中
+                fetched_unique_tensor = torch.cat(tmp_tensor_lst, dim=0)
+            with torch.autograd.profiler.record_function('fill frames'):
+                for j in range(world_size):
+                    for name in self.dims:
+                        frames[j][name][:, :] = fetched_unique_tensor[mapping_idx[j]]
+            with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
+                # move multiple features from cpu memory to gpu memory
+                for j in range(world_size):
+                    for name in self.dims:
+                        frames[j][name].data = frames[j][name].data.cuda(self.gpuid)
+            # attach features to nodeflow
+            with torch.autograd.profiler.record_function('asign frame to nodeflow'):
+                for j in range(world_size):
+                    logging.debug(f'Final nfs._node_frames:{i}, frames[j]["features"].size(): {frames[j]["features"].size()}\n')
+                    nfs[j]._node_frames[i] = FrameRef(Frame(frames[j]))
 
     def get_feat_dim(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
@@ -230,6 +317,17 @@ class DistCacheClient:
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_cache_info), timeout=1000)
         return response.partidx
+
+    # help functions
+    def merge_lists(self, lists):
+        flat_list = np.concatenate(lists)
+        unique_values, index = np.unique(flat_list, return_inverse=True)
+        return unique_values, index
+        # return np.array(flat_list), np.arange(len(flat_list))
+    
+    def merge_lists_wodedupli(self, lists):
+        flat_list = np.concatenate(lists)
+        return np.array(flat_list), np.arange(len(flat_list))
 
 
 
