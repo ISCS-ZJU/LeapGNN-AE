@@ -137,9 +137,12 @@ if __name__ == '__main__':
                       help='generated class number if --gen-label is specified')
   
   parser.add_argument("--gen-set", dest='gen_set', action='store_true')
+  parser.add_argument("--seed", type=int, default=2023)
 
   parser.set_defaults(gen_set=False)
   args = parser.parse_args()
+
+  np.random.seed(args.seed)
 
   if not os.path.exists(args.dataset):
     # print('{}: No such a dataset folder'.format(args.dataset))

@@ -1,13 +1,14 @@
 
-SETPATH='/data/cwj/repgnn/'
-ORINAME='ogbn-papers100M'
-LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
+SETPATH='/data1/cwj/repgnn/'
+ORINAME='ogbn-arxiv'
+SEED=2022
+LEN=128 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
 NAME=${ORINAME/-/_}
 RESUTLDIR=$SETPATH$NAME$LEN
 
 # data/set/clean.sh
-rm $RESUTLDIR/adj.npz
+# rm $RESUTLDIR/adj.npz
 rm $RESUTLDIR/feat.npy
 rm $RESUTLDIR/labels.npy
 rm $RESUTLDIR/test.npy
@@ -19,8 +20,8 @@ python ogb_fmt.py -n $ORINAME -p $SETPATH -l $LEN # RESUTLDIR下产生feat.npy l
 if [ $? ]
 then
 echo "running with --directed"
-python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN
+python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
 else
 echo "running without --directed"
-python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN
+python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
 fi

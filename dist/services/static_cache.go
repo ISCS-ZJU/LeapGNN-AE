@@ -242,6 +242,7 @@ func (static_cache *Static_cache_mng) PeerServerGet(ids []int64) ([]float32, err
 			st_idx = i * static_cache.Feature_dim
 			ed_idx = (i + 1) * static_cache.Feature_dim
 			copy(ret_features[st_idx:ed_idx], feature)
+			i++
 		} else {
 			log.Fatalf("[static_cache.go] %v not in cur cache", local_hit_nid)
 			return nil, errors.New(string(local_hit_nid) + "not exists in peerserverget.")

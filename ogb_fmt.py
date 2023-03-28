@@ -26,13 +26,11 @@ if __name__ == '__main__':
     # setpath = '/data/cwj/pagraph/ogb/set'
     # curpath =  osp.dirname(__file__)
     setpath = args.path
-    print(args.name)
     dataset = NodePropPredDataset(name=args.name,root=setpath)
     print('end')
     data = dataset[0]
     node_num = data[0]['num_nodes']
     edge_num = len(data[0]['edge_index'][0])
-    print(data)
     # num = [0] * node_num
     # flag = 0
     # count = 0
@@ -64,7 +62,8 @@ if __name__ == '__main__':
     ppath = osp.join(savepath,'pp.txt')
     featpath = osp.join(savepath,'feat.npy')
     cur_len = len(data[0]['node_feat'][0])
-    new_array = data[0]['node_feat']
+    new_array = np.empty(data[0]['node_feat'].shape,dtype="float32")
+    new_array[:] = data[0]['node_feat']
     print('original features dim:', len(new_array[0]), 'dtype:', new_array.dtype)
     if args.len <= 0:
         pass
