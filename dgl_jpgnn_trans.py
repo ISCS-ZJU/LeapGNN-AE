@@ -192,6 +192,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
+                            logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                             loss.backward()
                             # for x in model.named_parameters():
                             #     logging.info(x[1].grad.size())
@@ -204,6 +205,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step() # 至此，一个iteration结束
+                            optimizer.zero_grad()
                     with torch.autograd.profiler.record_function('model transfer'):
                         ########## 模型参数在分布式GPU间进行传输 ###########
                         send_recv(model,args.gpu,args.rank,world_size)

@@ -193,6 +193,7 @@ def run(rank, ngpus_per_node, args):
                     if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step()
+                            optimizer.zero_grad()
                         # 至此，一个iteration结束
                     sub_iter += 1
                 if cache_client.log:

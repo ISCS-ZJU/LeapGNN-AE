@@ -157,6 +157,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             pred = model(nf)
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
                             loss = loss_fn(pred, labels)
+                            logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
                         with torch.autograd.profiler.record_function('DDP backward'):
