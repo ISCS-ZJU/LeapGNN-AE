@@ -16,10 +16,7 @@ def parse_args_func(argv):
 
 if __name__ == '__main__':
     args = parse_args_func(None)
-    directed = dict()
-    directed['ogbn-arxiv'] = 1
-    directed['ogbn-papers100M'] = 1
-    directed['ogbn-products'] = 0
+    directed = {'ogbn-arxiv': 1, 'ogbn-papers100M': 1, 'ogbn-products': 0}
     # label = pd.read_csv(osp.join('/home/qhy/gnn/repgnn/dataset/ogbn_arxiv/raw', 'node-label.csv.gz'), compression='gzip', header = None).values.T.astype(np.int64)
     # print(label)
 
@@ -48,7 +45,7 @@ if __name__ == '__main__':
     labels = np.zeros(node_num,dtype=np.float32)
     for i in range(0,node_num):
         labels[i] = data[1][i]
-    
+
     dataset_name = args.name.replace('-','_')
     # labels = np.load(osp.join(osp.join(setpath, dataset_name), 'raw/node-label.npz'))['node_label']
     print(labels)
@@ -79,7 +76,7 @@ if __name__ == '__main__':
     print(new_array)
     print('after modified features dim:', len(new_array[0]))
     print("after modified features memory size:", new_array.size * new_array.itemsize)
-    
+
 
     print(f'end, directed={directed[args.name]}')
 

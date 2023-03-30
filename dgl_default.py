@@ -97,6 +97,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 40
     elif 'ogbn_products0' in args.dataset:
         args.n_classes = 47
+    elif 'citeseer' in args.dataset:
+        args.n_classes = 6
+    elif 'pubmed' in args.dataset:
+        args.n_classes = 3
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':

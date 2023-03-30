@@ -103,6 +103,16 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
+    if 'ogbn_arxiv' in args.dataset:
+        args.n_classes = 40
+    elif 'ogbn_products0' in args.dataset:
+        args.n_classes = 47
+    elif 'citeseer' in args.dataset:
+        args.n_classes = 6
+    elif 'pubmed' in args.dataset:
+        args.n_classes = 3
+    else:
+        raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
         model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
@@ -181,7 +191,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 for sub_nf in sampler:
                     wait_sampler.append(time.time()-st)
                     # print(f'sub_iter:', sub_iter, sub_nf==None)
-                    if sub_nf!=None:
+                    if sub_nf._node_mapping.tousertensor().shape[0] > 0:
                         with torch.autograd.profiler.record_function('fetch feat'):
                             ########## 跨结点获取sub_nf的feature数据 ###########
                             cache_client.fetch_data(sub_nf)
