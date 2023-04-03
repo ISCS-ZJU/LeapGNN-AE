@@ -18,6 +18,8 @@ from rpc_client import distcache_pb2_grpc
 import grpc
 import io
 
+import time
+
 class DistCacheClient:
     def __init__(self, grpc_port, gpu, log):
         self.grpc_port = grpc_port
@@ -51,6 +53,11 @@ class DistCacheClient:
 
         self.try_num = 0
         self.miss_num = 0
+
+        self.cnt = 0
+        # self.feats_chunk_size = 4*1024*1024 # 4MB
+        self.feats_chunk_size = self.getMaxNumDivisibleByXYAnd1024(self.feat_dim, 4)
+        print(f'-> feats chunk size: {self.feats_chunk_size}')
     
     def fetch_data(self, nodeflow):
         with torch.autograd.profiler.record_function('get nf_nids'):
@@ -70,16 +77,12 @@ class DistCacheClient:
                 tnid = tnid.tolist()
             # fetch features from cache server
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
-                # collect features to cpu memory
-            #     features = self.get_feats_from_server(tnid)
-            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
-            #     for name in self.dims:
-            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
                 row_st_idx, row_ed_idx = 0, 0
                 for sub_features in self.get_stream_feats_from_server(tnid):
                     for name in self.dims:
                         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                         row_ed_idx += sub_tensor.shape[0]
+                        # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
                         # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
                         frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
                         row_st_idx = row_ed_idx
@@ -121,10 +124,14 @@ class DistCacheClient:
             # fetch features from cache server
             frame_id, row_st_idx, row_ed_idx = 0, 0, 0
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
+                st = time.time()
                 for sub_features in self.get_stream_feats_from_server(tnids_flat):
+                    self.tmp_value += time.time() - st
+                    st = time.time()
                     for name in self.dims:
                         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                         n_sub_tensor_row = sub_tensor.shape[0]
+                    self.tmp_value2 += time.time() - st
 
                     with torch.autograd.profiler.record_function('fetch feat from cache server - python while'):
                         # sub_tensor_st_idx = 0
@@ -143,6 +150,7 @@ class DistCacheClient:
                                 row_st_idx = row_ed_idx = 0
                             else:
                                 row_st_idx = row_ed_idx
+                    st = time.time()
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move multiple features from cpu memory to gpu memory
                 for j in range(world_size):
@@ -287,10 +295,32 @@ class DistCacheClient:
         return response.features
     
     def get_stream_feats_from_server(self, nids):
-        stream = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
+        err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
         type=distcache_pb2.get_stream_features_by_client, ids=nids), timeout=100000)
-        for response in stream:
-            yield response.features
+        # print(f'err = {err}')
+        if err!=None:
+            # yield features block
+            filename_base = '/dev/shm/repgnn_shm'
+            expected_byte_len = len(nids)*self.feat_dim*4 # float32
+            expected_feat_chunks = (expected_byte_len -1 + self.feats_chunk_size) // self.feats_chunk_size
+            last_ck_size = expected_byte_len % self.feats_chunk_size
+            st_ckid, ed_ckid = self.cnt, self.cnt+expected_feat_chunks
+            for ckid in range(st_ckid, ed_ckid):
+                filename = filename_base + f'{ckid}'
+                while True:
+                    if os.path.exists(filename):
+                        if os.path.getsize(filename) == self.feats_chunk_size or (ckid==ed_ckid-1 and os.path.getsize(filename) == last_ck_size):
+                            with open(filename, 'rb') as fh:
+                                feats_bytes = bytes(fh.read())
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                    else:
+                        # print(f'waiting file {filename}')
+                        continue
+        else:
+            return err
     
     def get_cache_hit_info(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
@@ -328,6 +358,14 @@ class DistCacheClient:
     def merge_lists_wodedupli(self, lists):
         flat_list = np.concatenate(lists)
         return np.array(flat_list), np.arange(len(flat_list))
+    
+    def getMaxNumDivisibleByXYAnd1024(self, x: int, y: int) -> int:
+        max_num = 4 * 1024 * 1024 # 4MB
+        for i in range(max_num, 0, -1):
+            if i % x == 0 and i % y == 0 and i % 1024 == 0:
+                return i
+        return -1 # If no number found
+
 
 
 

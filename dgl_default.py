@@ -143,7 +143,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in sampler:
                     wait_sampler.append(time.time()-st)
-                    logging.debug(f'iter: {iter}')
+                    # print(f'iter: {iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                         cache_client.fetch_data(nf)
@@ -164,6 +164,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
                         torch.distributed.barrier()
+                        
                     iter += 1
                     st = time.time()
                 logging.info(f'rank: {args.rank}, iter_num: {iter}')
@@ -181,7 +182,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
-
+    # torch.distributed.barrier()
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
