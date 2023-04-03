@@ -97,6 +97,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 40
     elif 'ogbn_products0' in args.dataset:
         args.n_classes = 47
+    elif 'citeseer' in args.dataset:
+        args.n_classes = 6
+    elif 'pubmed' in args.dataset:
+        args.n_classes = 3
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -157,6 +161,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             pred = model(nf)
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
                             loss = loss_fn(pred, labels)
+                            logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
                         with torch.autograd.profiler.record_function('DDP backward'):
@@ -179,6 +184,25 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
     
+    num_acc = 0  
+    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                                                 expand_factor=int(sampling[0]),
+                                                 neighbor_type='in',
+                                                 num_workers=args.num_worker,
+                                                 num_hops=len(sampling)+1,
+                                                 seed_nodes=test_nid,
+                                                 prefetch=True,
+                                                 add_self_loop=True):
+        model.eval()
+        with torch.no_grad():
+            cache_client.fetch_data(nf)
+            pred = model(nf)
+            batch_nids = nf.layer_parent_nid(-1)
+            batch_labels = fg_labels[batch_nids].cuda(args.gpu)
+            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+        
+    logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
+
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')

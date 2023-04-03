@@ -90,6 +90,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     ntrain_per_gpu = int(fg_train_nid.shape[0] / world_size) # # of training nodes per gpu
     print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    val_nid = np.nonzero(fg_val_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
@@ -102,6 +103,16 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
+    if 'ogbn_arxiv' in args.dataset:
+        args.n_classes = 40
+    elif 'ogbn_products0' in args.dataset:
+        args.n_classes = 47
+    elif 'citeseer' in args.dataset:
+        args.n_classes = 6
+    elif 'pubmed' in args.dataset:
+        args.n_classes = 3
+    else:
+        raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
         model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
@@ -180,7 +191,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 for sub_nf in sampler:
                     wait_sampler.append(time.time()-st)
                     # print(f'sub_iter:', sub_iter, sub_nf==None)
-                    if sub_nf!=None:
+                    if sub_nf._node_mapping.tousertensor().shape[0] > 0:
                         with torch.autograd.profiler.record_function('fetch feat'):
                             ########## 跨结点获取sub_nf的feature数据 ###########
                             cache_client.fetch_data(sub_nf)
@@ -191,6 +202,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
+                            logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                             loss.backward()
                             # for x in model.named_parameters():
                             #     logging.info(x[1].grad.size())
@@ -203,6 +215,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step() # 至此，一个iteration结束
+                            optimizer.zero_grad()
                     with torch.autograd.profiler.record_function('model transfer'):
                         ########## 模型参数在分布式GPU间进行传输 ###########
                         send_recv(model,args.gpu,args.rank,world_size)
@@ -216,8 +229,25 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-      
-    
+
+    num_acc = 0  
+    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                                                 expand_factor=int(sampling[0]),
+                                                 neighbor_type='in',
+                                                 num_workers=args.num_worker,
+                                                 num_hops=len(sampling)+1,
+                                                 seed_nodes=test_nid,
+                                                 prefetch=True,
+                                                 add_self_loop=True):
+        model.eval()
+        with torch.no_grad():
+            cache_client.fetch_data(nf)
+            pred = model(nf)
+            batch_nids = nf.layer_parent_nid(-1)
+            batch_labels = fg_labels[batch_nids].cuda(gpuid)
+            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+        
+    logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
     # logging.info(prof.export_chrome_trace('tmp.json'))
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(

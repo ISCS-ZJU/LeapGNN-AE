@@ -16,23 +16,18 @@ def parse_args_func(argv):
 
 if __name__ == '__main__':
     args = parse_args_func(None)
-    directed = dict()
-    directed['ogbn-arxiv'] = 1
-    directed['ogbn-papers100M'] = 1
-    directed['ogbn-products'] = 0
+    directed = {'ogbn-arxiv': 1, 'ogbn-papers100M': 1, 'ogbn-products': 0}
     # label = pd.read_csv(osp.join('/home/qhy/gnn/repgnn/dataset/ogbn_arxiv/raw', 'node-label.csv.gz'), compression='gzip', header = None).values.T.astype(np.int64)
     # print(label)
 
     # setpath = '/data/cwj/pagraph/ogb/set'
     # curpath =  osp.dirname(__file__)
     setpath = args.path
-    print(args.name)
     dataset = NodePropPredDataset(name=args.name,root=setpath)
     print('end')
     data = dataset[0]
     node_num = data[0]['num_nodes']
     edge_num = len(data[0]['edge_index'][0])
-    print(data)
     # num = [0] * node_num
     # flag = 0
     # count = 0
@@ -50,7 +45,7 @@ if __name__ == '__main__':
     labels = np.zeros(node_num,dtype=np.float32)
     for i in range(0,node_num):
         labels[i] = data[1][i]
-    
+
     dataset_name = args.name.replace('-','_')
     # labels = np.load(osp.join(osp.join(setpath, dataset_name), 'raw/node-label.npz'))['node_label']
     print(labels)
@@ -64,7 +59,8 @@ if __name__ == '__main__':
     ppath = osp.join(savepath,'pp.txt')
     featpath = osp.join(savepath,'feat.npy')
     cur_len = len(data[0]['node_feat'][0])
-    new_array = data[0]['node_feat']
+    new_array = np.empty(data[0]['node_feat'].shape,dtype="float32")
+    new_array[:] = data[0]['node_feat']
     print('original features dim:', len(new_array[0]), 'dtype:', new_array.dtype)
     if args.len <= 0:
         pass
@@ -80,7 +76,7 @@ if __name__ == '__main__':
     print(new_array)
     print('after modified features dim:', len(new_array[0]))
     print("after modified features memory size:", new_array.size * new_array.itemsize)
-    
+
 
     print(f'end, directed={directed[args.name]}')
 

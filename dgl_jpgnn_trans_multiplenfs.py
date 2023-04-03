@@ -101,6 +101,16 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
+    if 'ogbn_arxiv' in args.dataset:
+        args.n_classes = 40
+    elif 'ogbn_products0' in args.dataset:
+        args.n_classes = 47
+    elif 'citeseer' in args.dataset:
+        args.n_classes = 6
+    elif 'pubmed' in args.dataset:
+        args.n_classes = 3
+    else:
+        raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
         model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
@@ -226,6 +236,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     if (sub_iter+1) % world_size == 0:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step() # 至此，一个iteration结束
+                            optimizer.zero_grad()
                     with torch.autograd.profiler.record_function('model transfer'):
                         ########## 模型参数在分布式GPU间进行传输 ###########
                         send_recv(model,args.gpu,args.rank,world_size)
