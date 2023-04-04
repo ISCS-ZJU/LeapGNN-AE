@@ -58,7 +58,12 @@ class DistCacheClient:
         # self.feats_chunk_size = 4*1024*1024 # 4MB
         self.feats_chunk_size = self.getMaxNumDivisibleByXYAnd1024(self.feat_dim, 4)
         print(f'-> feats chunk size: {self.feats_chunk_size}')
-    
+
+        # rm /dev/shm/repgnn_shm*
+        prefix = "repgnn_shm"
+        if any(filename.startswith(prefix) for filename in os.listdir("/dev/shm")):
+            os.system("rm " + os.path.join(" /dev/shm", prefix) + "*")
+
     def fetch_data(self, nodeflow):
         with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
