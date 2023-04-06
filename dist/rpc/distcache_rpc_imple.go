@@ -20,6 +20,13 @@ func Grpc_op_imple_get_features_by_client(request *cache.DCRequest) (*cache.DCRe
 	return &reply, nil
 }
 
+func Grpc_op_imple_reset(request *cache.DCRequest) (*cache.DCReply, error) {
+	// log.Infof("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
+	var reply cache.DCReply
+	services.DCRuntime.CacheMng.Reset()
+	return &reply, nil
+}
+
 func Grpc_op_imple_get_stream_features_by_client(request *cache.DCRequest) (*cache.DCReply, error) {
 	// log.Infof("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
 	var reply cache.DCReply

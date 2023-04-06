@@ -20,6 +20,7 @@ enum OpType{
   get_cache_info = 3; // client gets cache basic info
   get_statistic = 4; // get cache server's statistic flag value
   get_stream_features_by_client = 5; // client gets stream features of many graph node ids
+  reset = 6; // client gets stream features of many graph node ids
 }
 
 message DCRequest{

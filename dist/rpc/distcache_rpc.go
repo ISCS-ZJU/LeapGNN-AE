@@ -42,6 +42,10 @@ func (s *dcrpcserver) DCSubmit(ctx context.Context, request *cache.DCRequest) (*
 		reply, _ = Grpc_op_imple_get_cache_info(request)
 	case cache.OpType_get_statistic:
 		reply, _ = Grpc_op_imple_get_statistic(request)
+	case cache.OpType_reset:
+		reply, _ = Grpc_op_imple_reset(request)
+		cnt = 0
+		log.Infof("Reset")
 	}
 
 	return reply, nil

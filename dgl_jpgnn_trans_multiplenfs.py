@@ -97,6 +97,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
+    cache_client.Reset()
     featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 
@@ -186,7 +187,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 
                 with torch.autograd.profiler.record_function('create sampler'):
                     ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
-                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=1, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
+                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
                 
                 ########## 利用每个sub_batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()

@@ -88,6 +88,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
+    cache_client.Reset()
     featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 

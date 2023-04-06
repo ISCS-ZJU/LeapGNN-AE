@@ -1,20 +1,21 @@
 # cache server配置信息
 
 # 接口配置
-rpcport: 18110
+rpcport: 18112
 
 # 开发打印配置
 debug: false
 
 # 数据集配置
-dataset: ./repgnn_data/ogbn_arxiv128
+dataset: ./repgnn_data/ogbn_arxiv0
 # dataset: ./repgnn_data/ogbn_products0
 
 # 缓存配置
 # cache类型
 cache_type: "static"
 # cache_group: "10.214.243.19, 10.214.243.20" # yq2 yq3
-cache_group: "10.214.243.19, 10.214.242.140" # yq2 yq1
+# cache_group: "10.214.243.19, 10.214.241.228" # yq2 yq5
+cache_group: "10.214.243.19, 10.214.242.140" # yq2 yq1  
 # cache_group: "10.214.242.140"
 
 # 是否统计命中率

@@ -23,6 +23,7 @@ type cache_mng_interface interface {
 	Get_feat_dim() int64                                                 // 返回feature dim
 	Get_cache_info() (int64, string, int64, int64, []float32, []float32) // 返回partidx, curaddr, request_num, local_hit_num, local_feats_gather_time, remote_feats_gather_time
 	Get_MaxChunkSize() int64                                             // for stream transfer
+	Reset()
 }
 
 type DistCache struct {

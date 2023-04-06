@@ -260,6 +260,13 @@ func (static_cache *Static_cache_mng) Get_feat_dim() int64 {
 	return static_cache.Feature_dim
 }
 
+func (static_cache *Static_cache_mng) Reset() {
+	static_cache.Get_request_num = 0
+	static_cache.Local_hit_num = 0
+	static_cache.Local_feats_gather_time = []float32{}
+	static_cache.Remote_feats_gather_time = []float32{}
+}
+
 func (static_cache *Static_cache_mng) Get_cache_info() (int64, string, int64, int64, []float32, []float32) {
 	return DCRuntime.PartIdx, DCRuntime.Curaddr, static_cache.Get_request_num, static_cache.Local_hit_num, static_cache.Local_feats_gather_time, static_cache.Remote_feats_gather_time
 }

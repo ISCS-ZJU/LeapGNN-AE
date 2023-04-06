@@ -81,6 +81,10 @@ class DistCacheClient:
                 frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
                 tnid = tnid.tolist()
             # fetch features from cache server
+            #     features = self.get_feats_from_server(tnid)
+            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+            #     for name in self.dims:
+            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 row_st_idx, row_ed_idx = 0, 0
                 for sub_features in self.get_stream_feats_from_server(tnid):
@@ -288,6 +292,10 @@ class DistCacheClient:
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_feature_dim), timeout=1000) # response is DCReply type response
         return response.featdim
+    
+    def Reset(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.reset), timeout=1000) # response is DCReply type response
     
     def get_statistic(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
