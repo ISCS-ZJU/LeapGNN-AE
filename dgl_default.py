@@ -162,7 +162,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             pred = model(nf)
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
                             loss = loss_fn(pred, labels)
-                            logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
+                            # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
                         with torch.autograd.profiler.record_function('DDP backward'):
@@ -185,24 +185,24 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
     
-    num_acc = 0  
-    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
-                                                 expand_factor=int(sampling[0]),
-                                                 neighbor_type='in',
-                                                 num_workers=args.num_worker,
-                                                 num_hops=len(sampling)+1,
-                                                 seed_nodes=test_nid,
-                                                 prefetch=True,
-                                                 add_self_loop=True):
-        model.eval()
-        with torch.no_grad():
-            cache_client.fetch_data(nf)
-            pred = model(nf)
-            batch_nids = nf.layer_parent_nid(-1)
-            batch_labels = fg_labels[batch_nids].cuda(args.gpu)
-            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+    # num_acc = 0  
+    # for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+    #                                              expand_factor=int(sampling[0]),
+    #                                              neighbor_type='in',
+    #                                              num_workers=args.num_worker,
+    #                                              num_hops=len(sampling)+1,
+    #                                              seed_nodes=test_nid,
+    #                                              prefetch=True,
+    #                                              add_self_loop=True):
+    #     model.eval()
+    #     with torch.no_grad():
+    #         cache_client.fetch_data(nf)
+    #         pred = model(nf)
+    #         batch_nids = nf.layer_parent_nid(-1)
+    #         batch_labels = fg_labels[batch_nids].cuda(args.gpu)
+    #         num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
         
-    logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
+    # logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
 
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
@@ -302,10 +302,11 @@ if __name__ == '__main__':
             print('已经运行过，无需重跑，直接退出程序')
             sys.exit(-1) # 退出程序
     
-    if torch.cuda.is_available():
-        ngpus_per_node = torch.cuda.device_count()
-    else:
-        ngpus_per_node = 1
+    # if torch.cuda.is_available():
+    #     ngpus_per_node = torch.cuda.device_count()
+    # else:
+    #     ngpus_per_node = 1
+    ngpus_per_node = 1
     
     # logging for multiprocessing
     log_queue = setup_primary_logging(log_filename, "error.log")

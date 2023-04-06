@@ -336,10 +336,11 @@ if __name__ == '__main__':
             print('已经运行过，无需重跑，直接退出程序')
             sys.exit(-1) # 退出程序
 
-    if torch.cuda.is_available():
-        ngpus_per_node = torch.cuda.device_count()
-    else:
-        ngpus_per_node = 1
+    # if torch.cuda.is_available():
+    #     ngpus_per_node = torch.cuda.device_count()
+    # else:
+    #     ngpus_per_node = 1
+    ngpus_per_node = 1
     logging.info(f"ngpus_per_node: {ngpus_per_node}")
 
     # logging for multiprocessing
