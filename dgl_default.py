@@ -165,6 +165,9 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
+                        with torch.autograd.profiler.record_function('sync before compute'):    
+                        # 同步
+                            torch.distributed.barrier()
                         with torch.autograd.profiler.record_function('DDP backward'):
                             loss.backward()
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):

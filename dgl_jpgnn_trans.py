@@ -204,6 +204,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             pred = model(sub_nf)
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
+                        with torch.autograd.profiler.record_function('sync before compute'):    
+                        # 同步
+                            dist.barrier()
+                        with torch.autograd.profiler.record_function('gpu-compute'):
                             loss.backward()
                             # for x in model.named_parameters():
                             #     logging.info(x[1].grad.size())
