@@ -16,7 +16,7 @@ def scp_modifed_files_to_another_mathine_under_same_path(remote_ip, pswd):
     if instruct=='y':
         for filename in files_lst:
             os.system(f'sshpass -p {pswd} scp {filename} {remote_ip}:{os.path.join(os.getcwd(), filename)}')
-            print(f'scp {filename} {remote_ip}:{os.path.join(os.getcwd(), filename)}执行结束')
+            print(f'-> scp {filename} {remote_ip}:{os.path.join(os.getcwd(), filename)} 执行结束')
     elif instruct == 'n':
         print('未开始传输，强制结束')
     else:

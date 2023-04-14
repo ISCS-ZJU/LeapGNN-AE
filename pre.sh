@@ -1,5 +1,6 @@
-SETPATH='/data/cwj/repgnn/'
-ORINAME='citeseer'
+SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
+SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
+ORINAME='ogbn-arxiv'
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
@@ -11,6 +12,9 @@ RESUTLDIR=$SETPATH$NAME$LEN
 
 if [ ! -d "$RESUTLDIR" ]; then
     mkdir $RESUTLDIR 
+fi
+if [ -f "$RESUTLDIR/adj.npy" ]; then
+    rm $RESUTLDIR/adj.npy
 fi
 if [ -f "$RESUTLDIR/feat.npy" ]; then
     rm $RESUTLDIR/feat.npy

@@ -162,14 +162,14 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     
                     ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
                     cache_partidx = cache_client.get_cache_partid()
-                    assert cache_partidx == args.rank, 'rank设置需要与partidx相同，否则影响命中率'
+                    # assert cache_partidx == args.rank, 'rank设置需要与partidx相同，否则影响命中率'
                     
                     sub_batch_nid = []
                     sub_batch_offsets = [0]
                     cur_offset = 0
                     for row in useful_fg_train_nid:
                         for batch in row:
-                            cur_gpu_nid_mask = (nid2pid[batch]==args.rank)
+                            cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
                             sub_batch = batch[cur_gpu_nid_mask]
                             sub_batch_nid.extend(sub_batch)
                             cur_offset += len(sub_batch)
@@ -235,25 +235,26 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
-    # num_acc = 0  
-    # for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
-    #                                              expand_factor=int(sampling[0]),
-    #                                              neighbor_type='in',
-    #                                              num_workers=args.num_worker,
-    #                                              num_hops=len(sampling)+1,
-    #                                              seed_nodes=test_nid,
-    #                                              prefetch=True,
-    #                                              add_self_loop=True):
-    #     model.eval()
-    #     with torch.no_grad():
-    #         cache_client.fetch_data(nf)
-    #         pred = model(nf)
-    #         batch_nids = nf.layer_parent_nid(-1)
-    #         batch_labels = fg_labels[batch_nids].cuda(gpuid)
-    #         num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+                if args.eval:
+                    num_acc = 0  
+                    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                                                                expand_factor=int(sampling[0]),
+                                                                neighbor_type='in',
+                                                                num_workers=args.num_worker,
+                                                                num_hops=len(sampling)+1,
+                                                                seed_nodes=test_nid,
+                                                                prefetch=True,
+                                                                add_self_loop=True):
+                        model.eval()
+                        with torch.no_grad():
+                            cache_client.fetch_data(nf)
+                            pred = model(nf)
+                            batch_nids = nf.layer_parent_nid(-1)
+                            batch_labels = fg_labels[batch_nids].cuda(args.gpu)
+                            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
         
-    # logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
-    # logging.info(prof.export_chrome_trace('tmp.json'))
+                    logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
+    
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
@@ -292,6 +293,7 @@ def parse_args_func(argv):
                         help='seed for initializing training. ')
     parser.add_argument('--log', dest='log', action='store_true',
                     help='adding this flag means log hit rate information')  
+    parser.add_argument('--eval', action='store_true', help='whether to evaluate the GNN model')
 
     parser.add_argument('--dist-url', default='tcp://127.0.0.1:23456', type=str,
                         help='url used to set up distributed training')

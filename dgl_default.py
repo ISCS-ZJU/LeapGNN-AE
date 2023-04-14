@@ -187,25 +187,26 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
-    
-    # num_acc = 0  
-    # for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
-    #                                              expand_factor=int(sampling[0]),
-    #                                              neighbor_type='in',
-    #                                              num_workers=args.num_worker,
-    #                                              num_hops=len(sampling)+1,
-    #                                              seed_nodes=test_nid,
-    #                                              prefetch=True,
-    #                                              add_self_loop=True):
-    #     model.eval()
-    #     with torch.no_grad():
-    #         cache_client.fetch_data(nf)
-    #         pred = model(nf)
-    #         batch_nids = nf.layer_parent_nid(-1)
-    #         batch_labels = fg_labels[batch_nids].cuda(args.gpu)
-    #         num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
+
+                if args.eval:
+                    num_acc = 0  
+                    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                                                                expand_factor=int(sampling[0]),
+                                                                neighbor_type='in',
+                                                                num_workers=args.num_worker,
+                                                                num_hops=len(sampling)+1,
+                                                                seed_nodes=test_nid,
+                                                                prefetch=True,
+                                                                add_self_loop=True):
+                        model.eval()
+                        with torch.no_grad():
+                            cache_client.fetch_data(nf)
+                            pred = model(nf)
+                            batch_nids = nf.layer_parent_nid(-1)
+                            batch_labels = fg_labels[batch_nids].cuda(args.gpu)
+                            num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
         
-    # logging.info(f'Test Accuracy {num_acc / len(test_nid)}')
+                    logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
 
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
@@ -241,7 +242,9 @@ def parse_args_func(argv):
     parser.add_argument('--seed', default=None, type=int,
                         help='seed for initializing training. ')
     parser.add_argument('--log', dest='log', action='store_true',
-                    help='adding this flag means log hit rate information')                    
+                    help='adding this flag means log hit rate information')
+    parser.add_argument('--eval', action='store_true', help='whether to evaluate the GNN model')
+
     # distributed related
     parser.add_argument('--dist-url', default='tcp://127.0.0.1:23456', type=str,
                         help='url used to set up distributed training')
@@ -298,17 +301,18 @@ if __name__ == '__main__':
     else:
         log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
-        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        if_delete = 'y'
         if if_delete=='y' or if_delete=='Y':
             os.remove(log_filename) # 删除已有日志，重新运行
         else:
             print('已经运行过，无需重跑，直接退出程序')
             sys.exit(-1) # 退出程序
     
-    # if torch.cuda.is_available():
-    #     ngpus_per_node = torch.cuda.device_count()
-    # else:
-    #     ngpus_per_node = 1
+    if torch.cuda.is_available():
+        ngpus_per_node = torch.cuda.device_count()
+    else:
+        ngpus_per_node = 1
     ngpus_per_node = 1
     
     # logging for multiprocessing

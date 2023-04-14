@@ -6,13 +6,13 @@
 1. conda create -n repgnn python==3.9 -y
 2. conda activate repgnn
 3. pip3 install torch torchvision # cuda version, like: pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4
+4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4 netifaces PyYAML asyncio GitPython
 5. clone repgnn库以及三方库
     ```
     # clone repgnn库
     git clone https://gitee.com/nustart/repgnn.git
     # 切换到分布式分支
-    git checkout --track distributed_version
+    git checkout distributed_version
     # 继续clone submodule: dgl
     git submodule init
     git submodule update
@@ -43,7 +43,7 @@
     torch_sparse-0.6.13-cp39-cp39-linux_x86_64.whl
     进行安装
     完成后再安装torch_geometric
-    pip3 install torch_geometric
+    pip3 install torch_geometric==2.2.0
     如果出现error: metadata-generation-failed报错
     pip install setuptools==50.3.2
 ```
@@ -59,7 +59,7 @@
     3. 检查sh脚本的可执行权限：chmod u+x pre.sh ；执行./pre.sh 
 
 ## 运行：
-## 分布式 (git-branch: distributed_version)
+## 手动分布式 (git-branch: distributed_version)
 ### 0. 安装环境，准备数据集（参考Setup）
 ### 1. 安装golang和rpc相关的库
 ```bash
@@ -67,6 +67,9 @@
 wget https://go.dev/dl/go1.19.3.linux-amd64.tar.gz
 sudo bash -c "rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz"
 export PATH=/usr/local/go/bin:$PATH
+# 增加golang的下载镜像，打开go module
+go env -w GO111MODULE=on
+go env -w GOPROXY=https://goproxy.cn,direct
 
 # grpc-related
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
@@ -98,6 +101,15 @@ export GLOO_SOCKET_IFNAME=eno3 && time python3 dgl_default.py -mn gcn -bs 8000 -
 export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 8000 -s 10-10-10 -ep 1 --dist-url 'tcp://10.214.243.19:23456' --world-size 2 --rank 1 --grpc-port 10.214.243.20:18110 -d ./dist/repgnn_data/ogbn_arxiv128/ --log # yq3 a100: export NCCL_SOCKET_IFNAME=ens17f1 ; export GLOO_SOCKET_IFNAME=ens17f1
 # 跑 dgl_jpgnn_trans.py 和 dgl_jpgnn_trans_multiplenfs.py 只需要替换上的 dgl_default.py 即可，其他保持不变
 ```
+
+## 自动分布式运行
+相关脚本放在`auto_test`目录下：
+1. 修改 `test_config.yaml` 文件，配置集群信息和要运行的文件信息；
+2. 执行 `python3 servers_start.py` 会自动在各节点启动server脚本；查看其中一个节点的 `logs/server_output*.log`，等待server启动完毕；
+3. 执行 `python3 clients_start.py` 会自动在各节点启动client脚本；日志写入`logs`目录下；
+4. 执行 `python3 servers_kill.py` 和 `python3 clients_kill.py` 可以自动kill掉所有结点的server和client进程。
+
+
 ## Cross_test
 用来测试跨节点通信带宽负载均衡，在之前单机多卡的代码上修改，使用时需要运行cpu_graph_server，使用参数和之前单机多卡一致
 
