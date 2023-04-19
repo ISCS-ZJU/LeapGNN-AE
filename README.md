@@ -58,6 +58,13 @@
     2. 修改pre.sh中LEN参数为需要feature长度(0表示不做处理，直接使用原本的feature)
     3. 检查sh脚本的可执行权限：chmod u+x pre.sh ；执行./pre.sh 
 
++ 使用citeseer和pubmed数据集
+    mkdir data
+    cd data
+    git clone git@github.com:tkipf/gcn.git
+    拷贝gcn/gcn/data/ 中数据集对应的文件到需要的目录
+    pre.sh
+
 ## 运行：
 ## 手动分布式 (git-branch: distributed_version)
 ### 0. 安装环境，准备数据集（参考Setup）
