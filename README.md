@@ -59,11 +59,12 @@
     3. 检查sh脚本的可执行权限：chmod u+x pre.sh ；执行./pre.sh 
 
 + 使用citeseer和pubmed数据集
-    mkdir data
-    cd data
-    git clone git@github.com:tkipf/gcn.git
-    拷贝gcn/gcn/data/ 中数据集对应的文件到需要的目录
-    pre.sh
+    ```bash
+    cd 3rdparties
+    git clone https://github.com/tkipf/gcn.git # or git@github.com:tkipf/gcn.git
+    拷贝 gcn/gcn/data/ 中数据集对应的文件到需要的目录，例如 cp 3rdparties/gcn/gcn/data/ind.citeseer.* /data2/cwj/repgnn/citeseer/
+    修改 pre.sh 中ORINAME, 然后执行 ./pre.sh  # maybe should in repgnn conda env
+    ```
 
 ## 运行：
 ## 手动分布式 (git-branch: distributed_version)

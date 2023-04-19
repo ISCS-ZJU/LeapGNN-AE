@@ -11,3 +11,4 @@ repgnn_data
 dgl_src
 tmp*
 error.log
+3rdparties/gcn
