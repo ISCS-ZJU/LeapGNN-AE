@@ -4,6 +4,7 @@ import subprocess
 import yaml
 import asyncio
 import multiprocessing
+import shutil
 
 
 # 确定当前机器所要使用的ip, 网卡名和rank
@@ -119,3 +120,15 @@ for serverip in cluster_servers:
 
 for p in processes:
     p.join()
+
+# 把远程服务器上 logs 目录中的 *.log 文件都拷贝到本地
+logs_dir = os.path.join(os.path.dirname(cur_dir), 'logs')
+logs_file = logs_dir + '/*.log'
+dest_logs_dir = os.path.dirname(logs_dir)
+for serverip, (_, rank) in ip_interface_rank.items():
+    dest_logs_path = os.path.join(dest_logs_dir, f"logs_rank{rank}")
+    if os.path.exists(dest_logs_path):
+        shutil.rmtree(dest_logs_path)
+    os.mkdir(dest_logs_path)
+    cmd = f'sshpass -p {ssh_pswd} scp -o StrictHostKeyChecking=no {serverip}:{logs_file} {dest_logs_dir}/logs_rank{rank}/'
+    os.system(cmd)
