@@ -1,6 +1,6 @@
 SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
 SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
-ORINAME='ogbn-arxiv'
+ORINAME='citeseer'
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
@@ -13,8 +13,8 @@ RESUTLDIR=$SETPATH$NAME$LEN
 if [ ! -d "$RESUTLDIR" ]; then
     mkdir $RESUTLDIR 
 fi
-if [ -f "$RESUTLDIR/adj.npy" ]; then
-    rm $RESUTLDIR/adj.npy
+if [ -f "$RESUTLDIR/adj.npz" ]; then
+    rm $RESUTLDIR/adj.npz
 fi
 if [ -f "$RESUTLDIR/feat.npy" ]; then
     rm $RESUTLDIR/feat.npy
@@ -38,8 +38,18 @@ fi
 if [ $? ]
 then
 echo "running with --directed"
-python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
+    then
+    python ./data/preprocess.py --ppfile pp.txt --directed  --dataset $SETPATH$NAME$LEN --seed $SEED
+    else
+    python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    fi
 else
 echo "running without --directed"
-python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
+    then
+    python ./data/preprocess.py --ppfile pp.txt --dataset $SETPATH$NAME$LEN --seed $SEED
+    else
+    python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    fi
 fi
