@@ -97,6 +97,7 @@ def split_dataset(vnum, outdir=None):
   train_len = int(vnum * 0.65)
   val_len = int(vnum * 0.1)
   test_len = vnum - train_len - val_len
+  print(f'\n-> train_len = {train_len}, val_len = {val_len}, test_len = {test_len}\n')
   # train mask
   train_mask = np.zeros(vnum, dtype=np.int)
   train_mask[nids[0:train_len]] = 1

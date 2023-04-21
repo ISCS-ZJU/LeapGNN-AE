@@ -1,4 +1,5 @@
 # Set the IP addresses of the servers to deploy the cluster
+# WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
   - "10.214.243.19"
   - "10.214.241.227"
@@ -17,12 +18,12 @@ run_client_idx: 0 # Choose the client file to run
 
 # training parameters
 model_name: "gcn"
-batch_size: 512
-sampling: "10"
-n_epochs: 2
+batch_size: 1000000
+sampling: "2"
+n_epochs: 10
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110"
-dataset: "ogbn_arxiv0"
+dataset: "citeseer0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml
 
 # statistic
 log: True
@@ -32,6 +33,3 @@ eval: True
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
-
-# others
-conda_path: "/home/weijian/installation/install/anaconda3" # anaconda installation path

@@ -13,3 +13,4 @@ tmp*
 error.log
 3rdparties/gcn
 logs*
+3rdparties/GCN.PyTorch

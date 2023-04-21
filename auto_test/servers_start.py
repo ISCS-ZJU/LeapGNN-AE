@@ -17,11 +17,15 @@ def parse_server_config(confpath):
         server_config_file = data['server_files'][data['run_server_idx']]
         cur_dir = os.path.dirname(os.path.abspath(__file__))
         server_config_file = os.path.join(cur_dir, f"../dist/conf/{server_config_file}")
+        # dataset
+        dataset = data['dataset']
+        dataset_path = os.path.join('./repgnn_data/', dataset)
 
     return (
         cluster_servers,
         ssh_pswd,
-        server_config_file
+        server_config_file,
+        dataset_path
     )
 
 
@@ -42,6 +46,7 @@ auto_test_file = './test_config.yaml'
     cluster_servers,
     ssh_pswd,
     server_config_file,
+    dataset_path,
 ) = parse_server_config(auto_test_file)
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
@@ -58,9 +63,10 @@ for serverip in cluster_servers:
 # 在远程服务器上后台异步运行 server.go
 exec_dir = os.path.abspath('../dist')
 log_dir = os.path.abspath('../logs')
+cache_group = ','.join(cluster_servers)
 for serverip in cluster_servers:
     # 在每个节点异步执行 go run server.go
-    cmd = f"cd {exec_dir} && nohup `which go` run server.go"
+    cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}"'
     remote_log_file = os.path.join(log_dir, f"server_output_{serverip}.log")
     asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, remote_log_file))
     # remote_run_command(ssh_pswd, serverip, cmd, remote_log_file)

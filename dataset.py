@@ -46,8 +46,7 @@ if __name__ == '__main__':
     directed = {'citeseer': 1, 'pubmed': 1}
     objnames = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     dataset = args.name
-    root = osp.join(args.path,dataset)
-    root = f'./dist/repgnn_data/{dataset}{args.len}'
+    root = osp.join(args.path,dataset+str(args.len))
     objects = []
     for name in objnames:
         with open("{}/ind.{}.{}".format(root, dataset, name), 'rb') as f:
@@ -84,6 +83,7 @@ if __name__ == '__main__':
     idx_test = test_idx_range.tolist()
     idx_train = range(len(y))
     idx_val = range(len(y), len(y)+500)
+    print(f'-> len of train: {len(idx_train)}, len of val: {len(idx_val)}, len of test: {len(idx_test)}')
 
     train_mask = _sample_mask(idx_train, labels.shape[0])
     val_mask = _sample_mask(idx_val, labels.shape[0])

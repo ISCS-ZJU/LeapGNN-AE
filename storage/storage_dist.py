@@ -17,6 +17,7 @@ from rpc_client import distcache_pb2
 from rpc_client import distcache_pb2_grpc
 import grpc
 import io
+import mmap
 
 import time
 
@@ -80,11 +81,13 @@ class DistCacheClient:
                 #              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
                 frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
                 tnid = tnid.tolist()
-            # fetch features from cache server
+            # # fetch features from cache server
+            # (non-stream method)
             #     features = self.get_feats_from_server(tnid)
             # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
             #     for name in self.dims:
             #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+            # (stream method)
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 row_st_idx, row_ed_idx = 0, 0
                 for sub_features in self.get_stream_feats_from_server(tnid):
@@ -322,9 +325,22 @@ class DistCacheClient:
                 filename = filename_base + f'{ckid}'
                 while True:
                     if os.path.exists(filename):
-                        if os.path.getsize(filename) == self.feats_chunk_size or (ckid==ed_ckid-1 and os.path.getsize(filename) == last_ck_size):
-                            with open(filename, 'rb') as fh:
-                                feats_bytes = bytes(fh.read())
+                        if os.path.getsize(filename) == self.feats_chunk_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(self.feats_chunk_size))
+                                mm.close()
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                        elif ckid==ed_ckid-1 and os.path.getsize(filename) == last_ck_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(last_ck_size))
+                                mm.close()
                             os.remove(filename)
                             self.cnt += 1
                             yield feats_bytes

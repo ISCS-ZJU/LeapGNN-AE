@@ -40,7 +40,7 @@ then
 echo "running with --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
-    python ./data/preprocess.py --ppfile pp.txt --directed  --dataset $SETPATH$NAME$LEN --seed $SEED
+    python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED
     else
     python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
     fi
