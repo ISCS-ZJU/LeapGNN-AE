@@ -6,7 +6,7 @@
 1. conda create -n repgnn python==3.9 -y
 2. conda activate repgnn
 3. pip3 install torch torchvision # cuda version, like: pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4 netifaces PyYAML asyncio GitPython
+4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4 netifaces PyYAML asyncio GitPython openpyxl
 5. clone repgnn库以及三方库
     ```
     # clone repgnn库
@@ -136,6 +136,10 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 - obsv1
     - obsv1/dgl_default_sampling_simulate.py 在 `dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究target node=1时生产的子树中和target node属于同一机器的比例：
         + 使用方法：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+
+## 日志分析
+在logs目录下运行log_analys.py，需要分析的文件填写在里面的analys_list中
+生成的结果在data.xlsx中，下载到本地复制粘贴表格数据即可
 
 
 #### Backup: 
