@@ -123,7 +123,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(gpuid)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
 
@@ -242,9 +242,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             optimizer.step() # 至此，一个iteration结束
                             optimizer.zero_grad()
-                    with torch.autograd.profiler.record_function('model transfer'):
-                        ########## 模型参数在分布式GPU间进行传输 ###########
-                        send_recv(model,args.gpu,args.rank,world_size)
+                    else:
+                        with torch.autograd.profiler.record_function('model transfer'):
+                            ########## 模型参数在分布式GPU间进行传输 ###########
+                            send_recv(model,args.gpu,args.rank,world_size)
                         
                     sub_iter += 1
                     st = time.time()
@@ -354,7 +355,8 @@ if __name__ == '__main__':
     else:
         log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
-        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        if_delete = 'y'
         if if_delete=='y' or if_delete=='Y':
             os.remove(log_filename) # 删除已有日志，重新运行
         else:
