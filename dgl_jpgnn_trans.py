@@ -128,6 +128,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(gpuid)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
+    max_acc = 0
 
     #################### 每个训练node id对应到part id ####################
     max_train_nid = np.max(fg_train_nid)+1
@@ -253,9 +254,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             batch_nids = nf.layer_parent_nid(-1)
                             batch_labels = fg_labels[batch_nids].cuda(args.gpu)
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
-        
+                    max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
-    
+    if args.eval:
+        logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')

@@ -119,10 +119,11 @@ def run(gpu, ngpus_per_node, args, log_queue):
         model = deep.DeeperGCN(args)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(args.gpu)
     model = torch.nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu])
+    max_acc = 0
 
     # count number of model params
     print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
@@ -205,9 +206,11 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             batch_nids = nf.layer_parent_nid(-1)
                             batch_labels = fg_labels[batch_nids].cuda(args.gpu)
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
-        
+                    max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
 
+    if args.eval:
+        logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')

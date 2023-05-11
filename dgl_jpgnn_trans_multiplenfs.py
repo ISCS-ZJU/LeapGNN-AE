@@ -28,6 +28,9 @@ warnings.filterwarnings("ignore")
 import logging
 from common.log import setup_primary_logging, setup_worker_logging
 
+import threading
+sem = threading.Semaphore(1000) #设置线程数限制防止崩溃 
+
 
 
 def main(ngpus_per_node):
@@ -126,6 +129,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(gpuid)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
+    max_acc = 0
 
     #################### 每个训练node id对应到part id ####################
     max_train_nid = np.max(fg_train_nid)+1
@@ -187,7 +191,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 
                 with torch.autograd.profiler.record_function('create sampler'):
                     ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
-                    sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
+                    with sem:
+                        sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
                 
                 ########## 利用每个sub_batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
@@ -218,7 +223,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     # 选择其中一个sub_nf参与后续计算
                     sub_nf = sub_nfs_lst[sub_nf_id%world_size]
 
-                    if sub_nf!=None:
+                    if sub_nf._node_mapping.tousertensor().shape[0] > 0:
                         batch_nid = sub_nf.layer_parent_nid(-1)
                         with torch.autograd.profiler.record_function('fetch label'):
                             labels = fg_labels[batch_nid].cuda(gpuid, non_blocking=True)
@@ -259,14 +264,16 @@ def run(gpuid, ngpus_per_node, args, log_queue):
 
                 if args.eval:
                     num_acc = 0  
-                    for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
+                    with sem:
+                        sampler = dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
                                                                 expand_factor=int(sampling[0]),
                                                                 neighbor_type='in',
                                                                 num_workers=args.num_worker,
                                                                 num_hops=len(sampling)+1,
                                                                 seed_nodes=test_nid,
                                                                 prefetch=True,
-                                                                add_self_loop=True):
+                                                                add_self_loop=True)
+                    for nf in sampler:
                         model.eval()
                         with torch.no_grad():
                             cache_client.fetch_data(nf)
@@ -274,11 +281,13 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             batch_nids = nf.layer_parent_nid(-1)
                             batch_labels = fg_labels[batch_nids].cuda(args.gpu)
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
-        
+                    max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
       
     
     # logging.info(prof.export_chrome_trace('tmp.json'))
+    if args.eval:
+        logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
