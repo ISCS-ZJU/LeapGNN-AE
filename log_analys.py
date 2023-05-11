@@ -1,10 +1,11 @@
 import re
 import pandas as pd
-table_offset = 8
+import os
+table_offset = 7
 
 analys_list = [
-    './logs/default_gcn_sampling_ogbn_products0_trainer4_bs256_sl10-10.log',
-    './logs/jpgnn_trans_balance_gcn_sampling_ogbn_products0_trainer4_bs512_sl10-10.log'
+    '/home/qhy/gnn/repgnn/logs/default_gcn_sampling_pubmed0_trainer2_bs8000_sl10-10.log',
+    '/home/qhy/gnn/repgnn/logs/jpgnn_trans_multinfs_dedup_True_gcn_sampling_pubmed0_trainer2_bs8000_sl10-10.log'
 ]
 
 pattens = {
@@ -68,6 +69,8 @@ if __name__ == '__main__':
                         remain = line.split(patten)[1].split()
                         # print(re.findall("[\d .]+",remain[offset])[0])
                         data[patten] = float(re.findall("[\d .]+",remain[offset])[0])
+                        if 'ms' in remain[offset]:
+                            data[patten] /= 1000
         if 'model transfer' not in data.keys():
             data['model transfer'] = 0
         if 'gpu-compute' in data.keys():
@@ -81,6 +84,7 @@ if __name__ == '__main__':
     pf['miss-rate'] = pf['# local missed'].div(pf['# client-server request nodes'])
     pf = pf[order]
     # print(pf)
+    os.system("rm " + os.path.join(".", 'data.xlsx'))
     writer = pd.ExcelWriter('./data.xlsx')  # 初始化一个writer
     pf.to_excel(writer, float_format='%.5f',index=False)  # table输出为excel, 传入writer
     writer.save()
