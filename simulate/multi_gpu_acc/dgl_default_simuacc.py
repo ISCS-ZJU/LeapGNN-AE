@@ -37,6 +37,22 @@ def main(ngpus_per_node):
                  args=(ngpus_per_node, args, log_queue))
 
 
+def get_balanced_parted_train_nids(parts_dir, ntrain_per_gpu, fg_train_nid, args):
+    parts_train_set = []
+    for cur_rank in range(args.distnodes):
+        part_npy = os.path.join(parts_dir, f'{cur_rank}.npy')
+        part_nid = np.load(part_npy)
+        part_train_nid = np.intersect1d(part_nid, fg_train_nid)
+        parts_train_set.append(part_train_nid)
+    # balance number of training nodes of each parts graph
+    ret = np.concatenate(parts_train_set)
+    # delete remaining elements
+    ret = ret[:ntrain_per_gpu*args.distnodes]
+    ret = ret.reshape(args.distnodes, -1)
+    return ret
+
+
+
 def run(gpu, ngpus_per_node, args, log_queue):
     #################### 配置logger ####################
     args.gpu = gpu  # 表示使用本地节点的gpu id
@@ -100,15 +116,28 @@ def run(gpu, ngpus_per_node, args, log_queue):
     print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
 
     #################### GNN训练 ####################
+    if args.local:
+        # 不同 part 中的 train 点数量可能不一致，因此要得到所有part分配到的 train 点列表并进行微调，使得每个 part 的 train 点数量相同
+        partgnid_npy_dir = os.path.join(args.dataset, f'dist_True/{args.distnodes}_metis/')
+        parts_train_set = get_balanced_parted_train_nids(partgnid_npy_dir, ntrain_per_gpu, fg_train_nid, args)
+    
+    max_acc = 0
     for epoch in range(args.epoch):
         ########## 模拟每个 rank 的 sampling 并把结果用 pickle 保存到本地文件系统 ##########
         if not os.path.exists('./tmp/'):
             os.mkdir('./tmp/')
         for cur_rank in range(args.distnodes):
             ##### 获取当前gpu在当前epoch分配到的training node id #####
-            np.random.seed(epoch)
-            np.random.shuffle(fg_train_nid)
-            train_lnid = fg_train_nid[cur_rank * ntrain_per_gpu: (cur_rank+1)*ntrain_per_gpu]
+            if args.local:
+                # local shuffling, 从本地分图中的 training 点进行采样
+                train_lnid = parts_train_set[cur_rank]
+                np.random.seed(epoch)
+                np.random.shuffle(train_lnid)
+            else:
+                # global shuffling
+                np.random.seed(epoch)
+                np.random.shuffle(fg_train_nid)
+                train_lnid = fg_train_nid[cur_rank * ntrain_per_gpu: (cur_rank+1)*ntrain_per_gpu]
             sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
             for nfidx, nf in enumerate(sampler):
                 subgraph_fname = os.path.join('./tmp/', f'{cur_rank}_{nfidx}.pkl')
@@ -169,7 +198,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     batch_labels = fg_labels[batch_nids].cuda(args.gpu)
                     num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
 
-            logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
+            max_acc = max(num_acc / len(test_nid), max_acc)
+            logging.info(f'Epoch: {epoch}, Cur Test Accuracy {num_acc / len(test_nid)}, Max Acc Till Now: {max_acc}')
 
     # logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
 
@@ -212,6 +242,7 @@ def parse_args_func(argv):
                         help='node rank for distributed training')
     parser.add_argument('--gpu', default=None, type=int,
                         help='GPU id to use.')
+    parser.add_argument('--local', action='store_true')
     # args for deepergcn
     parser.add_argument('--mlp_layers', type=int, default=1,
                             help='the number of layers of mlp in conv')
@@ -253,9 +284,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.distnodes}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.distnodes}_bs{args.batch_size}_sl{fanout}x{sampling_len}_local{args.local}.log')
     else:
-        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.distnodes}_bs{args.batch_size}_sl{args.sampling}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_sampling_{datasetname}_trainer{args.distnodes}_bs{args.batch_size}_sl{args.sampling}_local{args.local}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if_delete = 'y'
