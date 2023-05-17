@@ -12,7 +12,7 @@
     # clone repgnn库
     git clone https://gitee.com/nustart/repgnn.git
     # 切换到分布式分支
-    git checkout distributed_version
+    cd repgnn; git checkout distributed_version
     # 继续clone submodule: dgl
     git submodule init
     git submodule update
@@ -111,7 +111,7 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 ```
 
 ## 自动分布式运行
-相关脚本放在`auto_test`目录下：
+相关脚本放在`auto_test`目录下, 首先进入 auto_test 目录：
 1. 修改 `test_config.yaml` 文件，配置集群信息和要运行的文件信息；
 2. 执行 `python3 servers_start.py` 会自动在各节点启动server脚本；查看其中一个节点的 `logs/server_output*.log`，等待server启动完毕；
 3. 执行 `python3 clients_start.py` 会自动在各节点启动client脚本；日志写入`logs`目录下；

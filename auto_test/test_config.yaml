@@ -1,10 +1,10 @@
 # Set the IP addresses of the servers to deploy the cluster
 # WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
-  - "10.214.243.19"
-  - "10.214.241.227"
-#  - "10.214.241.228"
-#  - "10.214.241.229"
+  - "10.214.243.19" # yq2
+  - "10.214.241.227" # yq4
+  - "10.214.241.228" # yq5
+  - "10.214.241.229" # yq6
 
 # sshinfo
 ssh_pswd: "wwpwcl44"
@@ -13,17 +13,17 @@ ssh_pswd: "wwpwcl44"
 client_files:
   - "dgl_default.py"
   - "dgl_jpgnn_trans.py"
-  - "dgl_jpgnn_trans_multiplenfs"
+  - "dgl_jpgnn_trans_multiplenfs.py"
 run_client_idx: 0 # Choose the client file to run
 
 # training parameters
 model_name: "gcn"
-batch_size: 1000000
-sampling: "2"
-n_epochs: 10
+batch_size: 1000
+sampling: "2-2"
+n_epochs: 5
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110"
-dataset: "citeseer0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml
+dataset: "ogbn_arxiv128" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml
 
 # statistic
 log: True

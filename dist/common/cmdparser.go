@@ -3,6 +3,7 @@ package common
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -32,6 +33,11 @@ func Parser() {
 	if *cacheGroup != "" {
 		Config.Cache_group = *cacheGroup
 	}
+	// 根据cache_group解析出partition的个数
+	ips_slice := strings.Split(Config.Cache_group, ",")
+	Config.Partition = len(ips_slice)
+	// 去掉Cache_group中的空格
+	Config.Cache_group = strings.Replace(Config.Cache_group, " ", "", -1)
 
 	// 打印信息进行确认
 	fmt.Println("Config.Dataset:", Config.Dataset)
