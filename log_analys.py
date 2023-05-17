@@ -4,8 +4,8 @@ import os
 table_offset = 7
 
 analys_list = [
-    '/home/qhy/gnn/repgnn/logs/default_gcn_sampling_pubmed0_trainer2_bs8000_sl10-10.log',
-    '/home/qhy/gnn/repgnn/logs/jpgnn_trans_multinfs_dedup_True_gcn_sampling_pubmed0_trainer2_bs8000_sl10-10.log'
+    '/home/weijian/gitclone/repgnn/logs/default_gcn_sampling_ogbn_arxiv128_trainer4_bs1000_sl2-2.log',
+    '/home/weijian/gitclone/repgnn/logs/jpgnn_trans_multinfs_dedup_True_gcn_sampling_ogbn_arxiv128_trainer4_bs1000_sl2-2.log',
 ]
 
 pattens = {
@@ -84,8 +84,9 @@ if __name__ == '__main__':
     pf['miss-rate'] = pf['# local missed'].div(pf['# client-server request nodes'])
     pf = pf[order]
     # print(pf)
-    os.system("rm " + os.path.join(".", 'data.xlsx'))
+    if os.path.exists('./data.xlsx'):
+        os.system("rm " + os.path.join(".", 'data.xlsx'))
     writer = pd.ExcelWriter('./data.xlsx')  # 初始化一个writer
     pf.to_excel(writer, float_format='%.5f',index=False)  # table输出为excel, 传入writer
-    writer.save()
+    writer._save()
 

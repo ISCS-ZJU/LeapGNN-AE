@@ -11,10 +11,11 @@ ssh_pswd: "wwpwcl44"
 
 # Set the name of the client files to run
 client_files:
-  - "dgl_default.py"
-  - "dgl_jpgnn_trans.py"
-  - "dgl_jpgnn_trans_multiplenfs.py"
-run_client_idx: 0 # Choose the client file to run
+  - "dgl_default.py" # 原始的 GNN 训练
+  - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
+  - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
+  - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
+run_client_idx: 2 # Choose the client file to run
 
 # training parameters
 model_name: "gcn"

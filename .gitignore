@@ -15,3 +15,4 @@ error.log
 logs*
 3rdparties/GCN.PyTorch
 nohup.out
+data.xlsx

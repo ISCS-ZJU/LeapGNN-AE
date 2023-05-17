@@ -138,7 +138,7 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
         + 使用方法：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 
 ## 日志分析
-在logs目录下运行log_analys.py，需要分析的文件填写在里面的analys_list中
+在根目录下运行log_analys.py，需要分析的文件填写在里面的analys_list中
 生成的结果在data.xlsx中，下载到本地复制粘贴表格数据即可
 
 
