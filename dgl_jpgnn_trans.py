@@ -51,6 +51,14 @@ def main(ngpus_per_node):
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
 
+def reverse_columns(arr, k):
+    """
+    把第k列的数据轮转到第0列
+    """
+    num_cols = arr.shape[1]
+    reversed_arr = np.concatenate((arr[:, k:num_cols], arr[:, 0:k]), axis=1)
+    return reversed_arr
+
 def run(gpuid, ngpus_per_node, args, log_queue):
     #################### 配置logger ####################
     args.gpu = gpuid  # 表示使用本地节点的gpu id
@@ -168,6 +176,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     sub_batch_nid = []
                     sub_batch_offsets = [0]
                     cur_offset = 0
+                    # 为确保每个 model 学习对应 mini-batch 的训练数据，需要根据交换列的顺序
+                    useful_fg_train_nid = reverse_columns(useful_fg_train_nid, args.rank)
                     for row in useful_fg_train_nid:
                         for batch in row:
                             cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)

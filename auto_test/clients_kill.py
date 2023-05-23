@@ -47,5 +47,5 @@ auto_test_file = './test_config.yaml'
 # 在远程服务器上后台异步运行 server.go
 for serverip in cluster_servers:
     # 在每个节点异步执行 go run server.go
-    cmd = f"ps -ef | grep {getpass.getuser()}" + " | grep python | grep dgl | grep -v 'grep' | awk '{print \$2}' | xargs kill -9"
+    cmd = f"ps -ef | grep {getpass.getuser()}" + " | grep python | grep repgnn | grep -v 'grep' | awk '{print \$2}' | xargs kill -9"
     asyncio.run(remote_run_command(ssh_pswd, serverip, cmd))

@@ -15,7 +15,7 @@ client_files:
   - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
   - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
   - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
-run_client_idx: 2 # Choose the client file to run
+run_client_idx: 3 # Choose the client file to run
 
 # training parameters
 model_name: "gcn"
@@ -28,7 +28,7 @@ dataset: "ogbn_arxiv128" # WARNING: rewrite dataset item in ./dist/conf/static_c
 
 # statistic
 log: True
-eval: True
+eval: False
 
 # Set the name of the server files to run
 server_files:

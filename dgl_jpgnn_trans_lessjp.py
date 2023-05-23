@@ -31,7 +31,13 @@ from common.log import setup_primary_logging, setup_worker_logging
 import threading
 sem = threading.Semaphore(1000) #设置线程数限制防止崩溃 
 
-
+"""
+lessjp 功能实现思路:
+1. 前k个epoch 构造矩阵，n*n, 每个格子填写 miss_rate；
+2. 用启发式方法调整每个 iteration 的计算矩阵图；保证每个iteration、每个模型的移动的次数都是相同的；
+   每次迭代后，根据生成的计算矩阵图，构建模型移动路径链，按照这个链进行send_recv；
+3. 一次迭代后，总计k个epoch 的运行时间，直到平均epoch运行时间小于等于目标时间或者移动次数为0，算法迭代停止；
+"""
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -52,6 +58,51 @@ def main(ngpus_per_node):
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
+
+def reverse_columns(arr, k):
+    """
+    把第k列的数据轮转到第0列
+    """
+    num_cols = arr.shape[1]
+    reversed_arr = np.concatenate((arr[:, k:num_cols], arr[:, 0:k]), axis=1)
+    return reversed_arr
+
+
+
+def get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client, nid2pid, gpuid, rank, split_fn, jp_times, miss_rate_lst):
+    with torch.autograd.profiler.record_function('train data prepare'):
+        np.random.seed(epoch)
+        np.random.shuffle(fg_train_nid)
+        useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_gpu]
+        useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
+        logging.debug(f'rank: {rank} useful_fg_train_nid:{useful_fg_train_nid}')
+
+        # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
+        useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
+        logging.debug(f'rank:{rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
+        
+        ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
+        cache_partidx = cache_client.get_cache_partid()
+        assert cache_partidx == rank, 'rank设置需要与partidx相同，否则影响命中率'
+        
+        sub_batch_nid = []
+        sub_batch_offsets = [0]
+        cur_offset = 0
+        # 为确保每个 model 学习对应 mini-batch 的训练数据，需要根据交换列的顺序
+        useful_fg_train_nid = reverse_columns(useful_fg_train_nid, rank)
+        for row in useful_fg_train_nid:
+            for batch in row:
+                cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
+                sub_batch = batch[cur_gpu_nid_mask]
+                sub_batch_nid.extend(sub_batch)
+                cur_offset += len(sub_batch)
+                sub_batch_offsets.append(cur_offset)
+                if gpuid==0:
+                    logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
+    
+    return sub_batch_nid, sub_batch_offsets
+
+
 
 def run(gpuid, ngpus_per_node, args, log_queue):
     #################### 配置logger ####################
@@ -158,37 +209,34 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         print('-> 将调用不去冗余的 fetch_multiple_nfs_v2 函数')
         logging.info('-> 调用不去冗余的 fetch_multiple_nfs_v2 函数')
 
+    """
+    additional varibales for less jump
+    """
+    jp_times = args.world_size # 跳跃次数
+    moniter_epoch_time = [] # moniter the avg. epoch time
+    adjust_jp_times = True # 是否继续缩小 jp_times
+    miss_rate_lst = [None for _ in range(args.world_size)] # each rank's miss rate, (rank0, 1, 2, ...)
+    
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
+            epoch_st = time.time()
             for epoch in range(args.epoch):
-                with torch.autograd.profiler.record_function('train data prepare'):
-                    ########## 确定当前epoch每个gpu要训练的batch nid ###########
-                    np.random.seed(epoch)
-                    np.random.shuffle(fg_train_nid)
-                    useful_fg_train_nid = fg_train_nid[:world_size*ntrain_per_gpu]
-                    useful_fg_train_nid = useful_fg_train_nid.reshape(world_size, ntrain_per_gpu) # 每行表示一个gpu要训练的epoch train nid
-                    logging.debug(f'rank: {args.rank} useful_fg_train_nid:{useful_fg_train_nid}')
-                    # 根据args.batch_size将每行切分为多个batch，然后转置，最终结果类似：array([[array([0, 1]), array([5, 6])], [array([2, 3]), array([7, 8])], [array([4]), array([9])]], dtype=object)；行数表示batch数量
-                    useful_fg_train_nid = np.apply_along_axis(split_fn, 1, useful_fg_train_nid,).T
-                    logging.debug(f'rank:{args.rank} useful_fg_train_nid.split.T:{useful_fg_train_nid}')
+                ########## 计算监视下的一个epoch的平均训练时间 ##########
+                if len(moniter_epoch_time) >= args.moniter_epochs and adjust_jp_times==True:
+                    avg_epoch_time = sum(moniter_epoch_time) / len(moniter_epoch_time)
+                    if avg_epoch_time > args.default_time:
+                        logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is larger than default epoch time {args.default_time}")
+                        jp_times -= 1
+                        logging.info(f"new jp_times is {jp_times}")
+                        if jp_times == 0:
+                            adjust_jp_times = False # 退化成没有跳转的训练模式
+                        moniter_epoch_time = []
+                    else:
+                        adjust_jp_times = False
+
+                ########## 确定当前epoch每个gpu要训练的batch nid ###########
+                sub_batch_nid, sub_batch_offsets = get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client, nid2pid, gpuid, args.rank, split_fn, jp_times, miss_rate_lst)
                     
-                    ########## 确定该gpu在当前epoch中将要训练的所有sub-batch的nid，放入sub_batch_nid中，同时构建sub_batch_offsets，以备NeighborSamplerWithDiffBatchSz中使用 ###########
-                    cache_partidx = cache_client.get_cache_partid()
-                    # assert cache_partidx == args.rank, 'rank设置需要与partidx相同，否则影响命中率'
-                    
-                    sub_batch_nid = []
-                    sub_batch_offsets = [0]
-                    cur_offset = 0
-                    for row in useful_fg_train_nid:
-                        for batch in row:
-                            cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
-                            sub_batch = batch[cur_gpu_nid_mask]
-                            sub_batch_nid.extend(sub_batch)
-                            cur_offset += len(sub_batch)
-                            sub_batch_offsets.append(cur_offset)
-                            if gpuid==0:
-                                logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
-                
                 with torch.autograd.profiler.record_function('create sampler'):
                     ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
                     with sem:
@@ -201,7 +249,6 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 
                 sub_iter = 0
                 wait_sampler = []
-                st = time.time()
                 
 
                 sampler_iterator = iter(sampler)
@@ -256,6 +303,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     st = time.time()
                 if cache_client.log:
                     miss_num, try_num, miss_rate = cache_client.get_miss_rate()
+                    if epoch==0:
+                        # all gather miss_rates
+                        dist.all_gather_object(miss_rate_lst, miss_rate)
+
                     logging.info(f'Epoch miss rate ( miss_num/try_num ) for epoch {epoch} on rank {args.rank}: {miss_num} / {try_num} = {miss_rate}')
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
@@ -283,7 +334,11 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
                     max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
-      
+
+                moniter_epoch_time.append(time.time() - epoch_st)
+                epoch_st = time.time()
+                
+
     
     # logging.info(prof.export_chrome_trace('tmp.json'))
     if args.eval:
@@ -341,8 +396,10 @@ def parse_args_func(argv):
     # --nodedup的时候，会把该参数设置为false，否则默认就是true
     parser.add_argument('--nodedup', dest='deduplicate', action='store_false', default=True)
 
-    # less migration machines
-    parser.add_argument('--default-time', default='-1', type=float, help='epoch time of default mode')
+    # less jumps
+    parser.add_argument('--default-time', default='-1', type=float, help='one epoch time of default mode')
+    parser.add_argument('--moniter-epochs', default=1, type=int, help='number of epochs to moniter each epoch training time')
+
 
     return parser.parse_args(argv)
 
@@ -363,9 +420,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
     else:
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if_delete = 'y'
@@ -393,11 +450,11 @@ def send_recv(model,gpu,rank,world_size):
         val_cpu = val.cpu()
         new_val = torch.zeros_like(val_cpu)
         if rank % 2:
-            torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
+            torch.distributed.send(val_cpu, dst = (rank+1+world_size)%world_size)
             torch.distributed.recv(new_val)
         else:
             torch.distributed.recv(new_val)
-            torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
+            torch.distributed.send(val_cpu, dst = (rank+1+world_size)%world_size)
         with torch.no_grad():
             val[:] = new_val.cuda(gpu)
 

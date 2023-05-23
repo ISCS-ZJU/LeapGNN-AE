@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"sort"
+	// "sort"
 	"strings"
 	"time"
 
@@ -44,9 +44,9 @@ func initDistCache(dc *DistCache) {
 	}
 	// 确定当前node对应的part id
 	ips_slice := strings.Split(dc.Cache_group, ",")
-	sort.Slice(ips_slice, func(i, j int) bool {
-		return ips_slice[i] < ips_slice[j]
-	})
+	// sort.Slice(ips_slice, func(i, j int) bool {
+	// 	return ips_slice[i] < ips_slice[j]
+	// })
 	log.Infof("[distcache.go] Sorted ips_slice: %v", ips_slice)
 	dc.Ip_slice = ips_slice
 	// 获取当前机器节点的ip地址, 确定当前ip是第几个part

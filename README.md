@@ -6,7 +6,7 @@
 1. conda create -n repgnn python==3.9 -y
 2. conda activate repgnn
 3. pip3 install torch torchvision # cuda version, like: pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4 netifaces PyYAML asyncio GitPython openpyxl
+4. pip3 install psutil tqdm pymetis grpcio grpcio-tools ogb h5py numpy==1.23.4 netifaces PyYAML asyncio GitPython openpyxl protobuf==3.20.3
 5. clone repgnn库以及三方库
     ```
     # clone repgnn库
@@ -35,7 +35,6 @@
     make
     ```
 7. 使用deepgcn
-    pip3 install h5py
     先安装torch_scatter torch_cluster（需要指定torch，cuda和python版本）
     https://pytorch-geometric.com/whl/torch-1.10.1%2Bcu113.html 下载
     torch_scatter-2.0.9-cp39-cp39-linux_x86_64.whl

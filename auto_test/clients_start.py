@@ -112,6 +112,9 @@ for serverip in cluster_servers:
         cmd += " --log"
     if evalu == True:
         cmd += " --eval"
+    # 获取运行本文件时添加的额外命令行参数
+    cmd += ' '
+    cmd += ' '.join(sys.argv[1:])
     # # remove 
     # asyncio.run(remote_run_command(ssh_pswd, serverip, cmd))
     p = multiprocessing.Process(target=remote_run_command, args=(ssh_pswd, serverip, cmd))
