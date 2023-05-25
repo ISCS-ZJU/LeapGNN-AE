@@ -113,7 +113,7 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 相关脚本放在`auto_test`目录下, 首先进入 auto_test 目录：
 1. 修改 `test_config.yaml` 文件，配置集群信息和要运行的文件信息；
 2. 执行 `python3 servers_start.py` 会自动在各节点启动server脚本；查看其中一个节点的 `logs/server_output*.log`，等待server启动完毕；
-3. 执行 `python3 clients_start.py` 会自动在各节点启动client脚本；日志写入`logs`目录下；
+3. 执行 `python3 clients_start.py` 会自动在各节点启动client脚本；日志写入`logs`目录下；在运行 lessjp 时，需要添加未减少跳跃次数的单 epoch 运行时间：`python3 clients_start.py --default-time xxx`
 4. 执行 `python3 servers_kill.py` 和 `python3 clients_kill.py` 可以自动kill掉所有结点的server和client进程。
 
 
