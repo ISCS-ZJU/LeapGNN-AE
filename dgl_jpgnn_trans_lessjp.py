@@ -79,6 +79,7 @@ def substract_columns(arr):
 def get_model_trace(jp_times, world_size, sub_batch_offsets):
     # 从各个节点 gather 每个 micro-batch 的样本数量
     sub_batches = [[None for _ in range(len(sub_batch_offsets))] for _ in range(world_size)] # world_size * len_of_sub_batches_of_each_rank
+    # print('sub_batches', sub_batches)
     dist.all_gather_object(sub_batches, sub_batch_offsets)
     # convert into 2-d numpy array
     sub_batches = np.array(sub_batches)
@@ -135,53 +136,58 @@ def get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client
                 sub_batch_offsets.append(cur_offset)
                 if gpuid==0:
                     logging.debug(f'put sub_batch: {batch[cur_gpu_nid_mask]}')
-            ##### 计算 jp_times 时的模型迁移路径 #####
-            model_trace = get_model_trace(jp_times, world_size, sub_batch)
+        ##### 计算 jp_times 时的模型迁移路径 #####
+        model_trace = get_model_trace(jp_times, world_size, sub_batch_offsets)
+        logging.info(f'model_trace: {model_trace}')
         
-        if jp_times < world_size:
-            ##### 根据 model_trace, 当前rank 对每个 iteration 中的 sub_batches 重新划分 #####
-            # 将 model_trace 转置， 找出每行中值为当前 rank 所在的列的 indices 列表，表示将移动到本节点的模型 id 顺序
-            model_trace = model_trace.T
-            find_col_indices = np.argwhere(model_trace == rank)[:, 1]
-            # 每 jp_times 为一组，表示一个 iteration 中每个 sub_batch 来源的 batch id (针对没有反转过的 useful_fg_train_nid)
-            # 据此，重新构造 sub_batch_nid 和 sub_batch_offsets
-            new_sub_batch_nids = []
-            new_sub_batch_offsets = [0]
-            new_cur_offsets = 0
-            for row in useful_fg_train_nid:
-                # 原本在当前节点要训练的各个 sub_batch 
-                total_nodes = 0
-                ori_sub_batch = []
-                for batch in row:
-                    cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
-                    sub_batch = batch[cur_gpu_nid_mask]
-                    ori_sub_batch.append(sub_batch)
-                    total_nodes += len(sub_batch)
-                ori_sub_batch = np.array(ori_sub_batch) # convert from list into numpy array
-                print('ori_sub_batch:', ori_sub_batch)
-                # lessjp后被选中的 sub_batch 存储为 new_sub_batches
-                batchids = find_col_indices[row*jp_times, (row+1)*jp_times]
-                keep_bool = np.zeros(world_size, dtype=bool)
-                keep_bool[batchids] == True
-                print('batchids:', batchids)
-                new_sub_batches = ori_sub_batch[keep_bool]
-                # 将未选中的 sub_batch 拆开分配到 new_sub_batches中
-                unkeep_nids = ori_sub_batch[~keep_bool].flatten()
-                avg_len = total_nodes // len(new_sub_batches) + 1
-                for new_sub_batch in new_sub_batches:
-                    len_sub_batch = len(new_sub_batch)
-                    if len_sub_batch < avg_len and len(unkeep_nids) > 0:
-                        new_sub_batch = np.concatenate((new_sub_batch, unkeep_nids[ : avg_len - len_sub_batch]))
-                        unkeep_nids = unkeep_nids[:avg_len - len_sub_batch]
-                    # 添加到最终的结果中
-                    new_sub_batch_nids.extend(new_sub_batch)
-                    new_cur_offsets += len(new_sub_batch)
-                    new_sub_batch_offsets.append(new_cur_offsets)
-                    print('new_sub_batch_nids:', new_sub_batch_nids)
-                    sys.exit() # for test
-            return new_sub_batch_nids, new_cur_offsets, model_trace
-        else:
-            return sub_batch_nid, cur_offset, model_trace
+        # if jp_times < world_size:
+        ##### 根据 model_trace, 当前rank 对每个 iteration 中的 sub_batches 重新划分 #####
+        # 将 model_trace 转置， 找出每行中值为当前 rank 所在的列的 indices 列表，表示将移动到本节点的模型 id 顺序
+        model_trace = model_trace.T
+        find_col_indices = np.argwhere(model_trace == rank)[:, 1]
+        # 每 jp_times 为一组，表示一个 iteration 中每个 sub_batch 来源的 batch id (针对没有反转过的 useful_fg_train_nid)
+        # 据此，重新构造 sub_batch_nid 和 sub_batch_offsets
+        new_sub_batch_nids = []
+        new_sub_batch_offsets = [0]
+        new_cur_offsets = 0
+        ori_total = 0
+        for rowid, row in enumerate(useful_fg_train_nid): # one interation for one row
+            # 原本在当前节点要训练的各个 sub_batch 
+            total_nodes = 0
+            ori_sub_batch = []
+            for batch in row:
+                cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
+                sub_batch = batch[cur_gpu_nid_mask]
+                ori_sub_batch.append(sub_batch)
+                total_nodes += len(sub_batch)
+            ori_total += total_nodes
+            ori_sub_batch = np.array(ori_sub_batch) # convert from list into numpy array
+            # logging.info(f'ori_sub_batch: {ori_sub_batch}')
+            # lessjp后被选中的 sub_batch 存储为 keep_sub_batches
+            batchids = find_col_indices[rowid*jp_times:(rowid+1)*jp_times]
+            keep_bool = np.zeros(world_size, dtype=bool)
+            keep_bool[batchids] = True
+            # logging.info(f"keep_bool: {keep_bool}")
+            logging.info(f'save batchids: {batchids}')
+            keep_sub_batches = ori_sub_batch[keep_bool]
+            # logging.info(f'keep_sub_batches: {keep_sub_batches}')
+            # 将未选中的 sub_batch 拆开分配到 keep_sub_batches
+            unkeep_nids = ori_sub_batch[~keep_bool].flatten()
+            avg_len = total_nodes // len(keep_sub_batches) + 1
+            for sub_batch in keep_sub_batches:
+                len_sub_batch = len(sub_batch)
+                if len_sub_batch < avg_len and len(unkeep_nids) > 0:
+                    sub_batch = np.concatenate((sub_batch, unkeep_nids[ : avg_len - len_sub_batch]))
+                    unkeep_nids = unkeep_nids[avg_len - len_sub_batch:]
+                # 添加到最终的结果中
+                new_sub_batch_nids.extend(sub_batch)
+                new_cur_offsets += len(sub_batch)
+                new_sub_batch_offsets.append(new_cur_offsets)
+            assert len(unkeep_nids)==0, 'unkeep_nids was not used up'
+        logging.info(f'iteration {rowid} done, len nids {len(new_sub_batch_nids)}, ori_total {ori_total}')
+        return new_sub_batch_nids, new_sub_batch_offsets, model_trace.T
+        # else:
+        #     return sub_batch_nid, sub_batch_offsets, model_trace
 
 
 
@@ -222,7 +228,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
     ntrain_per_gpu = int(fg_train_nid.shape[0] / world_size) # # of training nodes per gpu
-    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
+    logging.info(f'fg_train_nid: {fg_train_nid.shape[0]}, ntrain_per_GPU: {ntrain_per_gpu}')
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor) # in cpu
     # construct this partition graph for sampling
@@ -260,7 +266,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(gpuid)
+    logging.info(f'create model')
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
+    logging.info(f'ddp model set up')
     max_acc = 0
 
     #################### 每个训练node id对应到part id ####################
@@ -297,6 +305,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     moniter_epoch_time = [] # moniter the avg. epoch time
     adjust_jp_times = True # 是否继续缩小 jp_times
     miss_rate_lst = [None for _ in range(args.world_size)] # each rank's miss rate, (rank0, 1, 2, ...)
+    machine2model = [i for i in range(args.world_size)] # 记录随着模型的迁移，每个机器(按顺序)上对应的 model_id, 初始状态下机器id=model_id
     
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
@@ -317,15 +326,18 @@ def run(gpuid, ngpus_per_node, args, log_queue):
 
                 ########## 确定当前epoch每个gpu要训练的batch nid ###########
                 sub_batch_nid, sub_batch_offsets, model_trace = get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client, nid2pid, gpuid, args.rank, split_fn, jp_times, miss_rate_lst)
+                logging.info(f'get_sub_batchs done')
                     
                 with torch.autograd.profiler.record_function('create sampler'):
                     ########## 根据分配到的sub_batch_nid和sub_batch_offsets，构造采样器 ###########
                     with sem:
+                        logging.info(f'seed_nodes len: {len(sub_batch_nid), type(sub_batch_nid), sub_batch_nid[-10:]}, sub_batch_offsets len: {len(sub_batch_offsets), type(sub_batch_offsets), sub_batch_offsets[-10:]}')
                         sampler = dgl.contrib.sampling.NeighborSamplerWithDiffBatchSz(fg, sub_batch_offsets, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=sub_batch_nid, prefetch=True, add_self_loop=True)
+                        logging.info(f'init sampler done')
                 
                 ########## 利用每个sub_batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
-                n_sub_batches = len(sub_batch_nid)
+                n_sub_batches = len(sub_batch_offsets)-1
                 logging.info(f'n_sub_batches:{n_sub_batches}')
                 
                 sub_iter = 0
@@ -336,7 +348,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 jp_cnt = 0
                 for sub_nf_id in range(len(sub_batch_offsets)-1):
                     ##### 在一个 sub_batch 训练开始前，迁移模型 #####
-                    send_recv_model_trace_trace(model_trace, model, args.gpu, args.rank, jp_cnt)
+                    send_recv_model_trace_trace(model_trace, model, args.gpu, args.rank, jp_cnt, machine2model, world_size)
                     jp_cnt += 1
                     ########## 获取sub_nfs，跨结点获取sub_nfs的feature数据 ###########
                     st = time.time()
@@ -522,34 +534,29 @@ if __name__ == '__main__':
     main(ngpus_per_node)
 
 
-# def send_recv(model,gpu,rank,world_size):
-#     for val in model.parameters():
-#         val_cpu = val.cpu()
-#         new_val = torch.zeros_like(val_cpu)
-#         if rank % 2:
-#             torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
-#             torch.distributed.recv(new_val)
-#         else:
-#             torch.distributed.recv(new_val)
-#             torch.distributed.send(val_cpu, dst = (rank-1+world_size)%world_size)
-#         with torch.no_grad():
-#             val[:] = new_val.cuda(gpu)
-
-#         # torch.distributed.barrier()
-
-def send_recv_model_trace_trace(model_trace, model, gpu, rank, jp_cnt):
-    logging.info(f"Start jump model the {jp_cnt}th times")
-    for val in model.parameters():
-        val_cpu = val.cpu()
-        new_val = torch.zeros_like(val_cpu)
-        if rank % 2:
-            torch.distributed.send(val_cpu, dst = model_trace[rank][jp_cnt])
-            torch.distributed.recv(new_val)
-        else:
-            torch.distributed.recv(new_val)
-            torch.distributed.send(val_cpu, dst = model_trace[rank][jp_cnt])
-        with torch.no_grad():
-            val[:] = new_val.cuda(gpu)
+def send_recv_model_trace_trace(model_trace, model, gpu, rank, jp_cnt, machine2model, world_size):
+    # 计算当前机器的模型下一步的目的机器id，如果等于当前机器id（即rank），则不用迁移
+    cur_model_id = machine2model[rank]
+    dst_machine_id = model_trace[cur_model_id][jp_cnt]
+    logging.info(f"Start jump model the {jp_cnt}th times, cur_model_id={cur_model_id}, next_dst_machine_id={dst_machine_id}")
+    if dst_machine_id != rank:
+        for val in model.parameters():
+            val_cpu = val.cpu()
+            new_val = torch.zeros_like(val_cpu)
+            if rank % 2:
+                torch.distributed.send(val_cpu, dst = dst_machine_id)
+                torch.distributed.recv(new_val)
+            else:
+                torch.distributed.recv(new_val)
+                torch.distributed.send(val_cpu, dst = dst_machine_id)
+            with torch.no_grad():
+                val[:] = new_val.cuda(gpu)
     logging.info(f"End jump model")
+    # update machine2model
+    for rowid in range(world_size):
+        machineid = model_trace[rowid][jp_cnt]
+        machine2model[machineid] = rowid
+    logging.info(f'cur machine2modelid: {machine2model}')
+
 
 
