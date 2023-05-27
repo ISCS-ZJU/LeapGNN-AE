@@ -1,12 +1,15 @@
 import re
 import pandas as pd
 import os
+import yaml
 table_offset = 7
 
-analys_list = [
-    '/home/weijian/gitclone/repgnn/logs/default_gcn_sampling_ogbn_arxiv128_trainer4_bs1000_sl2-2.log',
-    '/home/weijian/gitclone/repgnn/logs/jpgnn_trans_multinfs_dedup_True_gcn_sampling_ogbn_arxiv128_trainer4_bs1000_sl2-2.log',
-]
+def parse_config(confpath):
+    with open(confpath, 'r') as fh:
+        data = yaml.safe_load(fh)
+        return data['files_to_analys']
+
+analys_list = parse_config('./log_analys.yaml')
 
 pattens = {
     'total_local_feats_gather_time' : 1,
