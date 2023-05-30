@@ -3,8 +3,8 @@
 cluster_servers:
   - "10.214.243.19" # yq2
   - "10.214.241.227" # yq4
-  - "10.214.241.228" # yq5
-  - "10.214.241.229" # yq6
+  # - "10.214.241.228" # yq5
+  # - "10.214.241.229" # yq6
 
 # sshinfo
 ssh_pswd: "wwpwcl44"
@@ -15,20 +15,21 @@ client_files:
   - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
   - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
   - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
-run_client_idx: 3 # Choose the client file to run
+run_client_idx: 0 # Choose the client file to run
 
 # training parameters
 model_name: "gcn"
 batch_size: 1000
 sampling: "2-2"
-n_epochs: 5
+n_epochs: 100
+learning_rate: 0.003
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110"
-dataset: "ogbn_arxiv128" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml
+dataset: "ogbn_arxiv128" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv128']
 
 # statistic
 log: True
-eval: False
+eval: True
 
 # Set the name of the server files to run
 server_files:

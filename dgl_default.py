@@ -102,6 +102,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 6
     elif 'pubmed' in args.dataset:
         args.n_classes = 3
+    elif 'reddit' in args.dataset:
+        args.n_classes = 41
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -129,7 +131,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
 
     #################### GNN训练 ####################
-    with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(args.gpu == -1), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
@@ -146,6 +148,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 iter = 0
                 wait_sampler = []
                 st = time.time()
+                avg_loss = []
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in sampler:
                     wait_sampler.append(time.time()-st)
@@ -164,6 +167,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
+                            avg_loss.append(loss)
+                            # logging.info(f'loss: {loss}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
                         with torch.autograd.profiler.record_function('sync before compute'):    
@@ -174,6 +179,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
                         torch.distributed.barrier()
+                    logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
                         
                     iter += 1
                     st = time.time()

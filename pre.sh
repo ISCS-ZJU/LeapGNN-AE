@@ -1,6 +1,6 @@
 SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
 SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
-ORINAME='citeseer'
+ORINAME='reddit'
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
@@ -31,16 +31,20 @@ fi
 if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
 then
 python dataset.py -n $ORINAME -p $SETPATH -l $LEN
+elif [ $ORINAME = 'reddit' ]
+then 
+python reddit_process.py -n $ORINAME$LEN -p $SETPATH -l $LEN # 利用 dgl.data 直接产生 adj.npz, train/val/test.npy, feat.npy, labels.npy
+exit 0
 else
 python ogb_fmt.py -n $ORINAME -p $SETPATH -l $LEN # RESUTLDIR下产生feat.npy labels.npy pp.txt
 fi
 # RESUTLDIR下产生train.npy test.npy val.npy, adj.npz
-if [ $? ]
+if [ $? = 1 ]
 then
 echo "running with --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
-    python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED
+    python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED # 原来已经分出来了 train/val/test
     else
     python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
     fi
