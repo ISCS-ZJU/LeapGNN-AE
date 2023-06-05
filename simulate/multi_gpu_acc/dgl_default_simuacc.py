@@ -125,11 +125,13 @@ def run(gpu, ngpus_per_node, args, log_queue):
         partgnid_npy_dir = os.path.join(args.dataset, f'dist_True/{args.distnodes}_metis/')
         parts_train_set = get_balanced_parted_train_nids(partgnid_npy_dir, ntrain_per_gpu, fg_train_nid, args)
     
+    nf_store_path = os.path.join(os.path.join('/data/', os.environ.get('USER')), f'tmp_{args.gpu}')
+    if not os.path.exists(nf_store_path):
+        os.makedirs(nf_store_path)
+    print(f'temp nfs will be stored in {nf_store_path}')
     max_acc = 0
     for epoch in range(args.epoch):
         ########## 模拟每个 rank 的 sampling 并把结果用 pickle 保存到本地文件系统 ##########
-        if not os.path.exists(f'/data/cwj/tmp_{args.gpu}/'):
-            os.mkdir(f'/data/cwj/tmp_{args.gpu}/')
         for cur_rank in range(args.distnodes):
             ##### 获取当前gpu在当前epoch分配到的training node id #####
             if args.local:
@@ -144,7 +146,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 train_lnid = fg_train_nid[cur_rank * ntrain_per_gpu: (cur_rank+1)*ntrain_per_gpu]
             sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True) # shuffle=False because train_lnid has been shuffled
             for nfidx, nf in enumerate(sampler):
-                subgraph_fname = os.path.join(f'/data/cwj/tmp_{args.gpu}/', f'{cur_rank}_{nfidx}.pkl')
+                subgraph_fname = os.path.join(nf_store_path, f'{cur_rank}_{nfidx}.pkl')
                 with open(subgraph_fname, 'wb') as fout:
                     pickle.dump(nf, fout)
             max_nf_id = nfidx
@@ -157,7 +159,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
             for cur_rank in range(args.distnodes):
                 # load and remove nf
                 try:
-                    nf_fpath = os.path.join(f'/data/cwj/tmp_{args.gpu}/', f"{cur_rank}_{iter}.pkl")
+                    nf_fpath = os.path.join(nf_store_path, f"{cur_rank}_{iter}.pkl")
                     with open(nf_fpath, 'rb') as fin:
                         nf = pickle.load(fin)
                 except:
@@ -244,7 +246,7 @@ def parse_args_func(argv):
                         help='number of simulation nodes for distributed training')
     parser.add_argument('--rank', default=0, type=int,
                         help='node rank for distributed training')
-    parser.add_argument('--gpu', default=None, type=int,
+    parser.add_argument('--gpu', default=0, type=int,
                         help='GPU id to use.')
     parser.add_argument('--local', action='store_true')
     # args for deepergcn
