@@ -41,6 +41,7 @@ func initDistCache(dc *DistCache) {
 	// 初始化
 	dc.all_cache_mng_init_funcs = map[string]interface{}{
 		"static": init_static_cache_mng,
+		"p3": init_P3_cache_mng,
 	}
 	// 确定当前node对应的part id
 	ips_slice := strings.Split(dc.Cache_group, ",")
