@@ -58,7 +58,7 @@ fi
 if [ $? = 1 ]
 then
 echo "-> running with --directed"
-    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ] || [ $ORINAME = 'ogbn-arxiv' ]
+    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
     python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED # 原来已经分出来了 train/val/test
     else
@@ -66,7 +66,7 @@ echo "-> running with --directed"
     fi
 else
 echo "-> running without --directed"
-    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ] || [ $ORINAME = 'ogbn-arxiv' ]
+    if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
     python ./data/preprocess.py --ppfile pp.txt --dataset $SETPATH$NAME$LEN --seed $SEED
     else
