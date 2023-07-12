@@ -61,7 +61,7 @@ if __name__ == '__main__':
     labels = g.ndata['label'].numpy() # dtype=int64
     np.save(osp.join(target_dir, 'labels.npy'), labels)
 
-    sys.exit(0) # 由于 g.edges()已经转化为了无向图，因此返回是0
+    sys.exit(1) # 由于从dgl中下载的corafull，g.edges()已经转化为了有向图，因此返回是1
 
 
 

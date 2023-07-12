@@ -35,6 +35,7 @@ def main(ngpus_per_node):
     cudnn.benchmark = False
 
     #################### 单进程计算 ####################
+    # run(0,ngpus_per_node, args, log_queue)
     mp.spawn(run, nprocs=ngpus_per_node,
                  args=(ngpus_per_node, args, log_queue))
 
@@ -88,7 +89,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     print(f'dataset:', args.dataset)
     if 'ogbn_arxiv' in args.dataset:
         args.n_classes = 40
-    elif 'ogbn_products0' in args.dataset:
+    elif 'ogbn_products' in args.dataset:
         args.n_classes = 47
     elif 'citeseer' in args.dataset:
         args.n_classes = 6
@@ -134,6 +135,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     max_acc = 0
     for epoch in range(args.epoch):
         ########## 模拟每个 rank 的 sampling 并把结果用 pickle 保存到本地文件系统 ##########
+        nf_list = [[] for _ in range(args.distnodes)]
         for cur_rank in range(args.distnodes):
             ##### 获取当前gpu在当前epoch分配到的training node id #####
             if args.local:
@@ -146,12 +148,15 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 np.random.seed(epoch)
                 np.random.shuffle(fg_train_nid)
                 train_lnid = fg_train_nid[cur_rank * ntrain_per_gpu: (cur_rank+1)*ntrain_per_gpu]
+            tmp = 0
             sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True) # shuffle=False because train_lnid has been shuffled
             for nfidx, nf in enumerate(sampler):
                 subgraph_fname = os.path.join(nf_store_path, f'{cur_rank}_{nfidx}.pkl')
-                with open(subgraph_fname, 'wb') as fout:
-                    pickle.dump(nf, fout)
-            max_nf_id = nfidx
+                nf_list[cur_rank].append(nf)
+                # with open(subgraph_fname, 'wb') as fout:
+                #     pickle.dump(nf, fout)
+                tmp = nfidx
+            max_nf_id = tmp
         
         ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
         model.train()
@@ -160,13 +165,14 @@ def run(gpu, ngpus_per_node, args, log_queue):
             ##### 对每个模拟gpu计算一个 nf_id 的梯度 #####
             for cur_rank in range(args.distnodes):
                 # load and remove nf
-                try:
-                    nf_fpath = os.path.join(nf_store_path, f"{cur_rank}_{iter}.pkl")
-                    with open(nf_fpath, 'rb') as fin:
-                        nf = pickle.load(fin)
-                except:
-                    raise Exception(f"pickle load failed.")
-                os.remove(nf_fpath)
+                # try:
+                #     nf_fpath = os.path.join(nf_store_path, f"{cur_rank}_{iter}.pkl")
+                #     with open(nf_fpath, 'rb') as fin:
+                #         nf = pickle.load(fin)
+                # except:
+                #     raise Exception(f"pickle load failed.")
+                # os.remove(nf_fpath)
+                nf = nf_list[cur_rank][iter]
                 # featch feats for nf
                 cache_client.fetch_data(nf)
                 batch_nid = nf.layer_parent_nid(-1)
@@ -179,6 +185,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                 loss.backward()
                 # logging.info(f'FINISHED, rank: {cur_rank}, iter: {iter} ')
+                # nf_list[cur_rank][iter] = None # save memory
             ##### 每个 cur_rank 上都计算完了一个 nf 的反传，梯度进行了累积 #####
             optimizer.step()
             optimizer.zero_grad()
