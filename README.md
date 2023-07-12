@@ -140,6 +140,72 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 在utils目录下运行log_analys.py，需要分析的文件填写在里面的log_analys.yaml中
 生成的结果在data.xlsx中，下载到本地复制粘贴表格数据即可
 
+## 分布式parmetis
+
+先安装metis和GKlib
+
++ ```bash
+  git clone https://github.com/KarypisLab/METIS.git
+  cd METIS/
+  make config shared=1 cc=gcc prefix=~/local i64=1
+  make install
+  ```
++ ```bash
+  git clone https://github.com/KarypisLab/GKlib.git
+  cd GKlib/
+  make config 
+  make
+  make install
+  ```
+
+最后安装Parmetis
+
++ ```bash
+  git clone --branch dgl https://github.com/KarypisLab/ParMETIS.git
+  make config cc=mpicc prefix=~/local
+  make install
+  ```
+
+如果编译过程中出现找不到x86_64-conda_cos6-linux-gnu-cc的问题：
+
++ 查找本地的编译文件，修改报错中mpicc文件中39行的CC为新的文件，如我的为CC="x86_64-conda_cos7-linux-gnu-cc"
+
+如果没有，先进行安装
+
++ ```bash
+  conda install  gcc_linux-64 
+  conda install  gxx_linux-64 
+  conda install  gfortran_linux-64
+  ```
+
+如果在编译过程中出现error: unknown type name 'siginfo_t'的问题：
+
++ 在报错的signal.h文件中注释掉78行和81行的的if和endif（包版本不同位置可能不同，重点是让#include `<bits/siginfo.h>`能够执行）
+
+运行需要先建立密钥，保证各机器间无密码可ssh登录。
+
++ ```bash
+  mpirun -hostfile xxx -np a pm_dglpart yyy b
+  ```
+
+其中xxx表示各服务器ip的配置文件，每行写每台服务器的ip
+a表示总服务器的数量，b表示每台服务器上分几个区域
+yyy表示图结构文件名的前缀，总共需要三个文件yyy_edges.txt,yyy_nodes.txt,yyy_stats.txt
+
+如果运行时出现Open MPI failed an OFI Libfabric library call (fi_endpoint).  This is highly
+unusual; your job may behave unpredictably (and/or abort) after this.
+
++ 运行mpirun -- version检查版本，不合适的话可以安装3.3.2版本并重新编译ParMetis
++ ```bash
+  conda install mpich==3.3.2
+  ```
++ 如果出现其它问题，检查kernel-headers_linux-64版本为3.10.0
+
+## P3
+client端源文件dgl_p3.py，参数与其它相同，可以直接利用自动运行脚本执行
+server端源文件p3_cache.go，运行时修改static_cache.yaml中cache_type项为p3
+p3需要单独的模型结构，目前仅支持gcn，对应版本为gcn_p3.py
+运行时在cache处打印frame[name].data[-1]，有时会出现全0项，使用非流访问的版本不会出现
 
 #### Backup: 
 + cache server.go related golang libraries:
