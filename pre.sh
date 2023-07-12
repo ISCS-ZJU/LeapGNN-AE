@@ -1,6 +1,6 @@
 SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
 SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
-ORINAME='cora_full'
+ORINAME='ogbn-arxiv' # ogbn-arxiv cora_full
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'
@@ -39,16 +39,25 @@ elif [ $ORINAME = 'cora_full' ]
 then
 eval "$(conda shell.bash hook)"
 conda activate 0.8dgl # change conda env
-python corafull_process.py -n $ORINAME$LEN -p $SETPATH # 利用 dgl.data 产生 feat.npy labels.npy pp.txt; dgl version == 0.6.1
+python corafull_process.py -n $ORINAME$LEN -p $SETPATH # 利用 dgl.data 产生 feat.npy labels.npy pp.txt; dgl version >= 0.6.1
 eval "$(conda shell.bash hook)"
 conda activate repgnn # change conda env back
+(exit 1) # direcited graph
+# elif [ $ORINAME$LEN = 'ogbn-arxiv0' ]
+# then
+# eval "$(conda shell.bash hook)"
+# conda activate 0.8dgl # change conda env
+# python ogbn_arxiv_process.py -n $ORINAME$LEN -p $SETPATH -l $LEN # 利用 dgl.data 产生 feat.npy labels.npy pp.txt train/val/test.npy dgl version >= 0.6.1
+# eval "$(conda shell.bash hook)"
+# conda activate repgnn # change conda env back
+# (exit 1) # direcited graph
 else
 python ogb_fmt.py -n $ORINAME -p $SETPATH -l $LEN # RESUTLDIR下产生feat.npy labels.npy pp.txt
 fi
 # RESUTLDIR下产生train.npy test.npy val.npy, adj.npz
 if [ $? = 1 ]
 then
-echo "running with --directed"
+echo "-> running with --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
     python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED # 原来已经分出来了 train/val/test
@@ -56,7 +65,7 @@ echo "running with --directed"
     python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
     fi
 else
-echo "running without --directed"
+echo "-> running without --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
     python ./data/preprocess.py --ppfile pp.txt --dataset $SETPATH$NAME$LEN --seed $SEED

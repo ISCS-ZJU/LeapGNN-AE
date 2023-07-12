@@ -28,6 +28,7 @@ if __name__ == '__main__':
     data = dataset[0]
     node_num = data[0]['num_nodes']
     edge_num = len(data[0]['edge_index'][0])
+    print(f'dataset name: {args.name} #vertex: {node_num} #edges: {edge_num}')
     # num = [0] * node_num
     # flag = 0
     # count = 0
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
     dataset_name = args.name.replace('-','_')
     # labels = np.load(osp.join(osp.join(setpath, dataset_name), 'raw/node-label.npz'))['node_label']
-    print(labels)
+    print(f'labels: {labels}')
     savepath = osp.join(setpath, dataset_name)
     # 生成的
     savepath = osp.join(setpath, dataset_name) + f'{args.len}'
@@ -73,9 +74,9 @@ if __name__ == '__main__':
         for i in range(0,edge_num):
             f.write(str(data[0]['edge_index'][0][i]) + "\t" + str(data[0]['edge_index'][1][i]) + "\n")
     np.save(featpath,new_array)
-    print(new_array)
-    print('after modified features dim:', len(new_array[0]))
-    print("after modified features memory size:", new_array.size * new_array.itemsize)
+    print(f'features: {new_array}')
+    print('final features dim:', len(new_array[0]))
+    print("final features memory size:", new_array.size * new_array.itemsize)
 
 
     print(f'end, directed={directed[args.name]}')
