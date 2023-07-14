@@ -20,6 +20,7 @@ import io
 import mmap
 
 import time
+import torch.nn.functional as F
 
 class DistCacheClient:
     def __init__(self, grpc_port, gpu, log):
@@ -399,6 +400,161 @@ class DistCacheClient:
 
 
 
+class DistCacheClientP3:
+    def __init__(self, grpc_port, gpu, log, world_size, rank):
+        self.grpc_port = grpc_port
+        # 与cache server建立连接
+        self.channel = grpc.insecure_channel(self.grpc_port, options=[
+                                    ('grpc.enable_retries', 1),
+                                    ('grpc.keepalive_timeout_ms', 100000),
+                                    ('grpc.max_receive_message_length',
+                                        2000 * 1024 * 1024),  # max grpc size 2GB
+        ])
+        # client can use this stub to request to golang cache server
+        self.stub = distcache_pb2_grpc.OperatorStub(self.channel)
+
+        # 与cache server建立stream features的连接
+        self.channel_features = grpc.insecure_channel(self.grpc_port, options=[
+                                    ('grpc.enable_retries', 1),
+                                    ('grpc.keepalive_timeout_ms', 100000),
+                                    ('grpc.max_receive_message_length',
+                                        2000 * 1024 * 1024),  # max grpc size 2GB
+        ])
+        # client can use this stub to request stream features to golang cache server
+        self.stub_features = distcache_pb2_grpc.OperatorFeaturesStub(self.channel_features)
+
+        
+        self.gpuid = gpu
+        self.feat_dim = self.get_feat_dim()
+        self.dims = {'features':self.feat_dim}
+        self.log = log
+        self.server_log = self.get_statistic()
+        assert self.log==self.server_log, 'client端和server端的log flag不一致'
+
+        self.try_num = 0
+        self.miss_num = 0
+
+        self.cnt = 0
+        # self.feats_chunk_size = 4*1024*1024 # 4MB
+        # self.feats_chunk_size = self.getMaxNumDivisibleByXYAnd1024(self.feat_dim, 4)
+        # print(f'-> feats chunk size: {self.feats_chunk_size}')
+
+        # rm /dev/shm/repgnn_shm*
+        prefix = "repgnn_shm"
+        if any(filename.startswith(prefix) for filename in os.listdir("/dev/shm")):
+            os.system("rm " + os.path.join(" /dev/shm", prefix) + "*")
+        
+        # feat_len received from server
+        self.feat_len = self.feat_dim // world_size if rank != world_size -1 else self.feat_dim // world_size + self.feat_dim % world_size
+
+    def fetch_data(self, nodeflow):
+        with torch.autograd.profiler.record_function('get nf_nids'):
+            # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
+            nf_nids = nodeflow._node_mapping.tousertensor()
+            offsets = nodeflow._layer_offsets
+            logging.debug(f'fetch_data batch onid, layer_offset: {nf_nids}, {offsets}')
+        logging.debug(f'nf.nlayers: {nodeflow.num_layers}')
+        for i in range(nodeflow.num_layers):
+            tnid = nf_nids[offsets[i]:offsets[i+1]]
+            # create frame
+            with torch.autograd.profiler.record_function('create frames'):
+                # with torch.cuda.device(self.gpuid):
+                #     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
+                #              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
+                frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
+                tnid = tnid.tolist()
+            with torch.autograd.profiler.record_function('fetch feat from cache server'):
+            # # fetch features from cache server
+            
+            # (non-stream method)
+                features = self.get_feats_from_server(tnid)
+            with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+                for name in self.dims:
+                    frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_len)
+                    # padding with zero to feat dim
+                    frame[name].data = F.pad(frame[name].data, (0, self.feat_dim - self.feat_len))
+            
+            # (stream method)
+                # row_st_idx, row_ed_idx = 0, 0
+                # for sub_features in self.get_stream_feats_from_server(tnid):
+                #     for name in self.dims:
+                #         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                #         row_ed_idx += sub_tensor.shape[0]
+                #         # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
+                #         # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+                #         frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+                #         row_st_idx = row_ed_idx
+            with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
+                # move features from cpu memory to gpu memory
+                for name in self.dims:
+                    frame[name].data = frame[name].data.cuda(self.gpuid)
+            # attach features to nodeflow
+            with torch.autograd.profiler.record_function('asign frame to nodeflow'):
+                logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
+                nodeflow._node_frames[i] = FrameRef(Frame(frame))
+    
+    def get_feat_dim(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_feature_dim), timeout=1000) # response is DCReply type response
+        return response.featdim
+    
+    def Reset(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.reset), timeout=1000) # response is DCReply type response
+    
+    def get_statistic(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_statistic), timeout=1000) # response is DCReply type response
+        return response.statistic
+    
+    def get_feats_from_server(self, nids):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_features_by_client, ids=nids), timeout=100000)
+        return response.features
+    
+    def get_cache_hit_info(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_cache_info), timeout=1000)
+        return response.requestnum, response.localhitnum, response.local_feats_gather_time, response.remote_feats_gather_time
+    
+    def get_miss_rate(self):
+        requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
+        self.try_num, self.miss_num = requestnum, requestnum-localhitnum
+        miss_rate = float(self.miss_num) / self.try_num
+        ret = (self.miss_num, self.try_num, miss_rate)
+        self.miss_num = 0
+        self.try_num = 0
+        return ret
+    
+    def get_total_local_remote_feats_gather_time(self):
+        """ 输出本地cache读取feats和远程cache读取feats的总时间 """
+        requestnum, localhitnum, local_feats_gather_time, remote_feats_gather_time = self.get_cache_hit_info()
+        self.local_feats_gather_time = local_feats_gather_time
+        self.remote_feats_gather_time = remote_feats_gather_time
+        return self.local_feats_gather_time, self.remote_feats_gather_time
+    
+    def get_cache_partid(self):
+        response = self.stub.DCSubmit(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_cache_info), timeout=1000)
+        return response.partidx
+
+    # help functions
+    def merge_lists(self, lists):
+        flat_list = np.concatenate(lists)
+        unique_values, index = np.unique(flat_list, return_inverse=True)
+        return unique_values, index
+        # return np.array(flat_list), np.arange(len(flat_list))
+    
+    def merge_lists_wodedupli(self, lists):
+        flat_list = np.concatenate(lists)
+        return np.array(flat_list), np.arange(len(flat_list))
+    
+    def getMaxNumDivisibleByXYAnd1024(self, x: int, y: int) -> int:
+        max_num = 4 * 1024 * 1024 # 4MB
+        for i in range(max_num, 0, -1):
+            if i % x == 0 and i % y == 0 and i % 1024 == 0:
+                return i
+        return -1 # If no number found
 
 
 

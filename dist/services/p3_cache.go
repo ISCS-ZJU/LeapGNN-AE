@@ -88,7 +88,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 	p3_cache.Remote_feats_gather_time = []float32{}
 
 	// 计算grpc maxchunksize within 4MB
-	p3_cache.MaxChunkSize = getMaxNumDivisibleByXYAnd1024(p3_cache.Feature_dim, 4)
+	p3_cache.MaxChunkSize = getMaxNumDivisibleByXYAnd1024(p3_cache.feat_len, 4)
 	log.Infof("[p3_cache.go] max chunk size %v B.", p3_cache.MaxChunkSize)
 
 	return &p3_cache
@@ -107,7 +107,7 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 		p3_cache.RLock()
 		defer p3_cache.RUnlock()
 
-		ret_features := make([]float32, len(ids)*int(p3_cache.Feature_dim)) // return features
+		ret_features := make([]float32, len(ids)*int(p3_cache.feat_len)) // return features
 
 		// 读取本地缓存的数据
 		st_local_total := time.Now()
@@ -116,7 +116,7 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 		var feats []float32
 		for st, local_hit_nid := range ids {
 			// ret_id = gnid2retid[local_hit_nid]
-			st_idx, ed_idx = int64(st)*p3_cache.Feature_dim + p3_cache.offset, int64(st)*p3_cache.Feature_dim + p3_cache.offset + p3_cache.feat_len
+			st_idx, ed_idx = int64(st)*p3_cache.feat_len,  int64(st+1)*p3_cache.feat_len
 			// st := time.Now()
 			feats = p3_cache.cache[local_hit_nid]
 			// log.Infof("[p3_cache.go] read features from local: %v", time.Since(st)) // 200ns
@@ -134,20 +134,20 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 		defer p3_cache.Unlock()
 		p3_cache.Get_request_num += int64(len(ids)) // 总请求数增加
 
-		ret_features := make([]float32, len(ids)*int(p3_cache.Feature_dim)) // return features
+		ret_features := make([]float32, len(ids)*int(p3_cache.feat_len)) // return features
 		// 将ids中的点根据所在server cache的位置分类
 
 		// 读取本地缓存的数据
 		st_local_time := time.Now()
 		st_idx, ed_idx:= int64(-1), int64(-1)
 		// p3_cache.Local_hit_num += int64(len(ip2ids[server_node_id])) // 本地命中数增加
-		
+		// log.Infof("[p3_cache.go] len of ids: %v", len(ids))
 		for st, local_hit_nid := range ids {
-			st_idx, ed_idx = int64(st)*p3_cache.Feature_dim + p3_cache.offset, int64(st)*p3_cache.Feature_dim + p3_cache.offset + p3_cache.feat_len
+			st_idx, ed_idx = int64(st)*p3_cache.feat_len, int64(st+1)*p3_cache.feat_len
 			copy(ret_features[st_idx:ed_idx], p3_cache.cache[local_hit_nid])
 		}
 		p3_cache.Local_feats_gather_time = append(p3_cache.Local_feats_gather_time, float32(time.Since(st_local_time)/time.Millisecond))
-
+		// log.Infof("len of ret_features %v after Get", len(ret_features))
 		return encodeUnsafe(ret_features), nil
 	}
 }

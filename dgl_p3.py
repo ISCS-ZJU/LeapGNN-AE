@@ -21,7 +21,7 @@ from model import gcn, graphsage, gat, deep, gcn_p3
 import logging
 import time
 
-from storage.storage_dist import DistCacheClient
+from storage.storage_dist import DistCacheClientP3
 
 from common.log import setup_primary_logging, setup_worker_logging
 
@@ -110,7 +110,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     torch.distributed.barrier()
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
-    cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
+    cache_client = DistCacheClientP3(args.grpc_port, args.gpu, args.log, args.world_size, args.rank)
     cache_client.Reset()
     featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')

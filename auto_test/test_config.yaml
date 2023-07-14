@@ -24,7 +24,7 @@ run_client_idx: 4
 model_name: "gcn"
 batch_size: 2048
 sampling: "10-10"
-n_epochs: 2
+n_epochs: 10
 learning_rate: 0.003
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110" # used for communication of cache server and client
@@ -41,4 +41,4 @@ eval: False
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
-cache_type: "p3" # rewrite cache_type in static_cache.yaml file
+cache_type: "p3" # rewrite cache_type in static_cache.yaml file ['p3', 'static']

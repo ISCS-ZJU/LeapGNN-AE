@@ -203,7 +203,7 @@ unusual; your job may behave unpredictably (and/or abort) after this.
 
 ## P3
 client端源文件dgl_p3.py，参数与其它相同，可以直接利用自动运行脚本执行
-server端源文件p3_cache.go，运行时修改static_cache.yaml中cache_type项为p3
+server端源文件p3_cache.go，运行时修改static_cache.yaml中cache_type项为p3 （或者在auto_test中修改cache_type）
 p3需要单独的模型结构，目前仅支持gcn，对应版本为gcn_p3.py
 运行时在cache处打印frame[name].data[-1]，有时会出现全0项，使用非流访问的版本不会出现
 
