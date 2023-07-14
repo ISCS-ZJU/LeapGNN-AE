@@ -1,5 +1,6 @@
 import sys
 sys.path.append('./')
+sys.path.append('/home/qhy/gnn/repgnn')
 import data
 import enum
 import numpy as np
@@ -95,7 +96,7 @@ class BlockGenerator():
         #如果不控制超出阈值直接停止可以一次性添加neighbor
         neighbors = self.adj.getrow(node).indices
         for neighbor in neighbors:
-            if self.block_map[neighbor] <= 0:
+            if self.block_map[neighbor] < 0:
                 self.block_map[neighbor] = self.block_map[node]
                 self.visit_num += 1
                 block.add(neighbor,self.train_mask[neighbor])
@@ -116,7 +117,7 @@ class BlockGenerator():
     def _init_bfs(self):
         seed_nodes = self._get_seed_node(self.expected_block_num)
         for seed_node in seed_nodes:
-            assert self.block_map[seed_node] <= 0
+            assert self.block_map[seed_node] < 0
             self._init_new_block(seed_node)
         
     
@@ -151,7 +152,7 @@ class BlockGenerator():
     
     def _generate(self):
         self._generate_blocks()
-        self._get_block_adj()
+        self._get_block_adj(add_reversed_edge=True)
         self._merge_blocks()
         self._get_block_adj()
         self.block2part = np.zeros(len(self.blocks),dtype = np.int64)
@@ -159,7 +160,7 @@ class BlockGenerator():
         # for block in self.blocks:
         #     block.get_train_node_num(self.train_mask)
                     
-    def _get_block_adj(self):
+    def _get_block_adj(self,add_reversed_edge=False):
         block_num = len(self.blocks)
         self.block_adj = np.zeros((block_num,block_num))  #块的邻接矩阵
         for row,block in enumerate(self.blocks):
@@ -167,6 +168,8 @@ class BlockGenerator():
                 neighbors = self.adj.getrow(node).indices
                 for neighbor in neighbors:
                     self.block_adj[row][self.block_map[neighbor]] = 1  #把一条边的两个点所属的块是相连的
+                    if add_reversed_edge:
+                        self.block_adj[self.block_map[neighbor]][row] = 1
         #to csr
         row, col = np.nonzero(self.block_adj)
         values = self.block_adj[row, col]
@@ -178,18 +181,20 @@ class BlockGenerator():
         block_remap = np.arange(block_num,dtype=np.int64)
         # 并查集，-1表示指向0号块，-2表示指向1号块，正数表示根节点，值代表块id
         for block in self.blocks:
-            if not block.full():
+            if block.id == 526:
+                a=0
+            if not self.blocks[find(block_remap,block.id)].full():
                 neighbors = self.block_adj.getrow(block.id).indices
                 if len(neighbors) > 0:
                     for neighbor in neighbors:
                         if self.blocks[find(block_remap,neighbor)].full():
-                            block_remap[block.id] = -neighbor - 1
+                            block_remap[find(block_remap,block.id)] = -neighbor - 1
                             # merged_block_num -= 1
                             break
                     else:
                         for neighbor in neighbors:
                             if find(block_remap,neighbor) != find(block_remap,block.id):
-                                block_remap[find(block_remap,neighbor)] = -block.id - 1
+                                block_remap[find(block_remap,block.id)] = -neighbor - 1
                                 # break
                         # block_remap[block.id] = -(np.random.choice(neighbors)) - 1
                         # merged_block_num -= 1
