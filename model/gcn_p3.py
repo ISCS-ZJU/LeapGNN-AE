@@ -65,8 +65,17 @@ class P3_GCNSampling(nn.Module):
         # out = list(torch.empty([num], dtype=mp_out[0].dtype).chunk(num))
         # dist.all_to_all(out,mp_out)
         # x = torch.sum(out)
-        for i in range(num):
-            dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+        with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+            for i in range(num):
+                dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+            # SLOW 2x
+        #     received = [None for _ in range(num)]
+        #     for i in range(num):
+        #         dist.gather_object(mp_out[i], 
+        #                            received if rank==i else None,
+        #                            dst=i)
+        # x = torch.sum(torch.stack(received), dim=0)
+
         x = mp_out[rank]
         nf.layers[1].data['activation'] = x
 

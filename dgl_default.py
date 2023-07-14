@@ -131,7 +131,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
 
     #################### GNN训练 ####################
-    with torch.autograd.profiler.profile(enabled=(args.gpu == -1), use_cuda=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):

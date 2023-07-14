@@ -27,9 +27,22 @@ from common.log import setup_primary_logging, setup_worker_logging
 
 # torch.autograd.set_detect_anomaly(True)
 
-def get_nfs(nf,world_size):
-    nfs = [_ for _ in range(world_size)]
-    dist.all_gather_object(nfs,nf)
+nfs_cache = [] # avoid all_gather_object of nfs frequently
+def get_nfs(nf, world_size,gpu_id):
+    global nfs_cache
+    if len(nfs_cache) == 0:
+        nfs = [_ for _ in range(world_size)]
+        dist.all_gather_object(nfs,nf)
+        nfs_cache.append(nfs)
+    else:
+        nfs = nfs_cache[0]
+    with torch.autograd.profiler.record_function('topology transfer'):
+        # WARNING: only for performance test
+        nblocks = nf.num_layers-1
+        local_topo = [nf.block_adjacency_matrix(block_id=i, ctx=torch.device(f'cuda:{gpu_id}')) for i in range(nblocks)]
+        topos = [_ for _ in range(world_size)]
+        dist.all_gather_object(topos, local_topo)
+
     return nfs
 
 
@@ -134,7 +147,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(args.gpu)
     model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[args.gpu],broadcast_buffers=False)
+        model, device_ids=[args.gpu],broadcast_buffers=False, find_unused_parameters=True)
     max_acc = 0
 
     # count number of model params
@@ -155,18 +168,24 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
                 ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
-                iter = 0
+                cur_iter = 0
                 wait_sampler = []
                 st = time.time()
                 avg_loss = []
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
+                # sampler_iter = iter(sampler)
+                
                 for nf in sampler:
+                # iternum = len(train_lnid)//args.batch_size if len(train_lnid) % args.batch_size == 0 else len(train_lnid)//args.batch_size +1
+                # for _ in range(iternum):
+                    # nf = next(sampler_iter)
                     wait_sampler.append(time.time()-st)
-                    nfs = get_nfs(nf,args.world_size)
-                    # logging.info(f'{nfs}')
-                    # print(nfs)
+                    with torch.autograd.profiler.record_function('get_nfs'):
+                        # additional_nf = [next(sampler_iter) for _ in range(args.world_size-1)]
+                        # nfs = get_nfs(nf, args.world_size, additional_nf)
+                        nfs = get_nfs(nf, args.world_size, args.gpu)
                     
-                    # print(f'iter: {iter}')
+                    # print(f'cur_iter: {cur_iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                         for i in range(len(nfs)):
@@ -180,6 +199,9 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP forward'):
                             pred = model(nfs,args.rank)
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
+                            # WARNING: only for performance test of P3; the last batch label shape does not equal to pred from cached nfs in get_nfs
+                            if len(pred) > len(labels):
+                                pred = pred[:len(labels)]
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                             avg_loss.append(loss)
@@ -197,9 +219,9 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         torch.distributed.barrier()
                     logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
                         
-                    iter += 1
+                    cur_iter += 1
                     st = time.time()
-                logging.info(f'rank: {args.rank}, iter_num: {iter}')
+                logging.info(f'rank: {args.rank}, iter_num: {cur_iter}')
                 
                 ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
                 if cache_client.log:

@@ -35,6 +35,7 @@ def parse_test_config(confpath):
         n_epochs = data['n_epochs']
         dataset = data['dataset']
         learning_rate = data['learning_rate']
+        hidden_size = data['hidden_size']
 
         # statistic
         log = data['log']
@@ -53,6 +54,7 @@ def parse_test_config(confpath):
         sampling,
         n_epochs,
         learning_rate,
+        hidden_size,
         dataset,
         log,
         evalu,
@@ -83,6 +85,7 @@ auto_test_file = './test_config.yaml'
     sampling,
     n_epochs,
     learning_rate,
+    hidden_size,
     dataset,
     log,
     evalu,
@@ -110,7 +113,7 @@ processes = []
 for serverip in cluster_servers:
     interface, rank = ip_interface_rank[serverip]
     env_cmd = f"source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {client_dir} && export GLOO_SOCKET_IFNAME={interface}"
-    cmd = f"{env_cmd} && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir}"
+    cmd = f"{env_cmd} && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size}"
     if log == True:
         cmd += " --log"
     if evalu == True:

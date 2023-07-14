@@ -13,6 +13,7 @@ var (
 	rpcPort        *int
 	dataSet        *string
 	cacheGroup     *string
+	cacheType      *string
 )
 
 func Parser() {
@@ -21,6 +22,7 @@ func Parser() {
 	// 允许用户通过命令行修改 flagConfigPath 文件中的设置
 	dataSet = flag.String("dataset", "./repgnn_data/citeseer0", "Dataset path.")
 	cacheGroup = flag.String("cachegroup", "10.214.243.19,10.214.241.227", "Distributed Cache Group")
+	cacheType = flag.String("cachetype", "static", "cache server type")
 
 	flag.Parse() // 解析命令行
 
@@ -33,6 +35,10 @@ func Parser() {
 	if *cacheGroup != "" {
 		Config.Cache_group = *cacheGroup
 	}
+	if *cacheType != "" {
+		Config.Cache_type = *cacheType
+	}
+
 	// 根据cache_group解析出partition的个数
 	ips_slice := strings.Split(Config.Cache_group, ",")
 	Config.Partition = len(ips_slice)

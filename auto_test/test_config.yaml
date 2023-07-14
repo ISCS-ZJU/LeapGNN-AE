@@ -1,10 +1,11 @@
 # Set the IP addresses of the servers to deploy the cluster
 # WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
-  - "10.214.243.19" # yq2
+  # - "10.214.243.19" # yq2
   - "10.214.241.227" # yq4
-  # - "10.214.241.228" # yq5
-  # - "10.214.241.229" # yq6
+  - "10.214.241.228" # yq5
+  - "10.214.241.229" # yq6
+  - "10.214.241.232" # yq7
 
 # sshinfo
 ssh_pswd: "wwpwcl44"
@@ -15,23 +16,29 @@ client_files:
   - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
   - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
   - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
-run_client_idx: 0 # Choose the client file to run
+  - "dgl_p3.py"
+# Choose the client file to run
+run_client_idx: 4
 
 # training parameters
 model_name: "gcn"
-batch_size: 1000
-sampling: "2-2"
-n_epochs: 100
+batch_size: 2048
+sampling: "10-10"
+n_epochs: 2
 learning_rate: 0.003
 cluster_build_port: "23456" # used by pytorch init_group
-grpc_port: "18110"
-dataset: "ogbn_arxiv128" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv128']
+grpc_port: "18110" # used for communication of cache server and client
+dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv128']
+hidden_size: 8
 
 # statistic
 log: True
-eval: True
+# log: False
+# eval: True
+eval: False
 
 # Set the name of the server files to run
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
+cache_type: "p3" # rewrite cache_type in static_cache.yaml file

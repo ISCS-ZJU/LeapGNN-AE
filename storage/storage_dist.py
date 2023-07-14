@@ -81,14 +81,16 @@ class DistCacheClient:
                 #              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
                 frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
                 tnid = tnid.tolist()
+            with torch.autograd.profiler.record_function('fetch feat from cache server'):
             # # fetch features from cache server
+            
             # (non-stream method)
             #     features = self.get_feats_from_server(tnid)
             # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
             #     for name in self.dims:
             #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+            
             # (stream method)
-            with torch.autograd.profiler.record_function('fetch feat from cache server'):
                 row_st_idx, row_ed_idx = 0, 0
                 for sub_features in self.get_stream_feats_from_server(tnid):
                     for name in self.dims:
