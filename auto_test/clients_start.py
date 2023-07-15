@@ -5,7 +5,7 @@ import yaml
 import asyncio
 import multiprocessing
 import shutil
-
+import argparse
 
 # 确定当前机器所要使用的ip, 网卡名和rank
 def get_ip_interface_rank(cluster_servers, localip_interfaces):
@@ -70,7 +70,25 @@ def remote_run_command(ssh_pswd, serverip, cmd):
     print(result.stderr)
     return result
 
+def parse_command_line_args():
+    parser = argparse.ArgumentParser(description='Command Line Argument Parser')
 
+    parser.add_argument('--model_name', type=str, default='',
+                        help='Name of the model')
+    parser.add_argument('--batch_size', type=int, default=-1,
+                        help='Batch size for training')
+    parser.add_argument('--sampling', type=str, default='',
+                        help='Sampling fanout with layers')
+    parser.add_argument('--n_epochs', type=int, default=-1,
+                        help='Number of training epochs')
+    parser.add_argument('--hidden_size', type=int, default=-1,
+                        help='Size of the hidden layer')
+    parser.add_argument('--run_client_idx', type=int, default=-1,
+                        help = 'The chosen client file to run.')
+
+    args = parser.parse_args()
+
+    return args
 
 # 读取 auto test config 文件
 auto_test_file = './test_config.yaml'
@@ -91,6 +109,23 @@ auto_test_file = './test_config.yaml'
     evalu,
     ssh_pswd,
 ) = parse_test_config(auto_test_file)
+
+# 覆写 yaml 中定义的值，方便批量执行client命令
+args = parse_command_line_args()
+if args.model_name != '':
+    model_name = args.model_name
+if args.batch_size != -1:
+    batch_szie = args.batch_size
+if args.sampling != '':
+    sampling = args.sampling
+if args.n_epochs != -1:
+    n_epochs = args.n_epochs
+if args.hidden_size != -1:
+    hidden_size = args.hidden_size
+if args.run_client_idx != -1:
+    with open(auto_test_file, 'r') as fh:
+        data = yaml.safe_load(fh)
+    client_file_to_run = data['client_files'][args.run_client_idx]
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -119,8 +154,8 @@ for serverip in cluster_servers:
     if evalu == True:
         cmd += " --eval"
     # 获取运行本文件时添加的额外命令行参数
-    cmd += ' '
-    cmd += ' '.join(sys.argv[1:])
+    # cmd += ' '
+    # cmd += ' '.join(sys.argv[1:])
     # # remove 
     # asyncio.run(remote_run_command(ssh_pswd, serverip, cmd))
     p = multiprocessing.Process(target=remote_run_command, args=(ssh_pswd, serverip, cmd))

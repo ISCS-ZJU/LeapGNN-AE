@@ -14,6 +14,7 @@ var (
 	dataSet        *string
 	cacheGroup     *string
 	cacheType      *string
+	statistic      *bool
 )
 
 func Parser() {
@@ -23,6 +24,7 @@ func Parser() {
 	dataSet = flag.String("dataset", "./repgnn_data/citeseer0", "Dataset path.")
 	cacheGroup = flag.String("cachegroup", "10.214.243.19,10.214.241.227", "Distributed Cache Group")
 	cacheType = flag.String("cachetype", "static", "cache server type")
+	statistic = flag.Bool("statistic", false, "whether gathering server time information")
 
 	flag.Parse() // 解析命令行
 
@@ -37,6 +39,11 @@ func Parser() {
 	}
 	if *cacheType != "" {
 		Config.Cache_type = *cacheType
+	}
+	if *statistic {
+		Config.Statistic = *statistic
+	}else{
+		Config.Statistic = false
 	}
 
 	// 根据cache_group解析出partition的个数

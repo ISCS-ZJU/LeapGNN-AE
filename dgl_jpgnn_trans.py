@@ -244,7 +244,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     logging.info(f'Epoch miss rate ( miss_num/try_num ) for epoch {epoch} on rank {args.rank}: {miss_num} / {try_num} = {miss_rate}')
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
-                print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+                # print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
                 if args.eval:

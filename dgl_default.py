@@ -171,15 +171,15 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             # logging.info(f'loss: {loss}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
-                        with torch.autograd.profiler.record_function('sync before compute'):    
-                        # 同步
-                            torch.distributed.barrier()
+                    with torch.autograd.profiler.record_function('sync before compute'):    
+                        torch.distributed.barrier() # 同步
+                    with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         with torch.autograd.profiler.record_function('DDP backward'):
                             loss.backward()
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
                         torch.distributed.barrier()
-                    logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
+                    # logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
                         
                     iter += 1
                     st = time.time()
@@ -192,7 +192,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
-                print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+                # print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
                 if args.eval:

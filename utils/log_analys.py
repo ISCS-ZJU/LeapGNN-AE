@@ -22,12 +22,14 @@ pattens = {
     'model transfer' : table_offset,
     'miss_num' : 8,
     'try_num' : 9,
-    'wait sampler total time' : 1
+    'wait sampler total time' : 1,
+    'sync for each sub_iter': table_offset,
+    'train data prepare': table_offset
 }
 
 columns_mapp = {
     'wait sampler total time' : 'sampling stall (s)',
-    'total epochs time' :'total time/epoch (s)',
+    'total epochs time' :'total epochs time (s)',
     'fetch feat from cache server' : 'fetch feats from cache server',
     'gpu-compute with optimizer.step' : 'GPU computing (s)',
     # 'gpu-compute' : 'GPU computing (s)',
@@ -36,24 +38,27 @@ columns_mapp = {
     'try_num' : '# client-server request nodes',
     'miss_num' : '# local missed',
     'model transfer' : 'model transfer',
-    'sync before compute' : 'syn',
+    'sync before compute' : 'sync before bkwd',
+    'train data prepare' : 'train data prepare for jp'
 
 }  # 字典，键为原始列名，值为目标列名
 
 order = [
     'name',
-    'total time/epoch (s)',
+    'total epochs time (s)',
     'sampling stall (s)',
     'fetch feats from cache server',
-    'GPU computing (s)',
     'fetch local time(s)',
     'fetch remote time(s)',
-    'others(grpc call) (s)',
+    'GPU computing (s)',
+    'sync before bkwd',
+    'sync for each sub_iter',
+    'others(grpc call etc) (s)',
+    'train data prepare for jp',
+    'model transfer',
     '# client-server request nodes',
     '# local missed',
-    'model transfer',
-    'miss-rate',
-    'syn'
+    'miss-rate'
 ]
 
 if __name__ == '__main__':
@@ -74,17 +79,41 @@ if __name__ == '__main__':
                         data[patten] = float(re.findall("[\d .]+",remain[offset])[0])
                         if 'ms' in remain[offset]:
                             data[patten] /= 1000
+        # 后处理
         if 'model transfer' not in data.keys():
-            data['model transfer'] = 0
+            data['model transfer'] = 0 # 填充默认值
         if 'gpu-compute' in data.keys():
-            data['gpu-compute with optimizer.step'] = data.pop('gpu-compute')
+            data['gpu-compute with optimizer.step'] = data.pop('gpu-compute') # 把 gpu-compute 的列等价成 gpu-compute with optimier.step
+        
+        if 'train data prepare for jp' not in data.keys():
+            data['train data prepare for jp'] = 0
+        if 'sync for each sub_iter' not in data.keys():
+            data['sync for each sub_iter'] = 0
+        
+        if 'total_local_feats_gather_time' not in data.keys():
+            data['total_local_feats_gather_time'] = 0
+        if 'total_remote_feats_gather_time' not in data.keys():
+            data['total_remote_feats_gather_time'] = 0
+        if 'miss_num' not in data.keys():
+            data['miss_num'] = 0
+        if 'try_num' not in data.keys():
+            data['try_num'] = 0
+        
+        if data['try_num'] != 0:
+            data['miss-rate'] = data['miss_num'] / data['try_num']
+        else:
+            data['miss-rate'] = '/'
+
         datas.append(data)
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
-    pf['others(grpc call) (s)']=pf['total time/epoch (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','syn']].sum(axis=1))
+    pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
     # pf['others(grpc call) (s)'] = pf['total time/epoch (s)'] - pf['sampling stall (s)'] - pf['fetch feats from cache server'] - pf['GPU computing (s)'] - pf['model transfer'] - pf['syn']
-    pf['miss-rate'] = pf['# local missed'].div(pf['# client-server request nodes'])
+    # if pf['# client-server request nodes'].bool():
+    #     pf['miss-rate'] = pf['# local missed'].div(pf['# client-server request nodes'])
+    # else:
+    #     pf['miss-rate'] = '/'
     pf = pf[order]
     # print(pf)
     if os.path.exists('./data.xlsx'):

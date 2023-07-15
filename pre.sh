@@ -1,6 +1,6 @@
 SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
 SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
-ORINAME='ogbn-arxiv' # ogbn-arxiv cora_full
+ORINAME='ogbn-products' # ogbn-arxiv cora_full
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
 # NAME='ogbn-products'

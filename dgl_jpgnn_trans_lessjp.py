@@ -306,6 +306,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     miss_rate_lst = [None for _ in range(args.world_size)] # each rank's miss rate, (rank0, 1, 2, ...)
     machine2model = [i for i in range(args.world_size)] # 记录随着模型的迁移，每个机器(按顺序)上对应的 model_id, 初始状态下机器id=model_id
     
+    last_avg_epoch_time = float('inf')
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             epoch_st = time.time()
@@ -313,15 +314,17 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 ########## 计算监视下的一个epoch的平均训练时间 ##########
                 if len(moniter_epoch_time) >= args.moniter_epochs and adjust_jp_times==True:
                     avg_epoch_time = sum(moniter_epoch_time) / len(moniter_epoch_time)
-                    if avg_epoch_time > args.default_time:
-                        logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is larger than default epoch time {args.default_time}")
+                    if avg_epoch_time < last_avg_epoch_time:
+                        logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is smaller than last avg epoch time {last_avg_epoch_time}")
                         jp_times -= 1
                         logging.info(f"new jp_times is {jp_times}")
                         if jp_times == 0:
                             adjust_jp_times = False # 退化成没有跳转的训练模式
                         moniter_epoch_time = []
+                        last_avg_epoch_time = avg_epoch_time # update last_avg_epoch_time
                     else:
                         adjust_jp_times = False
+                        jp_times += 1 # 恢复性能更好的jp_times
                 if jp_times > 0:
                     ########## 确定当前epoch每个gpu要训练的batch nid ###########
                     sub_batch_nid, sub_batch_offsets, model_trace = get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client, nid2pid, gpuid, args.rank, split_fn, jp_times, miss_rate_lst)
@@ -354,8 +357,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 jp_cnt = 0
                 for sub_nf_id in range(len(sub_batch_offsets)-1):
                     if jp_times > 0:
-                        ##### 在一个 sub_batch 训练开始前，迁移模型 #####
-                        send_recv_model_trace_trace(model_trace, model, args.gpu, args.rank, jp_cnt, machine2model, world_size)
+                        with torch.autograd.profiler.record_function('model transfer'):
+                            ##### 在一个 sub_batch 训练开始前，迁移模型 #####
+                            send_recv_model_trace_trace(model_trace, model, args.gpu, args.rank, jp_cnt, machine2model, world_size)
                         jp_cnt += 1
                         ########## 获取sub_nfs，跨结点获取sub_nfs的feature数据 ###########
                         st = time.time()
