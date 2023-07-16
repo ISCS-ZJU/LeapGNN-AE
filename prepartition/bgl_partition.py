@@ -1,6 +1,6 @@
 import sys
 sys.path.append('./')
-sys.path.append('/home/qhy/gnn/repgnn')
+
 import data
 import enum
 import numpy as np
@@ -12,17 +12,54 @@ from queue import Queue
 
 import logging
 
-def find(disjoint_set,x):
-    # 并查集查找
-    root = disjoint_set[x]
-    while root < 0:
-        root = disjoint_set[-root - 1]
-    # 路径压缩 
-    while x != root:
-        lead = disjoint_set[x]
-        disjoint_set[x] = -root - 1
-        x = -lead - 1
-    return root
+class disjoint_set():
+    def __init__(self,size,blocks):
+        self.block_remap = np.arange(size,dtype=np.int64)
+        self.merged_block_size = np.zeros(size,dtype=np.int64)
+        for block in blocks:
+            self.merged_block_size[block.id] = block.node_num
+    
+    def find(self,x):
+        # 并查集查找
+        root = self.block_remap[x]
+        while root < 0:
+            root = self.block_remap[-root - 1]
+        # 路径压缩 
+        while x != root:
+            lead = self.block_remap[x]
+            self.block_remap[x] = -root - 1
+            x = -lead - 1
+        return root
+
+    def union(self,x,y):
+        root1 = self.find(x)
+        root2 = self.find(y)
+        if root1 != root2:
+            self.merged_block_size[root2] += self.merged_block_size[root1]
+            self.block_remap[root1] = -root2 -1
+            return True
+        return False
+    
+    def get_size(self,x):
+        return self.merged_block_size[self.find(x)]
+    
+    def update_all(self):
+        while (self.block_remap < 0).any():
+            self.block_remap[self.block_remap < 0] = self.block_remap[-self.block_remap[self.block_remap < 0] - 1]
+
+
+
+# def find(disjoint_set,x):
+#     # 并查集查找
+#     root = disjoint_set[x]
+#     while root < 0:
+#         root = disjoint_set[-root - 1]
+#     # 路径压缩 
+#     while x != root:
+#         lead = disjoint_set[x]
+#         disjoint_set[x] = -root - 1
+#         x = -lead - 1
+#     return root
 
 class Part():
     def __init__(self,id):
@@ -66,7 +103,6 @@ class Block():
 class BlockGenerator():
     def __init__(self,adj,node_num,train_mask,block_size_scale=0.01,hop=2,assign_init_scale = 0.3):
         self.adj = adj  #邻接矩阵，压缩过的，csr？
-        self.threshold = int(node_num*block_size_scale)  #停止继续搜索的阈值
         self.blocks = []
         self.node_num = node_num
         self.block_map = np.zeros(node_num,dtype=np.int64)
@@ -84,6 +120,8 @@ class BlockGenerator():
         self.visit_num = 0
         self.hop = hop
         self.assign_init_scale = assign_init_scale
+        self.threshold = int(node_num*block_size_scale)  #停止继续搜索的阈值
+        # self.merged_block_threshold=int(node_num*merged_block_size_scale)
 
     def _get_seed_node(self,num=None):
         #随机选取一个未访问过的点
@@ -179,47 +217,53 @@ class BlockGenerator():
     def _merge_blocks(self):
         block_num = len(self.blocks)
         block_remap = np.arange(block_num,dtype=np.int64)
+        block_remap = disjoint_set(block_num,self.blocks)
         # 并查集，-1表示指向0号块，-2表示指向1号块，正数表示根节点，值代表块id
         for block in self.blocks:
-            if block.id == 526:
-                a=0
-            if not self.blocks[find(block_remap,block.id)].full():
+            if block_remap.get_size(block.id) < self.threshold:
                 neighbors = self.block_adj.getrow(block.id).indices
                 if len(neighbors) > 0:
+                    min_size = self.node_num
+                    min_id = -1
                     for neighbor in neighbors:
-                        if self.blocks[find(block_remap,neighbor)].full():
-                            block_remap[find(block_remap,block.id)] = -neighbor - 1
-                            # merged_block_num -= 1
-                            break
+                        merged_block_size = block_remap.get_size(neighbor)
+                        if merged_block_size >= self.threshold:
+                            # if merged_block_size < min_size and merged_block_size < self.merged_block_threshold:
+                            if merged_block_size < min_size:
+                                min_size = merged_block_size
+                                min_id = neighbor
+                    if min_id >= 0:
+                        block_remap.union(block.id,min_id)
                     else:
                         for neighbor in neighbors:
-                            if find(block_remap,neighbor) != find(block_remap,block.id):
-                                block_remap[find(block_remap,block.id)] = -neighbor - 1
+                            # merged_block_size = block_remap.get_size(neighbor)
+                            # if merged_block_size < self.merged_block_threshold:
+                            block_remap.union(block.id,neighbor)
+                                # block_remap[block_remap.find(block.id)] = -neighbor - 1
                                 # break
                         # block_remap[block.id] = -(np.random.choice(neighbors)) - 1
                         # merged_block_num -= 1
                         # 没有大块邻居，随机合并给一个邻居
         
         # 并查集搜索
-        while (block_remap < 0).any():
-            block_remap[block_remap < 0] = block_remap[-block_remap[block_remap < 0] - 1]
+        block_remap.update_all()
         # 开始合并
         new_blocks = []
         count = 0
         # print(len(block_remap),block_num)
         for i in range(block_num):
             new_block = Block(i,self.threshold)
-            block_mask = (block_remap == i)
+            block_mask = (block_remap.block_remap == i)
             if block_mask.any():
                 block_ids = np.nonzero(block_mask)[0]
                 for block_id in block_ids:
                     new_block.merge(self.blocks[block_id])
-                    block_remap[block_id] = count
+                    block_remap.block_remap[block_id] = count
                 new_block.id = count
                 # print(new_block.node_num)
                 new_blocks.append(new_block)
                 count += 1
-        self.block_map = block_remap[self.block_map]
+        self.block_map = block_remap.block_remap[self.block_map]
         self.blocks = new_blocks
         # print(len(self.blocks))
 
@@ -267,18 +311,20 @@ class BlockGenerator():
         self._generate()
         self.parts = [Part(i) for i in range(partition_num)]
         block_num = len(self.blocks)
-        seed_block_part = np.random.randint(0,block_num,int(self.assign_init_scale*block_num/partition_num))
+        block_num_per_part = int(self.assign_init_scale*block_num/partition_num)
+        seed_block_part = np.random.choice(range(block_num),block_num_per_part * partition_num)
         # 随机分配初始块到区域内
         for i in range(partition_num):
-            self.block2part[seed_block_part[i]] = i
-            self.parts[i].add_block(self.blocks[seed_block_part[i]])
+            for j in range(block_num_per_part):
+                self.block2part[seed_block_part[i*block_num_per_part + j]] = i
+                self.parts[i].add_block(self.blocks[seed_block_part[i]])
         # 开始分配
         for i in range(block_num):
             if self.block2part[i] < 0:
                 part = np.argmax(self._score(i,partition_num))
                 self.block2part[i] = part
                 self.parts[part].add_block(self.blocks[i])
-                print(f'block:{self.blocks[i].node_num}')
+                # print(f'block:{self.blocks[i].node_num}')
         membership = self.block2part[self.block_map]
         return membership
 
