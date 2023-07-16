@@ -18,17 +18,17 @@ client_files:
   - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
   - "dgl_p3.py"
 # Choose the client file to run
-run_client_idx: 0
+run_client_idx: 4
 
 # training parameters
-model_name: "graphsage"
+model_name: "gcn"
 batch_size: 2048
-sampling: "10-10"
+sampling: "2-2"
 n_epochs: 10
 learning_rate: 0.003
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110" # used for communication of cache server and client
-dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv128']
+dataset: "ogbn_products0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 16
 
 # statistic
@@ -41,4 +41,4 @@ eval: False
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
-cache_type: "static" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
+cache_type: "p3" # rewrite cache_type in static_cache.yaml file ['p3', 'static']

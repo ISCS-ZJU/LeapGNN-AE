@@ -9,6 +9,32 @@ def parse_config(confpath):
         data = yaml.safe_load(fh)
         return data['files_to_analys']
 
+def extract_log_files(file_paths):
+    # 有一个list变量，其中有很多字符串表示文件路径或者文件夹路径，抽取出其中所有以'.log'为结尾的文件路径，放到列表并返回
+    log_files = []
+    for path in file_paths:
+        if os.path.isfile(path) and path.endswith('.log'):
+            log_files.append(path)
+        elif os.path.isdir(path):
+            sub_files = [os.path.join(path, f) for f in os.listdir(path)]
+            log_files.extend(extract_log_files(sub_files))
+    return log_files
+
+def find_ep_number(string):
+    pattern = r"ep(\d+)"
+    match = re.search(pattern, string)
+    if match:
+        number = int(match.group(1))
+        return number
+    else:
+        return None
+
+def divide_by_epoch_num(value, epoch_num):
+    if isinstance(value, (int, float)):
+        return value / epoch_num
+    else:
+        return value
+
 analys_list = parse_config('./log_analys.yaml')
 
 pattens = {
@@ -64,7 +90,12 @@ order = [
 if __name__ == '__main__':
     # number = re.findall("[\d,.]+",str)
     datas = []
+    # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
+    analys_list = extract_log_files(analys_list)
+    analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
+        # 确定epoch num，从而后续计算平均一个epoch的时间，方便比较
+        epoch_num = find_ep_number(file_path)
         with open(file_path,'r') as f:
             data = dict()
             data['name'] = file_path.split('/')[-1]
@@ -103,6 +134,10 @@ if __name__ == '__main__':
             data['miss-rate'] = data['miss_num'] / data['try_num']
         else:
             data['miss-rate'] = '/'
+        
+        # 计算平均每个epoch的时间
+        for k, v in data.items():
+            data[k] = divide_by_epoch_num(v, epoch_num)
 
         datas.append(data)
     pf = pd.DataFrame(datas)
