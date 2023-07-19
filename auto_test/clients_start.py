@@ -85,7 +85,8 @@ def parse_command_line_args():
                         help='Size of the hidden layer')
     parser.add_argument('--run_client_idx', type=int, default=-1,
                         help = 'The chosen client file to run.')
-
+    parser.add_argument('--dataset', type=str, default='',
+                        help = 'Dataset name.')
     args = parser.parse_args()
 
     return args
@@ -115,7 +116,7 @@ args = parse_command_line_args()
 if args.model_name != '':
     model_name = args.model_name
 if args.batch_size != -1:
-    batch_szie = args.batch_size
+    batch_size = args.batch_size
 if args.sampling != '':
     sampling = args.sampling
 if args.n_epochs != -1:
@@ -126,6 +127,8 @@ if args.run_client_idx != -1:
     with open(auto_test_file, 'r') as fh:
         data = yaml.safe_load(fh)
     client_file_to_run = data['client_files'][args.run_client_idx]
+if args.dataset != '':
+    dataset = args.dataset
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))

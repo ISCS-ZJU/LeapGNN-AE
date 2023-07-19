@@ -124,21 +124,21 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
 ## Simulate
 存放模拟运行的代码。
 - motv:
-    - motv/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/motv/logs目录下。
-        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
-    - motv/dgl_jpgnn_sampling_simulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/motv/logs目录下。
-        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_jpgnn_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - motv/dgl_defaultsimulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究训练数据的采样分布规律。日志文件存放在simulate/motv/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_defaultsimulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - motv/dgl_jpgnnsimulate.py 模拟micro-batch采样的结果，展示模型转移前后的数据命中分布规律。日志文件存放在simulate/motv/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/motv/dgl_jpgnnsimulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
     - motv/analyze_logs.py 分析上述两个程序跑出来的日志文件。
         + 使用方法：`python3 simulate/motv/analyze_logs.py` 按提示输入文件名（从vscode中可以直接拖拽文件到终端）
 - cha1
-    - cha1/dgl_default_sampling_simulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，模拟计算出naive迁移方式下的数据迁移量。日志文件存放在simulate/cha1/logs目录下。
-        + 使用方法：如模拟两个node：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - cha1/dgl_defaultsimulate.py 在`dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，模拟计算出naive迁移方式下的数据迁移量。日志文件存放在simulate/cha1/logs目录下。
+        + 使用方法：如模拟两个node：`python3 simulate/cha1/dgl_defaultsimulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 - obsv1
-    - obsv1/dgl_default_sampling_simulate.py 在 `dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究target node=1时生产的子树中和target node属于同一机器的比例：
-        + 使用方法：`python3 simulate/cha1/dgl_default_sampling_simulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+    - obsv1/dgl_defaultsimulate.py 在 `dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究target node=1时生产的子树中和target node属于同一机器的比例：
+        + 使用方法：`python3 simulate/cha1/dgl_defaultsimulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 
 ## 日志分析
-在utils目录下运行log_analys.py，需要分析的文件填写在里面的log_analys.yaml中
+在utils目录下运行log_analys.py，需要分析的文件填写在里面的log_analys.yaml中 (支持填写文件夹的路径)
 生成的结果在data.xlsx中，下载到本地复制粘贴表格数据即可
 
 ## 分布式parmetis

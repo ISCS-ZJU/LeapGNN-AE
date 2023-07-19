@@ -530,9 +530,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}.log')
     else:
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_sampling_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if_delete = 'y'
