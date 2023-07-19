@@ -17,7 +17,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn, graphsage, gat, deep, gcn_p3
+from model import gcn, graphsage, gat, deep, gcn_p3, gat_p3, graphsage_p3
 import logging
 import time
 
@@ -60,9 +60,9 @@ def main(ngpus_per_node):
     if args.distributed:
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
-        # run(0, ngpus_per_node, args, log_queue)
-        mp.spawn(run, nprocs=ngpus_per_node,
-                 args=(ngpus_per_node, args, log_queue))
+        run(0, ngpus_per_node, args, log_queue)
+        # mp.spawn(run, nprocs=ngpus_per_node,
+        #          args=(ngpus_per_node, args, log_queue))
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
@@ -133,10 +133,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
         model = gcn_p3.P3_GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'graphsage':
-        model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
+        model = graphsage_p3.P3_GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'gat':
-        model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
+        model = gat_p3.P3_GATSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
     elif args.model_name == 'deepergcn':
         args.n_layers = len(sampling)
