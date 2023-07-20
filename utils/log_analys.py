@@ -50,7 +50,9 @@ pattens = {
     'try_num' : 9,
     'wait sampler total time' : 1,
     'sync for each sub_iter': table_offset,
-    'train data prepare': table_offset
+    'train data prepare': table_offset,
+    'topology transfer': table_offset,
+    'all_reduce hidden vectors': table_offset
 }
 
 columns_mapp = {
@@ -80,11 +82,14 @@ order = [
     'sync before bkwd',
     'sync for each sub_iter',
     'others(grpc call etc) (s)',
+    'topology transfer',
     'train data prepare for jp',
     'model transfer',
+
+    'all_reduce hidden vectors',
     '# client-server request nodes',
     '# local missed',
-    'miss-rate'
+    'miss-rate',
 ]
 
 if __name__ == '__main__':
@@ -129,12 +134,21 @@ if __name__ == '__main__':
             data['miss_num'] = 0
         if 'try_num' not in data.keys():
             data['try_num'] = 0
+        if 'topology transfer' not in data.keys():
+            data['topology transfer'] = 0
+        if 'all_reduce hidden vectors' not in data.keys():
+            data['all_reduce hidden vectors'] = 0
         
         if data['try_num'] != 0:
             data['miss-rate'] = data['miss_num'] / data['try_num']
         else:
             data['miss-rate'] = '/'
         
+        
+        # 如果是p3，那么总时间去掉 topology transfer
+        if 'p3' in file_path:
+            data['total epochs time'] -= data['topology transfer']
+
         # 计算平均每个epoch的时间
         for k, v in data.items():
             data[k] = divide_by_epoch_num(v, epoch_num)

@@ -28,7 +28,7 @@ n_epochs: 10
 learning_rate: 0.003
 cluster_build_port: "23456" # used by pytorch init_group
 grpc_port: "18110" # used for communication of cache server and client
-dataset: "ogbn_products0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
+dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 16
 
 # statistic
@@ -41,4 +41,4 @@ eval: False
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
-cache_type: "p3" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
+cache_type: "static" # rewrite cache_type in static_cache.yaml file ['p3', 'static']

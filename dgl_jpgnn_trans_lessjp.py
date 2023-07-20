@@ -319,7 +319,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         jp_times -= 1
                         logging.info(f"new jp_times is {jp_times}")
                         if jp_times == 0:
-                            adjust_jp_times = False # 退化成没有跳转的训练模式
+                            jp_times += 1 # 并不算完全退化，保留第一次的跳跃权利
+                            adjust_jp_times = False # 保持一跳的方式
                         moniter_epoch_time = []
                         last_avg_epoch_time = avg_epoch_time # update last_avg_epoch_time
                     else:
@@ -530,9 +531,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
     else:
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if_delete = 'y'

@@ -3,7 +3,7 @@ import os, sys
 import subprocess
 import yaml
 import asyncio
-
+import argparse
 
 # 读取配置文件
 def parse_server_config(confpath):
@@ -34,6 +34,16 @@ def parse_server_config(confpath):
         statistic
     )
 
+def parse_command_line_args():
+    parser = argparse.ArgumentParser(description='Command Line Argument Parser')
+
+    parser.add_argument('--cache_type', type=str, default='',
+                        help='cache type name')
+    parser.add_argument('--dataset', type=str, default='',
+                        help='training dataset name')
+    args = parser.parse_args()
+
+    return args
 
 # 远程异步执行命令
 async def remote_run_command(ssh_pswd, serverip, cmd, remote_log_file):
@@ -56,6 +66,14 @@ auto_test_file = './test_config.yaml'
     cache_type,
     statistic,
 ) = parse_server_config(auto_test_file)
+
+# 覆写 yaml 中定义的值
+args = parse_command_line_args()
+if args.cache_type != '':
+    cache_type = args.cache_type
+if args.dataset != '':
+    dataset = args.dataset
+    dataset_path = os.path.join('./repgnn_data/', dataset)
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
 for serverip in cluster_servers:
