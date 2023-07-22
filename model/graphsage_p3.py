@@ -138,9 +138,10 @@ class P3_GraphSageSampling(nn.Module):
         nf = nfs[rank]
         num = len(mp_out)
         activation_num = len(mp_out[0])
-        for i in range(num):
-          for j in range(activation_num):
-            dist.all_reduce(mp_out[i][j],dist.ReduceOp.SUM)
+        with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+          for i in range(num):
+            for j in range(activation_num):
+              dist.all_reduce(mp_out[i][j],dist.ReduceOp.SUM)
         for i in range(1, nf.num_layers):
           h = mp_out[rank][i-1]
           nf.layers[i].data['h'] = h

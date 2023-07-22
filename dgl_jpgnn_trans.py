@@ -141,8 +141,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     #################### 每个训练node id对应到part id ####################
     max_train_nid = np.max(fg_train_nid)+1
     nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
+    partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
     for pid in range(world_size):
-        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", world_size, pid)
+        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), partition_name, world_size, pid)
         necessary_nid = sorted_part_nid[sorted_part_nid<max_train_nid] # 只需要training node id即可
         nid2pid[necessary_nid] = pid
 

@@ -56,23 +56,24 @@ def run(gpu, barrier, n_gnn_trainers, args):
     args.rank = gpu  # 模拟第n个gnn trainer
 
     #################### rank=0的进程负责metis切分图，并保存每个trainer分到的图数据id ####################
+    partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
     if args.rank == 0:
         # 检查metis是否切分完全，没有的话执行切分
-        part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_metis'
+        part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_{partition_name}'
         if not os.path.exists(part_results_path):
             try:
-                os.system(f'python3 prepartition/metis.py --partition {n_gnn_trainers} --dataset {args.dataset}')
+                os.system(f'python3 prepartition/{partition_name}.py --partition {n_gnn_trainers} --dataset {args.dataset}')
             except Exception as e:
                 logging.error(repr(e))
                 sys.exit(-1)
-        logging.info('metis分图已经完成')
+        logging.info(f'{partition_name}分图已经完成')
     barrier.wait()
 
     #################### 各trainer加载分图结果 ####################
     part_nid_dict = {} # key: parid, value: graph nid
     n_total_graph_nodes = 0
     for pid in range(n_gnn_trainers):
-        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", n_gnn_trainers, pid)
+        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), partition_name, n_gnn_trainers, pid)
         part_nid_dict[pid] = sorted_part_nid # ndarray of graph nodes' id for trainer=pid
         n_total_graph_nodes += sorted_part_nid.size
     # 建立graph node id 到 part id的映射
@@ -230,7 +231,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['graphsage', 'gcn', 'demo'], help='GNN model name')
+                        choices=['graphsage', 'gcn', 'demo', 'gat'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=1,
@@ -262,7 +263,7 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'default{modelname}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}.log')
+    log_filename = os.path.join(log_dir, f'default_{modelname}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}.log')
     if os.path.exists(log_filename):
         if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if if_delete=='y' or if_delete=='Y':

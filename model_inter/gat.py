@@ -2,6 +2,7 @@ import torch as th
 import torch.nn as nn
 import dgl
 import dgl.function as fn
+import torch
 
 def u_add_v(edges):
     return {'e': edges.src['el'] + edges.dst['er']}
@@ -112,14 +113,48 @@ class GATSampling(nn.Module):
         self.gat_layers.append(GATLayer(
             n_hidden * heads[-2], n_classes, heads[-1],
             feat_drop, attn_drop, negative_slope, None))
+        
+        # count number of intermediate data
+        self.total_comb_size = 0
+        self.total_actv_size = 0
 
     def forward(self, nf):
         nf.layers[0].data['activation'] = nf.layers[0].data['features']
         nf.layers[1].data['activation'] = nf.layers[1].data['features']
+        # 记录一下每层activation结果的size
+        actv_size_after_each_block = []
         for i in range(self.n_layers):
             h = self.gat_layers[i](nf,i).flatten(1)
             nf.layers[i+1].data['activation'] = h
+            actv_size_after_each_block.append(h.numel())
             nf.layers[i+2].data['activation'] = h[nf.map_from_parent_nid(i+1,nf.map_to_parent_nid(nf.layer_nid(i+2)),remap_local=True)]
+            actv_size_after_each_block.append(h.numel())
         # output projection
         logits = self.gat_layers[-1](nf, self.n_layers).mean(1)
-        return logits
+
+        with torch.no_grad():
+            # combine_size 包含每个block aggr的结果shape、和w乘积后结果的shape
+            # 每个block执行一次comb，后面block同时要迁移前面block的数据量；
+            # activation size 包含每个block actv的结果shape
+            old_comb_size = 0
+            old_actv_size = 0
+            nf_nids = nf._node_mapping.tousertensor()
+            offsets = nf._layer_offsets # 这里的layer含义不是Block，一个Block包含输入Layer和输出layer
+            for blkid, layer in enumerate(self.gat_layers):
+                aggr_results = len(nf_nids[offsets[blkid]: offsets[blkid+1]]) * self.gat_layers[blkid].fc.in_features
+                tensor_after_combine_and_w = len(nf_nids[offsets[blkid+1]: offsets[blkid+2]])*self.gat_layers[blkid].fc.out_features
+
+                cur_block_comb_size = aggr_results + tensor_after_combine_and_w
+                self.total_comb_size += old_comb_size
+                old_comb_size += cur_block_comb_size
+
+                tensor_after_actv = 0
+                if layer.activation:
+                    tensor_after_actv = actv_size_after_each_block[blkid]
+                self.total_actv_size += old_actv_size
+                old_actv_size += tensor_after_actv
+        curnf_total_comb_size, curnf_total_actv_size = self.total_comb_size, self.total_actv_size
+        self.total_comb_size, self.total_actv_size = 0,0
+        return logits, curnf_total_comb_size, curnf_total_actv_size
+
+        # return logits

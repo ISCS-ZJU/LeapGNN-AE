@@ -3,6 +3,7 @@ import torch.nn as nn
 import dgl
 import dgl.function as fn
 import torch.distributed as dist
+import torch
 
 def u_add_v(edges):
     return {'e': edges.src['el'] + edges.dst['er']}
@@ -123,8 +124,9 @@ class P3_GATSampling(nn.Module):
             h = self.gat_layers[0](nf,0).flatten(1)
             mp_out.append(h.clone())
         num = len(mp_out)
-        for i in range(num):
-            dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+        with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+            for i in range(num):
+                dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
 
         h = mp_out[rank]
         nf = nfs[rank]

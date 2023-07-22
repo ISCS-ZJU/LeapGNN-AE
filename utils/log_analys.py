@@ -139,11 +139,6 @@ if __name__ == '__main__':
         if 'all_reduce hidden vectors' not in data.keys():
             data['all_reduce hidden vectors'] = 0
         
-        if data['try_num'] != 0:
-            data['miss-rate'] = data['miss_num'] / data['try_num']
-        else:
-            data['miss-rate'] = '/'
-        
         
         # 如果是p3，那么总时间去掉 topology transfer
         if 'p3' in file_path:
@@ -152,6 +147,11 @@ if __name__ == '__main__':
         # 计算平均每个epoch的时间
         for k, v in data.items():
             data[k] = divide_by_epoch_num(v, epoch_num)
+        
+        if data['try_num'] != 0:
+            data['miss-rate'] = data['miss_num'] / data['try_num']
+        else:
+            data['miss-rate'] = '/'
 
         datas.append(data)
     pf = pd.DataFrame(datas)

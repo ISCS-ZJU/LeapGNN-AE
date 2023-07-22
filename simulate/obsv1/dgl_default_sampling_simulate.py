@@ -54,23 +54,24 @@ def run(gpu, barrier, n_gnn_trainers, args):
     args.rank = gpu  # 模拟第n个gnn trainer
 
     #################### rank=0的进程负责metis切分图，并保存每个trainer分到的图数据id ####################
+    partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
     if args.rank == 0:
         # 检查metis是否切分完全，没有的话执行切分
-        part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_metis'
+        part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_{partition_name}'
         if not os.path.exists(part_results_path):
             try:
-                os.system(f'python3 prepartition/metis.py --partition {n_gnn_trainers} --dataset {args.dataset}')
+                os.system(f'python3 prepartition/{partition_name}.py --partition {n_gnn_trainers} --dataset {args.dataset}')
             except Exception as e:
                 logging.error(repr(e))
                 sys.exit(-1)
-        logging.info('metis分图已经完成')
+        logging.info(f'{partition_name}分图已经完成')
     barrier.wait()
 
     #################### 各trainer加载分图结果 ####################
     part_nid_dict = {} # key: parid, value: graph nid
     n_total_graph_nodes = 0
     for pid in range(n_gnn_trainers):
-        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), "metis", n_gnn_trainers, pid)
+        sorted_part_nid = data.get_partition_results(os.path.join(args.dataset,'dist_True'), partition_name, n_gnn_trainers, pid)
         part_nid_dict[pid] = sorted_part_nid # ndarray of graph nodes' id for trainer=pid
         n_total_graph_nodes += sorted_part_nid.size
     # 建立graph node id 到 part id的映射

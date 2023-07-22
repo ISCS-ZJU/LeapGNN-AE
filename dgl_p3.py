@@ -60,9 +60,9 @@ def main(ngpus_per_node):
     if args.distributed:
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
-        run(0, ngpus_per_node, args, log_queue)
-        # mp.spawn(run, nprocs=ngpus_per_node,
-        #          args=(ngpus_per_node, args, log_queue))
+        # run(0, ngpus_per_node, args, log_queue)
+        mp.spawn(run, nprocs=ngpus_per_node,
+                 args=(ngpus_per_node, args, log_queue))
     else:
         # run(0, ngpus_per_node, args)
         sys.exit(-1)
@@ -146,8 +146,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(args.gpu)
+    # model = torch.nn.parallel.DistributedDataParallel(
+    #     model, device_ids=[args.gpu],broadcast_buffers=False, find_unused_parameters=True)
     model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[args.gpu],broadcast_buffers=False, find_unused_parameters=True)
+        model, device_ids=[args.gpu],broadcast_buffers=False)
     max_acc = 0
 
     # count number of model params
