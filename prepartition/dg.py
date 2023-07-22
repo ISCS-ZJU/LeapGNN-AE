@@ -1,12 +1,14 @@
 import os
 import sys
+sys.path.append('./')
 import dgl
 from dgl import DGLGraph
 import torch
 import numpy as np
 import scipy.sparse as spsp
 import argparse
-import PaGraph.data as data
+# import PaGraph.data as data
+import data
 
 import ordering
 from utils import get_sub_graph
@@ -119,14 +121,16 @@ if __name__ == '__main__':
   # get data
   adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz'))
   train_mask, val_mask, test_mask = data.get_masks(args.dataset)
-  train_nids = np.nonzero(train_mask)[0].astype(np.int64)
+  # train_nids = np.nonzero(train_mask)[0].astype(np.int64)
+  train_nids = np.nonzero(np.ones_like(train_mask,dtype=bool))[0].astype(np.int64)
+
   labels = data.get_labels(args.dataset)
   
   # ordering
   if args.ordering:
     print('re-ordering graphs...')
     adj = adj.tocsc()
-    adj, vmap = ordering.reordering(adj, depth=args.num_hop) # vmap: orig -> new
+    adj, vmap = ordering.reordering(adj, depth=args.num_hops) # vmap: orig -> new
     # save to files
     mapv = np.zeros(vmap.shape, dtype=np.int64)
     mapv[vmap] = np.arange(vmap.shape[0]) # mapv: new -> orig
@@ -138,34 +142,41 @@ if __name__ == '__main__':
     np.save(os.path.join(args.dataset, 'test.npy'), test_mask[mapv])
   
   # partition
-  p_v, p_trainv = dg(args.partition, adj, train_nids, args.num_hop)
-  
+  p_v, p_trainv = dg(args.partition, adj, train_nids, args.num_hops)
+  # print(p_trainv)
+  save_folder = os.path.join(args.dataset, f"dist_True/{args.partition}_pagraph")
+  if not os.path.exists(save_folder):
+      os.makedirs(save_folder)
+  for nid, pid in enumerate(p_trainv):
+    # save
+      np.save(os.path.join(save_folder, f'{nid}.npy'), pid) # 每个part被分配到的graph node id
   # save to file
-  partition_dataset = os.path.join(args.dataset, '{}naive'.format(args.partition))
-  try:
-    os.mkdir(partition_dataset)
-  except FileExistsError:
-    pass
-  dgl_g = dgl.DGLGraph(adj, readonly=True)
-  for pid, (pv, ptrainv) in enumerate(zip(p_v, p_trainv)):
-    print('generating subgraph# {}...'.format(pid))
-    #subadj, sub2fullid, subtrainid = node2graph(adj, pv, ptrainv)
-    subadj, sub2fullid, subtrainid = get_sub_graph(dgl_g, ptrainv, args.num_hop)
-    sublabel = labels[sub2fullid[subtrainid]]
-    # files
-    subadj_file = os.path.join(
-      partition_dataset,
-      'subadj_{}.npz'.format(str(pid)))
-    sub_trainid_file = os.path.join(
-      partition_dataset,
-      'sub_trainid_{}.npy'.format(str(pid)))
-    sub_train2full_file = os.path.join(
-      partition_dataset,
-      'sub_train2fullid_{}.npy'.format(str(pid)))
-    sub_label_file = os.path.join(
-      partition_dataset,
-      'sub_label_{}.npy'.format(str(pid)))
-    spsp.save_npz(subadj_file, subadj)
-    np.save(sub_trainid_file, subtrainid)
-    np.save(sub_train2full_file, sub2fullid)
-    np.save(sub_label_file, sublabel)
+  # partition_dataset = os.path.join(args.dataset, '{}naive'.format(args.partition))
+  # try:
+  #   os.mkdir(partition_dataset)
+  # except FileExistsError:
+  #   pass
+  # dgl_g = dgl.DGLGraph(adj, readonly=True)
+  # for pid, (pv, ptrainv) in enumerate(zip(p_v, p_trainv)):
+  #   print('generating subgraph# {}...'.format(pid))
+  #   #subadj, sub2fullid, subtrainid = node2graph(adj, pv, ptrainv)
+  #   subadj, sub2fullid, subtrainid = get_sub_graph(dgl_g, ptrainv, args.num_hops)
+  #   # print(sub2fullid)
+  #   sublabel = labels[sub2fullid[subtrainid]]
+  #   # files
+  #   subadj_file = os.path.join(
+  #     partition_dataset,
+  #     'subadj_{}.npz'.format(str(pid)))
+  #   sub_trainid_file = os.path.join(
+  #     partition_dataset,
+  #     'sub_trainid_{}.npy'.format(str(pid)))
+  #   sub_train2full_file = os.path.join(
+  #     partition_dataset,
+  #     'sub_train2fullid_{}.npy'.format(str(pid)))
+  #   sub_label_file = os.path.join(
+  #     partition_dataset,
+  #     'sub_label_{}.npy'.format(str(pid)))
+  #   spsp.save_npz(subadj_file, subadj)
+  #   np.save(sub_trainid_file, subtrainid)
+  #   np.save(sub_train2full_file, sub2fullid)
+  #   np.save(sub_label_file, sublabel)

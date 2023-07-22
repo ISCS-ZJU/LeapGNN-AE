@@ -5,7 +5,8 @@ from dgl import DGLGraph
 import numpy as np
 import scipy.sparse as spsp
 import argparse
-import PaGraph.data as data
+# import PaGraph.data as data
+import data
 
 def multi_in_neighbors(csc_adj, nids):
   neighs = []
