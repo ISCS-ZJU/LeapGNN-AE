@@ -87,6 +87,8 @@ def parse_command_line_args():
                         help = 'The chosen client file to run.')
     parser.add_argument('--dataset', type=str, default='',
                         help = 'Dataset name.')
+    parser.add_argument('--cluster_servers', type=str, default='["10.214.241.227", "10.214.241.228", "10.214.241.229", "10.214.241.232"]',
+                        help='cluster IPs')
     args = parser.parse_args()
 
     return args
@@ -129,6 +131,9 @@ if args.run_client_idx != -1:
     client_file_to_run = data['client_files'][args.run_client_idx]
 if args.dataset != '':
     dataset = args.dataset
+if args.cluster_servers != '':
+    cluster_servers = eval(args.cluster_servers)
+    world_size = len(cluster_servers)
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))

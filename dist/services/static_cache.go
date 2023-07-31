@@ -63,6 +63,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Info("[static_cache.go] Read features done.")
 
 	// 初始化填充点的feature到缓存
 	start := time.Now()
@@ -112,7 +113,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			gnid2retid[nid] = int64(retid)
 		}
 		// 读取本地缓存的数据
-		st_local_total := time.Now()
+		// st_local_total := time.Now()
 		server_node_id = DCRuntime.PartIdx
 		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
 		var feats []float32
@@ -126,7 +127,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			copy(ret_features[st_idx:ed_idx], feats)
 			// log.Infof("[static_cache.go] copy to dest array: %v", time.Since(st)) // copy的时间大概是read local features时间的3倍；450ns-1us
 		}
-		log.Infof("[static_cache.go] read features from local and copy to dest array: %v", time.Since(st_local_total)) // 135ms
+		// log.Infof("[static_cache.go] read features from local and copy to dest array: %v", time.Since(st_local_total)) // 135ms
 
 		// 发起peerServerGet请求(从本地id开始++并循回)，将收到的结果进行整理，得到ids的feature，返回结果
 		total_server := int64(len(DCRuntime.Ip_slice))
@@ -144,7 +145,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 				log.Fatalf("[static_cache.go] Calling OpType_get_features_by_peer_server failed.")
 			}
 			fetched_featurs := ret.GetRfeatures()
-			log.Infof("[static_cache.go] rpc calling until get ret: %v for %v number of float data, total size:%v MB.", time.Since(st), len(fetched_featurs), 4*len(fetched_featurs)/1024/1024)
+			// log.Infof("[static_cache.go] rpc calling until get ret: %v for %v number of float data, total size:%v MB.", time.Since(st), len(fetched_featurs), 4*len(fetched_featurs)/1024/1024)
 			// st = time.Now()
 
 			// log.Infof("[static_cache.go] extract features from ret: %v", time.Since(st))
@@ -235,7 +236,7 @@ func (static_cache *Static_cache_mng) PeerServerGet(ids []int64) ([]float32, err
 	ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
 	st_idx, ed_idx := int64(-1), int64(-1)
 	i := int64(0)
-	st := time.Now()
+	// st := time.Now()
 	for _, local_hit_nid := range ids {
 		feature, exist := static_cache.cache[local_hit_nid]
 		if exist {
@@ -248,7 +249,7 @@ func (static_cache *Static_cache_mng) PeerServerGet(ids []int64) ([]float32, err
 			return nil, errors.New(string(local_hit_nid) + "not exists in peerserverget.")
 		}
 	}
-	log.Infof("[static_cache.go] gather features for remote requests: %v", time.Since(st))
+	// log.Infof("[static_cache.go] gather features for remote requests: %v", time.Since(st))
 	return ret_features, nil
 }
 

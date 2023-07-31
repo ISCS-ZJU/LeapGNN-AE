@@ -85,7 +85,6 @@ order = [
     'topology transfer',
     'train data prepare for jp',
     'model transfer',
-
     'all_reduce hidden vectors',
     '# client-server request nodes',
     '# local missed',
@@ -121,8 +120,8 @@ if __name__ == '__main__':
         if 'gpu-compute' in data.keys():
             data['gpu-compute with optimizer.step'] = data.pop('gpu-compute') # 把 gpu-compute 的列等价成 gpu-compute with optimier.step
         
-        if 'train data prepare for jp' not in data.keys():
-            data['train data prepare for jp'] = 0
+        if 'train data prepare' not in data.keys():
+            data['train data prepare'] = 0
         if 'sync for each sub_iter' not in data.keys():
             data['sync for each sub_iter'] = 0
         

@@ -303,6 +303,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     """
     jp_times = args.world_size # 跳跃次数
     moniter_epoch_time = [] # moniter the avg. epoch time
+    all_epoch_time = [] # moniter each epoch time for exp details
     adjust_jp_times = True # 是否继续缩小 jp_times
     miss_rate_lst = [None for _ in range(args.world_size)] # each rank's miss rate, (rank0, 1, 2, ...)
     machine2model = [i for i in range(args.world_size)] # 记录随着模型的迁移，每个机器(按顺序)上对应的 model_id, 初始状态下机器id=model_id
@@ -448,6 +449,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
 
                 moniter_epoch_time.append(time.time() - epoch_st)
+                all_epoch_time.append(time.time() - epoch_st)
                 epoch_st = time.time()
                 
 
@@ -458,7 +460,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
-
+    logging.info(f'all_epoch_time:{all_epoch_time}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
