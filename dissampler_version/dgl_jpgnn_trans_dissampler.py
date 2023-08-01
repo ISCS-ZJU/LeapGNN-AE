@@ -100,7 +100,7 @@ def run(rank, ngpus_per_node, args):
     #################### 创建分布式训练GNN模型、优化器 ####################
     if 'ogbn_arxiv' in args.dataset:
         args.n_classes = 40
-    elif 'ogbn_products0' in args.dataset:
+    elif 'ogbn_products' in args.dataset:
         args.n_classes = 47
     elif 'citeseer' in args.dataset:
         args.n_classes = 6
