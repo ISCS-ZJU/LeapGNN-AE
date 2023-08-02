@@ -1,24 +1,26 @@
 # cache server配置信息
 
 # 接口配置
-rpcport: 18110
+rpcport: 18112
 
 # 开发打印配置
 debug: false
 
 # 数据集配置
-dataset: ./repgnn_data/ogbn_arxiv0
-# dataset: ./repgnn_data/ogbn_products0
+# dataset: ./repgnn_data/ogbn_arxiv0
+dataset: ./repgnn_data/ogbn_products0
 
 # 缓存配置
 # cache类型
 cache_type: "static"
 # cache_group: "10.214.243.19, 10.214.243.20" # yq2 yq3
-# cache_group: "10.214.243.19, 10.214.241.228" # yq2 yq5
-# cache_group: "10.214.243.19, 10.214.242.140" # yq2 yq1  
-cache_group: "10.214.243.19, 10.214.241.227" # yq2 yq4
+# cache_group: "10.214.241.227, 10.214.241.228, 10.214.241.229, 10.214.241.232" # yq4 yq5 yq6 yq7
+cache_group: "10.214.243.19, 10.214.241.227, 10.214.241.228, 10.214.241.229" #yq2 yq4 yq5 yq6
 # cache_group: "10.214.242.140"
 
 # 是否统计命中率
 statistic: true
 # statistic: false
+# feat是否分装在多个文件中
+multi_feat_file: false
+partition_type: "pagraph"

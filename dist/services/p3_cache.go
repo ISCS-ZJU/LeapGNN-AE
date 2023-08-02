@@ -45,42 +45,89 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 
 	// 从并行文件系统中读取nid对应的feature数据
 	// TODO: 当前实现是1次加载全部的features到内存
-	feat_npy_filepath := fmt.Sprintf("%v/feat.npy", common.Config.Dataset)
-	featf, _ := os.Open(feat_npy_filepath)
-	defer featf.Close()
-	r, err := npyio.NewReader(featf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Infof("[p3_cache.go] npy-header: %v\n", r.Header)
-	shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
-
-	features := make([]float32, shape[0]*shape[1])
-
-	err = r.Read(&features)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// 初始化填充点的feature到缓存
-	cur_cache_id := DCRuntime.PartIdx
-	tol_node := int64(len(DCRuntime.Ip_slice))
-	if cur_cache_id == tol_node - 1{
-		p3_cache.feat_len = (int64(shape[1]) / tol_node) + int64(shape[1]) % tol_node
+	if common.Config.Multi_feat_file == true{
+		feat_npy_filepath := fmt.Sprintf("%v/p3_feat%v.npy", common.Config.Dataset, dc.PartIdx)
+		log.Infof("%v\n", feat_npy_filepath)
+		featf, _ := os.Open(feat_npy_filepath)
+		// defer featf.Close()
+		r, err := npyio.NewReader(featf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("[p3_cache.go] npy-header: %v\n", r.Header)
+		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
+	
+		features := make([]float32, shape[0]*shape[1])
+	
+		err = r.Read(&features)
+		if err != nil {
+			log.Fatal(err)
+		}
+	
+		// 初始化填充点的feature到缓存
+		cur_cache_id := DCRuntime.PartIdx
+		tol_node := int64(len(DCRuntime.Ip_slice))
+		p3_cache.feat_len = int64(shape[1])
+		p3_cache.offset = (int64(shape[1]) / tol_node) * cur_cache_id
+		
+		start := time.Now()
+		for nid := int64(0); nid < int64(shape[0]); nid++ {
+			start_index, end_index := nid*int64(shape[1]), (nid+1)*int64(shape[1])
+			p3_cache.Put(nid, features[start_index:end_index])
+		}
+		// log.Infof("[p3_cache.go] successfully cached %v nodes features.", len(gnid))
+		log.Infof("[p3_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
+		featf.Close()
+		p3_cache.Feature_dim = int64(0)
+		for i:= 0; i < common.Config.Partition;i++{
+			feat_npy_filepath = fmt.Sprintf("%v/p3_feat%v.npy", common.Config.Dataset, i)
+			featf, _ = os.Open(feat_npy_filepath)
+			r, err = npyio.NewReader(featf)
+			if err != nil {
+				log.Fatal(err)
+			}
+			shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
+			p3_cache.Feature_dim = p3_cache.Feature_dim + int64(shape[1])
+			featf.Close()
+		}
 	}else{
-		p3_cache.feat_len = (int64(shape[1]) / tol_node)
+		feat_npy_filepath := fmt.Sprintf("%v/feat.npy", common.Config.Dataset)
+		featf, _ := os.Open(feat_npy_filepath)
+		defer featf.Close()
+		r, err := npyio.NewReader(featf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("[p3_cache.go] npy-header: %v\n", r.Header)
+		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
+	
+		features := make([]float32, shape[0]*shape[1])
+	
+		err = r.Read(&features)
+		if err != nil {
+			log.Fatal(err)
+		}
+	
+		// 初始化填充点的feature到缓存
+		cur_cache_id := DCRuntime.PartIdx
+		tol_node := int64(len(DCRuntime.Ip_slice))
+		if cur_cache_id == tol_node - 1{
+			p3_cache.feat_len = (int64(shape[1]) / tol_node) + int64(shape[1]) % tol_node
+		}else{
+			p3_cache.feat_len = (int64(shape[1]) / tol_node)
+		}
+		p3_cache.offset = (int64(shape[1]) / tol_node) * cur_cache_id
+	
+		start := time.Now()
+		for nid := int64(0); nid < int64(shape[0]); nid++ {
+			start_index, end_index := nid*int64(shape[1]) + p3_cache.offset, (nid)*int64(shape[1]) + p3_cache.offset + p3_cache.feat_len
+			p3_cache.Put(nid, features[start_index:end_index])
+		}
+		// log.Infof("[p3_cache.go] successfully cached %v nodes features.", len(gnid))
+		log.Infof("[p3_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
+		p3_cache.Feature_dim = int64(shape[1])
 	}
-	p3_cache.offset = (int64(shape[1]) / tol_node) * cur_cache_id
 
-	start := time.Now()
-	for nid := int64(0); nid < int64(shape[0]); nid++ {
-		start_index, end_index := nid*int64(shape[1]) + p3_cache.offset, (nid)*int64(shape[1]) + p3_cache.offset + p3_cache.feat_len
-		p3_cache.Put(nid, features[start_index:end_index])
-	}
-	// log.Infof("[p3_cache.go] successfully cached %v nodes features.", len(gnid))
-	log.Infof("[p3_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
-
-	p3_cache.Feature_dim = int64(shape[1])
 	p3_cache.Get_request_num = 0
 	p3_cache.Local_hit_num = 0
 
