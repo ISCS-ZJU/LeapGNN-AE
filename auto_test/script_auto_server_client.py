@@ -5,9 +5,9 @@ server_cmd_lst = [
     # 'python3 servers_start.py --dataset ogbn_products50 --cache_type static',
     # 'python3 servers_start.py --dataset ogbn_products200 --cache_type static',
     # 'python3 servers_start.py --dataset ogbn_products400 --cache_type static',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
     'python3 servers_start.py --dataset ogbn_products800 --cache_type static',
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
 ]
 
 client_cmd_lst = [
@@ -17,12 +17,12 @@ client_cmd_lst = [
     # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products200 --n_epochs 5 --batch_size 8000 --hidden_size 16',
     # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products400 --n_epochs 3 --batch_size 8000 --hidden_size 16',
     # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products400 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products800 --n_epochs 3 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products800 --n_epochs 5 --batch_size 8000 --hidden_size 16',
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 256 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 3 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 5 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 4 --batch_size 256 --hidden_size 16', # 补充之前缺少的几组实验
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 2 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 4 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products800 --n_epochs 2 --batch_size 8000 --hidden_size 16',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products800 --n_epochs 4 --batch_size 8000 --hidden_size 16',
 ]
 
 
