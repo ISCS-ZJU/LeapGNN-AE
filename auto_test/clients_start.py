@@ -87,7 +87,7 @@ def parse_command_line_args():
                         help = 'The chosen client file to run.')
     parser.add_argument('--dataset', type=str, default='',
                         help = 'Dataset name.')
-    parser.add_argument('--cluster_servers', type=str, default='["10.214.241.227", "10.214.241.228", "10.214.241.229", "10.214.241.232"]',
+    parser.add_argument('--cluster_servers', type=str, default='',
                         help='cluster IPs')
     args = parser.parse_args()
 

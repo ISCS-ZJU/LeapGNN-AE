@@ -34,7 +34,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	static_cache.cache = make(map[int64][]float32)
 	// 根据dc.PartIdx加载对应的node feature到dc.cache中
 	// TODO: 存储的路径可以由python的metis分图后返回
-	partgnid_npy_filepath := fmt.Sprintf("%v/dist_True/%v_metis/%v.npy", common.Config.Dataset, common.Config.Partition, dc.PartIdx)
+	partgnid_npy_filepath := fmt.Sprintf("%v/dist_True/%v_%v/%v.npy", common.Config.Dataset, common.Config.Partition, common.Config.Partition_type, dc.PartIdx)
 	var gnid []int64 // 当前part需要读取的node feature id
 	f, _ := os.Open(partgnid_npy_filepath)
 	defer f.Close()
@@ -47,34 +47,64 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 
 	// 从并行文件系统中读取nid对应的feature数据
 	// TODO: 当前实现是1次加载全部的features到内存
-	feat_npy_filepath := fmt.Sprintf("%v/feat.npy", common.Config.Dataset)
-	featf, _ := os.Open(feat_npy_filepath)
-	defer featf.Close()
-	r, err := npyio.NewReader(featf)
-	if err != nil {
-		log.Fatal(err)
+	if common.Config.Multi_feat_file == true{
+		feat_npy_filepath := fmt.Sprintf("%v/feat%v.npy", common.Config.Dataset, dc.PartIdx)
+		featf, _ := os.Open(feat_npy_filepath)
+		defer featf.Close()
+		r, err := npyio.NewReader(featf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
+		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
+	
+		features := make([]float32, shape[0]*shape[1])
+	
+		err = r.Read(&features)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Info("[static_cache.go] Read features done.")
+	
+		// 初始化填充点的feature到缓存
+		start := time.Now()
+		for i, nid := range gnid {
+			start_index, end_index := int64(i)*int64(shape[1]), int64(i+1)*int64(shape[1])
+			static_cache.Put(nid, features[start_index:end_index])
+		}
+		log.Infof("[static_cache.go] successfully cached %v nodes features.", len(gnid))
+		log.Infof("[static_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
+		static_cache.Feature_dim = int64(shape[1])
+	}else{
+		feat_npy_filepath := fmt.Sprintf("%v/feat.npy", common.Config.Dataset)
+		featf, _ := os.Open(feat_npy_filepath)
+		defer featf.Close()
+		r, err := npyio.NewReader(featf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
+		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
+	
+		features := make([]float32, shape[0]*shape[1])
+	
+		err = r.Read(&features)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Info("[static_cache.go] Read features done.")
+	
+		// 初始化填充点的feature到缓存
+		start := time.Now()
+		for _, nid := range gnid {
+			start_index, end_index := nid*int64(shape[1]), (nid+1)*int64(shape[1])
+			static_cache.Put(nid, features[start_index:end_index])
+		}
+		log.Infof("[static_cache.go] successfully cached %v nodes features.", len(gnid))
+		log.Infof("[static_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
+		static_cache.Feature_dim = int64(shape[1])
 	}
-	log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
-	shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
 
-	features := make([]float32, shape[0]*shape[1])
-
-	err = r.Read(&features)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Info("[static_cache.go] Read features done.")
-
-	// 初始化填充点的feature到缓存
-	start := time.Now()
-	for _, nid := range gnid {
-		start_index, end_index := nid*int64(shape[1]), (nid+1)*int64(shape[1])
-		static_cache.Put(nid, features[start_index:end_index])
-	}
-	log.Infof("[static_cache.go] successfully cached %v nodes features.", len(gnid))
-	log.Infof("[static_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
-
-	static_cache.Feature_dim = int64(shape[1])
 	static_cache.Get_request_num = 0
 	static_cache.Local_hit_num = 0
 

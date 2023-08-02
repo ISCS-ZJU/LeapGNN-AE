@@ -22,6 +22,8 @@ def parse_server_config(confpath):
         dataset_path = os.path.join('./repgnn_data/', dataset)
         # cache type
         cache_type = data['cache_type']
+        multi_feat_file = data['multi_feat_file']
+        partition_type = data['partition_type']
         # log
         statistic = data['log']
 
@@ -31,7 +33,9 @@ def parse_server_config(confpath):
         server_config_file,
         dataset_path,
         cache_type,
-        statistic
+        statistic,
+        multi_feat_file,
+        partition_type
     )
 
 def parse_command_line_args():
@@ -65,6 +69,8 @@ auto_test_file = './test_config.yaml'
     dataset_path,
     cache_type,
     statistic,
+    multi_feat_file,
+    partition_type,
 ) = parse_server_config(auto_test_file)
 
 # 覆写 yaml 中定义的值
@@ -92,9 +98,11 @@ log_dir = os.path.abspath('../logs')
 cache_group = ','.join(cluster_servers)
 for serverip in cluster_servers:
     # 在每个节点异步执行 go run server.go 
-    cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type}'
+    cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type} -partition_type "{partition_type}"'
     if statistic:
         cmd += f' -statistic'
+    if multi_feat_file:
+        cmd += f' -multi_feat_file'
     remote_log_file = os.path.join(log_dir, f"server_output_{serverip}.log")
     asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, remote_log_file))
     # remote_run_command(ssh_pswd, serverip, cmd, remote_log_file)

@@ -2,8 +2,8 @@
 # WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
   # - "10.214.243.19" # yq2
-  - "10.214.241.227" # yq4
-  - "10.214.241.228" # yq5
+  # - "10.214.241.227" # yq4
+  # - "10.214.241.228" # yq5
   - "10.214.241.229" # yq6
   - "10.214.241.232" # yq7
 
@@ -24,11 +24,11 @@ run_client_idx: 4
 model_name: "gcn"
 batch_size: 2048
 sampling: "2-2"
-n_epochs: 10
+n_epochs: 1
 learning_rate: 0.003
-cluster_build_port: "23456" # used by pytorch init_group
-grpc_port: "18110" # used for communication of cache server and client
-dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
+cluster_build_port: "23457" # used by pytorch init_group
+grpc_port: "18112" # used for communication of cache server and client
+dataset: "ogbn_arxiv00" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 16
 
 # statistic
@@ -41,4 +41,6 @@ eval: False
 server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
-cache_type: "static" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
+cache_type: "p3" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
+multi_feat_file: true # each part has one feat file
+partition_type: "pagraph"

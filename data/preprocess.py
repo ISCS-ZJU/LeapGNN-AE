@@ -47,6 +47,48 @@ def pp2adj(filepath, is_direct=True, delimiter='\t',
   return coo_adj
 
 
+def random_multi_file_feature(vnum, feat_size, part_num, dataset,part_type):
+  """
+  Generate random features using numpy
+  Params:
+    vnum:       feature num (aka. vertex num)
+    feat_size:  feature dimension 
+    outfile:    save to the file if provided
+  Returns:
+    numpy array obj with shape of [vnum, feat_size]
+  """
+  rng = np.random.default_rng()
+  for i in range(part_num):
+    part_file = os.path.join(dataset,f'dist_True/{part_num}_{part_type}/{i}.npy')
+    node_num = np.load(part_file).shape[0]
+    outfile = os.path.join(dataset, f'feat{i}.npy')
+    feat_mat = rng.random(size=(node_num, feat_size), dtype=np.float32)
+    # feat_mat = np.random.random((node_num, feat_size)).astype(np.float32)
+    if outfile:
+      np.save(outfile, feat_mat)
+  return feat_mat
+
+def random_p3_feature(vnum, feat_size, part_num, dataset):
+  """
+  Generate random features using numpy
+  Params:
+    vnum:       feature num (aka. vertex num)
+    feat_size:  feature dimension 
+    outfile:    save to the file if provided
+  Returns:
+    numpy array obj with shape of [vnum, feat_size]
+  """
+  sub_feat_size = [int(feat_size / part_num) for _ in range(part_num - 1)]
+  sub_feat_size.append(feat_size - (part_num - 1)*int(feat_size / part_num))
+  rng = np.random.default_rng()
+  for i in range(part_num):
+    outfile = os.path.join(dataset, f'p3_feat{i}.npy')
+    feat_mat = rng.random(size=(vnum, sub_feat_size[i]), dtype=np.float32)
+    # feat_mat = np.random.random((node_num, feat_size)).astype(np.float32)
+    if outfile:
+      np.save(outfile, feat_mat)
+  return feat_mat
+
 def random_feature(vnum, feat_size, outfile=None):
   """
   Generate random features using numpy
@@ -61,7 +103,6 @@ def random_feature(vnum, feat_size, outfile=None):
   if outfile:
     np.save(outfile, feat_mat)
   return feat_mat
-
 
 def random_label(vnum, class_num, outfile=None):
   """
@@ -129,8 +170,16 @@ if __name__ == '__main__':
 
   parser.add_argument("--gen-feature", dest='gen_feature', action='store_true')
   parser.set_defaults(gen_feature=False)
+  parser.add_argument("--feat-multi-file", dest='feat_multi_file', action='store_true')
+  parser.set_defaults(feat_multi_file=False)
+  parser.add_argument("--p3-feature", dest='p3_feature', action='store_true')
+  parser.set_defaults(p3_feature=False)
   parser.add_argument("--feat-size", type=int, default=600,
                       help='generated feature size if --gen-feature is specified')
+  parser.add_argument("--part-num", type=int, default=4,
+                      help='partition num of graph')
+  parser.add_argument("--part-type", type=str, choices=['metis','pagraph'],default='pagraph',
+                      help='partition type of graph(metis,pagraph)')
   
   parser.add_argument("--gen-label", dest='gen_label', action='store_true')
   parser.set_defaults(gen_label=False)
@@ -170,8 +219,13 @@ if __name__ == '__main__':
   if args.gen_feature:
     print('Generating random features (size: {}) in: {}...'
           .format(args.feat_size, feat_file))
-    feat = random_feature(vnum, args.feat_size, 
-                          outfile=feat_file)
+    if args.feat_multi_file:
+      if args.p3_feature:
+        feat = random_p3_feature(vnum, args.feat_size, args.part_num, args.dataset)
+      else:
+        feat = random_multi_file_feature(vnum, args.feat_size, args.part_num, args.dataset,args.part_type)
+    else:
+      feat = random_feature(vnum, args.feat_size, outfile=feat_file)
   
   # generate labels
   label_file = os.path.join(args.dataset, 'labels.npy')
