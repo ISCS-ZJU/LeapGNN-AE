@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 import torch
+import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn.functional as F
 import dgl
@@ -16,13 +17,34 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn, graphsage, gat, deep
+from model import gcn, graphsage, gat, deep, gcn_p3, gat_p3, graphsage_p3
 import logging
 import time
 
-from storage.storage_dist import DistCacheClient
+from storage.storage_dist import DistCacheClientP3
 
 from common.log import setup_primary_logging, setup_worker_logging
+
+# torch.autograd.set_detect_anomaly(True)
+
+nfs_cache = [] # avoid all_gather_object of nfs frequently
+def get_nfs(nf, world_size,gpu_id):
+    global nfs_cache
+    if len(nfs_cache) == 0:
+        nfs = [_ for _ in range(world_size)]
+        dist.all_gather_object(nfs,nf)
+        nfs_cache.append(nfs)
+    else:
+        nfs = nfs_cache[0]
+    with torch.autograd.profiler.record_function('topology transfer'):
+        # WARNING: only for performance test
+        nblocks = nf.num_layers-1
+        local_topo = [nf.block_adjacency_matrix(block_id=i, ctx=torch.device(f'cuda:{gpu_id}')) for i in range(nblocks)]
+        topos = [_ for _ in range(world_size)]
+        dist.all_gather_object(topos, local_topo)
+
+    return nfs
+
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -38,6 +60,7 @@ def main(ngpus_per_node):
     if args.distributed:
         # total # of DDP training process
         args.world_size = ngpus_per_node * args.world_size
+        # run(0, ngpus_per_node, args, log_queue)
         mp.spawn(run, nprocs=ngpus_per_node,
                  args=(ngpus_per_node, args, log_queue))
     else:
@@ -87,7 +110,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     torch.distributed.barrier()
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
-    cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
+    cache_client = DistCacheClientP3(args.grpc_port, args.gpu, args.log, args.world_size, args.rank)
     cache_client.Reset()
     featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
@@ -107,13 +130,13 @@ def run(gpu, ngpus_per_node, args, log_queue):
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
-        model = gcn.GCNSampling(featdim, args.hidden_size, args.n_classes, len(
+        model = gcn_p3.P3_GCNSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'graphsage':
-        model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
+        model = graphsage_p3.P3_GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'gat':
-        model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
+        model = gat_p3.P3_GATSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
     elif args.model_name == 'deepergcn':
         args.n_layers = len(sampling)
@@ -123,8 +146,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(args.gpu)
+    # model = torch.nn.parallel.DistributedDataParallel(
+    #     model, device_ids=[args.gpu],broadcast_buffers=False, find_unused_parameters=True)
     model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[args.gpu])
+        model, device_ids=[args.gpu],broadcast_buffers=False)
     max_acc = 0
 
     # count number of model params
@@ -145,17 +170,28 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
                 ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
-                iter = 0
+                cur_iter = 0
                 wait_sampler = []
                 st = time.time()
                 avg_loss = []
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
+                # sampler_iter = iter(sampler)
+                
                 for nf in sampler:
+                # iternum = len(train_lnid)//args.batch_size if len(train_lnid) % args.batch_size == 0 else len(train_lnid)//args.batch_size +1
+                # for _ in range(iternum):
+                    # nf = next(sampler_iter)
                     wait_sampler.append(time.time()-st)
-                    # print(f'iter: {iter}')
+                    with torch.autograd.profiler.record_function('get_nfs'):
+                        # additional_nf = [next(sampler_iter) for _ in range(args.world_size-1)]
+                        # nfs = get_nfs(nf, args.world_size, additional_nf)
+                        nfs = get_nfs(nf, args.world_size, args.gpu)
+                    
+                    # print(f'cur_iter: {cur_iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
-                        cache_client.fetch_data(nf)
+                        for i in range(len(nfs)):
+                            cache_client.fetch_data(nfs[i])
                     batch_nid = nf.layer_parent_nid(-1)
                     with torch.autograd.profiler.record_function('fetch label'):
                         labels = fg_labels[batch_nid].cuda(
@@ -163,8 +199,11 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                         with torch.autograd.profiler.record_function('DDP forward'):
-                            pred = model(nf)
+                            pred = model(nfs,args.rank)
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
+                            # WARNING: only for performance test of P3; the last batch label shape does not equal to pred from cached nfs in get_nfs
+                            if len(pred) > len(labels):
+                                pred = pred[:len(labels)]
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
                             avg_loss.append(loss)
@@ -172,20 +211,21 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
                     with torch.autograd.profiler.record_function('sync before compute'):    
-                        torch.distributed.barrier() # 同步
+                    # 同步
+                        torch.distributed.barrier()
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         with torch.autograd.profiler.record_function('DDP backward'):
                             loss.backward()
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
                         torch.distributed.barrier()
-                    # logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
+                    logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
                         
-                    iter += 1
+                    cur_iter += 1
                     st = time.time()
-                    if iter > args.iter_stop:
+                    if cur_iter > args.iter_stop:
                         break
-                logging.info(f'rank: {args.rank}, iter_num: {iter}')
+                logging.info(f'rank: {args.rank}, iter_num: {cur_iter}')
                 
                 ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
                 if cache_client.log:
@@ -194,7 +234,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     time_local, time_remote = cache_client.get_total_local_remote_feats_gather_time() 
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                     # print(f'Sub_iter nsize mean, max, min: {int(sum(each_sub_iter_nsize) / len(each_sub_iter_nsize))}, {max(each_sub_iter_nsize)}, {min(each_sub_iter_nsize)}')
-                # print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+                print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
                 if args.eval:
@@ -209,8 +249,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
                                                                 add_self_loop=True):
                         model.eval()
                         with torch.no_grad():
-                            cache_client.fetch_data(nf)
-                            pred = model(nf)
+                            nfs = get_nfs(nf,args.world_size)
+                            for i in range(len(nfs)):
+                                cache_client.fetch_data(nfs[i])
+                            pred = model(nfs,args.rank)
                             batch_nids = nf.layer_parent_nid(-1)
                             batch_labels = fg_labels[batch_nids].cuda(args.gpu)
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
@@ -219,7 +261,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
-    logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    if prof is not None:
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
     # torch.distributed.barrier()
@@ -309,9 +352,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'p3_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
     else:
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'p3_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         if_delete = 'y'
@@ -332,3 +375,4 @@ if __name__ == '__main__':
 
     # main function
     main(ngpus_per_node)
+

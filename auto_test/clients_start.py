@@ -89,6 +89,7 @@ def parse_command_line_args():
                         help = 'Dataset name.')
     parser.add_argument('--cluster_servers', type=str, default='',
                         help='cluster IPs')
+    parser.add_argument('--iter_stop', type=int, default=-1, help='early stop to avoid oom')
     args = parser.parse_args()
 
     return args
@@ -161,6 +162,8 @@ for serverip in cluster_servers:
         cmd += " --log"
     if evalu == True:
         cmd += " --eval"
+    if args.iter_stop != -1:
+        cmd += f" --iter_stop {args.iter_stop}"
     # 获取运行本文件时添加的额外命令行参数
     # cmd += ' '
     # cmd += ' '.join(sys.argv[1:])

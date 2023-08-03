@@ -17,6 +17,8 @@ client_files:
   - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
   - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
   - "dgl_p3.py"
+  - "dgl_p3_avoid_oom.py"
+  - "dgl_jpgnn_trans_lessjp_avoid_error.py"
 # Choose the client file to run
 run_client_idx: 4
 

@@ -52,7 +52,8 @@ pattens = {
     'sync for each sub_iter': table_offset,
     'train data prepare': table_offset,
     'topology transfer': table_offset,
-    'all_reduce hidden vectors': table_offset
+    'all_reduce hidden vectors': table_offset,
+    'get_nfs': table_offset
 }
 
 columns_mapp = {
@@ -137,11 +138,15 @@ if __name__ == '__main__':
             data['topology transfer'] = 0
         if 'all_reduce hidden vectors' not in data.keys():
             data['all_reduce hidden vectors'] = 0
+        if 'sync before compute' not in data.keys():
+            data['sync before compute'] = 0
+        if 'get_nfs' not in data.keys():
+            data['get_nfs'] = 0
         
         
         # 如果是p3，那么总时间去掉 topology transfer
         if 'p3' in file_path:
-            data['total epochs time'] -= data['topology transfer']
+            data['total epochs time'] -= data['get_nfs']
 
         # 计算平均每个epoch的时间
         for k, v in data.items():
