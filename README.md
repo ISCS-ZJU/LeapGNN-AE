@@ -208,6 +208,15 @@ server端源文件p3_cache.go，运行时修改static_cache.yaml中cache_type项
 p3需要单独的模型结构，目前仅支持gcn，对应版本为gcn_p3.py
 运行时在cache处打印frame[name].data[-1]，有时会出现全0项，使用非流访问的版本不会出现
 
+## 大数据集preprocess更新
+由于部分数据集较大，无法通过直接装入内存再选取需要的特征供cache保存，需要在生成时将feature直接分割为多个文件，直接读取对应区域的特征文件来进行装载，因此修改preprocess文件的特征生成部分
+新增一些参数来控制是否保存为多份文件（--feat-multi-file），按分图结果进行分割（需要先完成分图操作）或按p3方式进行分割（--p3-feature），基于的分图方式和分图数量（--part-num --part-type）
+以生成p3类型的2分图特征为例
++ ```bash
+  python ./data/preprocess.py --dataset ./dist/repgnn_data/ogbn_arxiv00/ --directed --gen-feature --feat-multi-file --feat-size 101 --part-num 2 --part-type pagraph --p3-feature
+  ```
+
+
 #### Backup: 
 + cache server.go related golang libraries:
     ```bash
