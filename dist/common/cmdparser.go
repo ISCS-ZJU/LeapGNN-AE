@@ -58,6 +58,9 @@ func Parser() {
 	}else{
 		Config.Multi_feat_file = false
 	}
+	if *rpcPort != 0 {
+		Config.Rpcport = *rpcPort
+	}
 
 	// 根据cache_group解析出partition的个数
 	ips_slice := strings.Split(Config.Cache_group, ",")
@@ -72,6 +75,7 @@ func Parser() {
 	fmt.Println("Config.Cache_group:", Config.Cache_group)
 	fmt.Println("Config.Partition_type:", Config.Partition_type)
 	fmt.Println("Config.Multi_feat_file:", Config.Multi_feat_file)
+	fmt.Println("Config.rpcPort:", Config.Rpcport)
 	fmt.Println("Config.Statistic:", Config.Statistic)
 	if Config.Statistic {
 		log.Warnf("You turned on Statistic, thus the training time is not accurate.")

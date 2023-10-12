@@ -27,6 +27,8 @@ def parse_server_config(confpath):
         partition_type = data['partition_type']
         # log
         statistic = data['log']
+        # grpc
+        grpc_port = data['grpc_port']
 
     return (
         cluster_servers,
@@ -36,7 +38,8 @@ def parse_server_config(confpath):
         cache_type,
         statistic,
         multi_feat_file,
-        partition_type
+        partition_type,
+        grpc_port
     )
 
 def parse_command_line_args():
@@ -77,6 +80,7 @@ auto_test_file = './test_config.yaml'
     statistic,
     multi_feat_file,
     partition_type,
+    grpc_port
 ) = parse_server_config(auto_test_file)
 
 # 覆写 yaml 中定义的值
@@ -118,7 +122,7 @@ for serverip in cluster_servers:
 print(f'\n=> 开始运行 server.go，运行分布式服务端')
 for serverip in cluster_servers:
     # 在每个节点异步执行 go run server.go 
-    cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type} -partition_type "{partition_type}"'
+    cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type} -partition_type "{partition_type}" -rpcport {grpc_port}'
     if statistic:
         cmd += f' -statistic'
     if multi_feat_file:

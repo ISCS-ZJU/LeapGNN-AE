@@ -4,7 +4,7 @@ cluster_servers:
   # - "10.214.243.19" # yq2
   # - "10.214.241.227" # yq4
   # - "10.214.241.228" # yq5
-  - "10.214.241.229" # yq6
+  - "10.214.241.223" # yq6
   - "10.214.241.232" # yq7
 
 # sshinfo
@@ -13,14 +13,14 @@ ssh_pswd: "wwpwcl44"
 # Set the name of the client files to run
 client_files:
   - "dgl_default.py" # 原始的 GNN 训练
-  # - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
-  # - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
-  # - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
-  # - "dgl_p3.py"
-  # - "dgl_p3_avoid_oom.py"
-  # - "dgl_jpgnn_trans_lessjp_avoid_error.py"
+  - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
+  - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
+  - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
+  - "dgl_p3.py"
+  - "dgl_p3_avoid_oom.py"
+  - "dgl_jpgnn_trans_lessjp_avoid_error.py"
 # Choose the client file to run
-run_client_idx: 4
+run_client_idx: 0
 
 # training parameters
 model_name: "gcn"
@@ -29,7 +29,7 @@ sampling: "2-2"
 n_epochs: 1
 learning_rate: 0.003
 cluster_build_port: "23457" # used by pytorch init_group
-grpc_port: "18112" # used for communication of cache server and client
+grpc_port: "18114" # used for communication of cache server and client
 dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 16
 
