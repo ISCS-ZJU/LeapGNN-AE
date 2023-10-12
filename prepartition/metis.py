@@ -20,6 +20,11 @@ if __name__ == "__main__":
                         help="partition number") # 分布式情况下表示分布式node的个数，单机多卡情况下表示单机的gpu个数
     args = parser.parse_args()
 
+    save_folder = os.path.join(args.dataset, f"dist_True/{args.partition}_metis")
+    if os.path.exists(save_folder):
+        print(f'-> Folder path {save_folder} 已经存在，分图算法退出')
+        sys.exit(0)
+
     # load data
     # 加载全图topo（其中的点是从0开始编号的）
     adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz')) # <class 'scipy.sparse._coo.coo_matrix'>
@@ -27,7 +32,7 @@ if __name__ == "__main__":
     train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
     train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
     # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]每项表示每i个点的邻居点id
-    print(adj.row, len(adj.row), type(adj.row), np.max(adj.row))
+    # print(adj.row, len(adj.row), type(adj.row), np.max(adj.row))
     # print(adj.col, len(adj.col), type(adj.col), np.max(adj.col))
     # print(adj.data, len(adj.data), type(adj.data))
 
@@ -47,10 +52,10 @@ if __name__ == "__main__":
     # print(adjacency_list)
 
     # n_cuts:边切分的次数，membership:[...]表示从Index=0的点开始被分配到的partition的id
-    print('start metis partition')
+    print('-> start metis partition')
     n_cuts, membership = pymetis.part_graph(
         args.partition, adjacency=adjacency_list) # membership是一个一维数组，记录了每个点所属的part id
-    print('end metis partition')
+    print('-> end metis partition')
     # print(n_cuts, membership) # 7 [0, 1, 0, 0, 0, 1, 1, 0, 1, 1]
     
 
@@ -71,6 +76,7 @@ if __name__ == "__main__":
     for i, partnid in enumerate(part_id):
         np.save(os.path.join(save_folder, f'{i}.npy'), partnid) # 每个part被分配到的graph node id
         logging.info(f"write partition nid {save_folder}/{i}.npy file  done")
+        print(f"write partition nid {save_folder}/{i}.npy file  done")
 
 
 # nodes_part_0 = np.argwhere(np.array(membership) == 0).ravel() # [3, 5, 6]
