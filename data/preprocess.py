@@ -16,17 +16,16 @@ def pp2adj(filepath, is_direct=True, delimiter='\t',
   If outfile is provided, also save it.
   """
   pp = np.loadtxt(filepath, delimiter=delimiter)
-  src_node = pp[:,0].astype(np.int)
-  dst_node = pp[:,1].astype(np.int)
+  src_node = pp[:,0].astype(np.int64)
+  dst_node = pp[:,1].astype(np.int64)
   max_nid = max(np.max(src_node), np.max(dst_node))
-  print('max_nid:{}'.format(max_nid))
   min_nid = min(np.min(src_node), np.min(dst_node))
-  print('min_nid:{}'.format(min_nid))
+  print('=> max_nid:{}'.format(max_nid), 'min_nid:{}'.format(min_nid))
 
   # get vertex and ege num info
   vnum = max_nid - min_nid + 1
   enum = len(src_node) if is_direct else len(src_node) * 2
-  print('vertex#: {} edge#: {}'.format(vnum, enum))
+  print('=> # of vertex: {} # of edges: {}'.format(vnum, enum))
 
   # scale node id from 0
   src_node -= min_nid
@@ -36,7 +35,7 @@ def pp2adj(filepath, is_direct=True, delimiter='\t',
   if not is_direct:
     src_node, dst_node = np.concatenate((src_node, dst_node)), \
                          np.concatenate((dst_node, src_node))
-  edge_weight = np.ones(enum, dtype=np.int)
+  edge_weight = np.ones(enum, dtype=np.int64)
   coo_adj = scipy.sparse.coo_matrix(
     (edge_weight, (src_node, dst_node)),
     shape=(vnum, vnum)
@@ -44,6 +43,7 @@ def pp2adj(filepath, is_direct=True, delimiter='\t',
   # output to file
   if outfile is not None:
     scipy.sparse.save_npz(outfile, coo_adj)
+  print(f'=> Saving adj.npz done into {outfile}')
   return coo_adj
 
 
@@ -138,15 +138,15 @@ def split_dataset(vnum, outdir=None):
   train_len = int(vnum * 0.65)
   val_len = int(vnum * 0.1)
   test_len = vnum - train_len - val_len
-  print(f'\n-> train_len = {train_len}, val_len = {val_len}, test_len = {test_len}\n')
+  print(f'\n=> Split dataset with train_len = {train_len}, val_len = {val_len}, test_len = {test_len}\n')
   # train mask
-  train_mask = np.zeros(vnum, dtype=np.int)
+  train_mask = np.zeros(vnum, dtype=np.int64)
   train_mask[nids[0:train_len]] = 1
   # val mask
-  val_mask = np.zeros(vnum, dtype=np.int)
+  val_mask = np.zeros(vnum, dtype=np.int64)
   val_mask[nids[train_len:train_len + val_len]] = 1
   # test mask
-  test_mask = np.zeros(vnum, dtype=np.int)
+  test_mask = np.zeros(vnum, dtype=np.int64)
   test_mask[nids[-test_len:]] = 1
   # save
   if outdir is not None:
@@ -187,7 +187,7 @@ if __name__ == '__main__':
                       help='generated class number if --gen-label is specified')
   
   parser.add_argument("--gen-set", dest='gen_set', action='store_true')
-  parser.add_argument("--seed", type=int, default=2023)
+  parser.add_argument("--seed", type=int, default=2024)
 
   parser.set_defaults(gen_set=False)
   args = parser.parse_args()
@@ -198,12 +198,12 @@ if __name__ == '__main__':
     # print('{}: No such a dataset folder'.format(args.dataset))
     # sys.exit(-1)
     os.mkdir(args.dataset)
-    print(f'Created  folder {args.dataset} to store results.')
+    print(f'=> Created folder {args.dataset} to store results.')
   
   # generate adj
   adj_file = os.path.join(args.dataset, 'adj.npz')
   if args.ppfile is not None:
-    print('Generating adj matrix in: {}...'.format(adj_file))
+    print('=> Generating adj matrix according pp.txt in: {}...'.format(adj_file))
     adj = pp2adj(
       os.path.join(args.dataset, args.ppfile),
       is_direct=args.directed,
@@ -211,14 +211,14 @@ if __name__ == '__main__':
     )
   else:
     adj = scipy.sparse.load_npz(adj_file)
+    print(f'=> Load adj_file done')
   vnum = adj.shape[0]
   del adj
 
   # generate features
   feat_file = os.path.join(args.dataset, 'feat.npy')
   if args.gen_feature:
-    print('Generating random features (size: {}) in: {}...'
-          .format(args.feat_size, feat_file))
+    print('=> Generating random features (size: {}) in: {}...'.format(args.feat_size, feat_file))
     if args.feat_multi_file:
       if args.p3_feature:
         feat = random_p3_feature(vnum, args.feat_size, args.part_num, args.dataset)
@@ -230,15 +230,13 @@ if __name__ == '__main__':
   # generate labels
   label_file = os.path.join(args.dataset, 'labels.npy')
   if args.gen_label:
-    print('Generating labels (class num: {}) in: {}...'
-          .format(args.class_num, feat_file))
+    print('=> Generating labels (class num: {}) in: {}...'.format(args.class_num, feat_file))
     labels = random_label(vnum, args.class_num,
                           outfile=label_file)
   
   # generate train/val/test set
   if args.gen_set:
-    print('Generating train/val/test masks in: {}...'
-          .format(args.dataset))
+    print('=> Generating train/val/test masks in: {}...'.format(args.dataset))
     split_dataset(vnum, outdir=args.dataset)
   
   print('Done.')

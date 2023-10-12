@@ -23,25 +23,13 @@ if __name__ == '__main__':
     # setpath = '/data/cwj/pagraph/ogb/set'
     # curpath =  osp.dirname(__file__)
     setpath = args.path
+    print('-> loading NodePropPredDataset from DGL library')
     dataset = NodePropPredDataset(name=args.name,root=setpath)
-    print('end')
+    print('-> end')
     data = dataset[0]
     node_num = data[0]['num_nodes']
     edge_num = len(data[0]['edge_index'][0])
-    print(f'dataset name: {args.name} #vertex: {node_num} #edges: {edge_num}')
-    # num = [0] * node_num
-    # flag = 0
-    # count = 0
-    # for i in range(0,edge_num):
-    #     num[data[0]['edge_index'][0][i]] = num[data[0]['edge_index'][0][i]] + 1
-    #     num[data[0]['edge_index'][1][i]] = num[data[0]['edge_index'][1][i]] + 1
-    # for i in range(0,node_num):
-    #     if num[i] == 0:
-    #         flag = 1
-    #         count = count + 1
-    #         print(data[1][i])
-    # print(count/node_num)
-    # assert flag == 0
+    print(f'-> dataset name: {args.name} #vertex: {node_num} #edges: {edge_num}')
 
     labels = np.zeros(node_num,dtype=np.float32)
     for i in range(0,node_num):
@@ -49,37 +37,38 @@ if __name__ == '__main__':
 
     dataset_name = args.name.replace('-','_')
     # labels = np.load(osp.join(osp.join(setpath, dataset_name), 'raw/node-label.npz'))['node_label']
-    print(f'labels: {labels}')
-    savepath = osp.join(setpath, dataset_name)
+    # print(f'labels: {labels}')
     # 生成的
     savepath = osp.join(setpath, dataset_name) + f'{args.len}'
     if not osp.exists(savepath):
         os.mkdir(savepath)
-        print('Created dir name:', savepath)
+        print('-> Created dir name:', savepath)
     labpath = osp.join(savepath,'labels.npy')
+    np.save(labpath,labels)
+    print(f'-> Save labels into {labpath}')
+
     ppath = osp.join(savepath,'pp.txt')
+    with open(ppath,'w') as f:
+        for i in range(0,edge_num):
+            f.write(str(data[0]['edge_index'][0][i]) + "\t" + str(data[0]['edge_index'][1][i]) + "\n")
+    print(f'-> Save pp files into {ppath}')
+
     featpath = osp.join(savepath,'feat.npy')
     cur_len = len(data[0]['node_feat'][0])
     new_array = np.empty(data[0]['node_feat'].shape,dtype="float32")
     new_array[:] = data[0]['node_feat']
-    print('original features dim:', len(new_array[0]), 'dtype:', new_array.dtype)
+    print('-> original features dim:', len(new_array[0]), 'dtype:', new_array.dtype)
     if args.len <= 0:
         pass
     elif cur_len < args.len:
         new_array = np.concatenate((new_array,np.ones((node_num,args.len - cur_len), dtype=new_array.dtype)),axis=1)
     else:
         new_array = new_array[:,0:args.len]
-    np.save(labpath,labels)
-    with open(ppath,'w') as f:
-        for i in range(0,edge_num):
-            f.write(str(data[0]['edge_index'][0][i]) + "\t" + str(data[0]['edge_index'][1][i]) + "\n")
     np.save(featpath,new_array)
-    print(f'features: {new_array}')
-    print('final features dim:', len(new_array[0]))
-    print("final features memory size:", new_array.size * new_array.itemsize)
+    print(f'-> Save feats (dim: {len(new_array[0])}) into {featpath}')
+    print(f"-> Total feats memory size (MB):", new_array.size * new_array.itemsize // 1024 // 1024)
 
-
-    print(f'end, directed={directed[args.name]}')
+    print(f'-> ogb_fmt.py run to end, directed value ={directed[args.name]}')
 
     # print(data[0]['edge_index'][0])
     # print(data[0]['edge_index'][1])

@@ -1,5 +1,5 @@
 SCRIPT_DIR="$(dirname "$0")" # $0 表示本脚本文件名的full path
-SETPATH="$SCRIPT_DIR/dist/repgnn_data/"
+SETPATH="$SCRIPT_DIR/../dist/repgnn_data/"
 ORINAME='ogbn-products' # ogbn-arxiv cora_full
 SEED=2022
 LEN=0 # 要使用原来数据集的标准长度设置为0，否则设置目标长度值；
@@ -60,16 +60,16 @@ then
 echo "-> running with --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
-    python ./data/preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED # 原来已经分出来了 train/val/test
+    python preprocess.py --ppfile pp.txt --directed --dataset $SETPATH$NAME$LEN --seed $SEED # 原来已经分出来了 train/val/test
     else
-    python ./data/preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    python preprocess.py --ppfile pp.txt --directed --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
     fi
 else
 echo "-> running without --directed"
     if [ $ORINAME = 'citeseer' ] || [ $ORINAME = 'pubmed' ]
     then
-    python ./data/preprocess.py --ppfile pp.txt --dataset $SETPATH$NAME$LEN --seed $SEED
+    python preprocess.py --ppfile pp.txt --dataset $SETPATH$NAME$LEN --seed $SEED
     else
-    python ./data/preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
+    python preprocess.py --ppfile pp.txt --gen-set --dataset $SETPATH$NAME$LEN --seed $SEED
     fi
 fi

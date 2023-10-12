@@ -230,3 +230,32 @@ p3需要单独的模型结构，目前仅支持gcn，对应版本为gcn_p3.py
     go get google.golang.org/protobuf/runtime/protoimpl
     ```
 + kill remaining processing.  `ps -ef | grep weijian | grep python3 | grep repgnn | awk '{print $2}' | xargs kill -9`
+
+## 分支、目录、文件说明
++ master 最早的分支，单机多卡的基于pagraph的代码，丢弃
++ using_distcache 使用 python 的分布式缓存系统 distcache，试图降低从缓存中读取数据的额外开销（序列化、反序列化等的时间），失败，丢弃
++ using_redis 使用 c 的分布式缓存系统 redis，试图降低从缓存中读取数据的额外开销（序列化、反序列化等的时间），失败，丢弃
++ distributed_version 主分支
+  | 目录 | 文件类型 (d, f, l) | 功能说明 |
+  |:-----|:-----|:-----:|
+  | 3rdparties| d | 安装特定版本的 dgl、distcache 等三方库 |
+  | auto_test | d | 在一个机器上自动完成分布式多个机器的测试脚本 |
+  | common | d | 常见、公用的函数 |
+  | data | d | 数据预处理、产生/加载数据集的库；其中 1. `pre.sh`是准备数据集的脚本; 2. ogb_fmt.py用于根据ogbn的数据集产生特征、标签和拓扑(pp.txt)文件; 3. preprocess.py 用于生成 adj.npz、划分训练、验证和测试集。 |
+  | dissampler | d | 尝试写分布式sampler的代码，弃用 |
+  | dist | d | 多机分布式缓存系统 |
+  | logs/logs_rank* | d | 日志文件 |
+  | model | d | 常见的gnn模型 |
+  | model_inter | d | 用于计算naive迁移方法的中间数据量的模型 |
+  | prepartition | d | 各种图切分算法 |
+  | rpc_client | d | 分布式缓存的客户端接口 |
+  | scripts | d | 实验测试的脚本文件 |
+  | simulate | d | 模拟大规模分布式运行的命中率、local-shuffling精度等结果 |
+  | storage | d | 实现`DistCacheClient` |
+  | utils | d | 绘图、分析日志、多机同步代码修改等辅助函数 |
+  | doc | d | 开发笔记等文件 |
+  | dgl_default(_avoid_oom).py | f | 默认的分布式 GNN 训练，avoid_oom 版本用于降低需要训练的 iter 数量 |
+  | dgl_jpgnn_trans.py | f | 设计点1：使用基于micro-batch的模型迁移训练方法 |
+  | dgl_jpgnn_trans_multiplenfs.py | f | 设计点2：在1的基础上，提前预取 nfs 减少nfs间冗余的特征传输 |
+  | dgl_jpgnn_trans_lessjp(_avoid_error).py | f | 设计点3：在2的基础上，减少要跳跃的机器数量，avoid_error 版本用于降低需要训练的 iter 数量  |
+  | dgl_p3(_avoid_oom).py | f | 复现p3的混合并行训练方式 |

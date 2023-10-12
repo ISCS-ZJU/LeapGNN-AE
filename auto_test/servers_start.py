@@ -4,6 +4,7 @@ import subprocess
 import yaml
 import asyncio
 import argparse
+import multiprocessing
 
 # 读取配置文件
 def parse_server_config(confpath):
@@ -59,6 +60,14 @@ async def remote_run_command(ssh_pswd, serverip, cmd, remote_log_file):
     )
     return process
 
+def remote_run_command_sync(ssh_pswd, serverip, cmd):
+    ssh_cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "bash -c \'{cmd}\'"'
+    print(f"-> Start running ' {cmd} ' on remote {serverip} machine.")
+    # ssh到远程机器并执行命令
+    result = subprocess.run(ssh_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(result.stdout)
+    print(result.stderr)
+    return result
 
 # 读取 auto test config 文件
 auto_test_file = './test_config.yaml'
@@ -97,12 +106,22 @@ exec_dir = os.path.abspath('../dist')
 log_dir = os.path.abspath('../logs')
 cache_group = ','.join(cluster_servers)
 for serverip in cluster_servers:
+    remote_log_file = os.path.join(log_dir, f"server_output_{serverip}.log")
+    # 在每个节点异步执行 分图算法
+    processes = []
+    if len(cluster_servers) > 1:
+        cmd = f'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {os.path.abspath("../")} && python3 prepartition/{partition_type}.py --partition {len(cluster_servers)} --dataset ./dist/{dataset_path}'
+        p = multiprocessing.Process(target=remote_run_command_sync, args=(ssh_pswd, serverip, cmd))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
+
     # 在每个节点异步执行 go run server.go 
     cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type} -partition_type "{partition_type}"'
     if statistic:
         cmd += f' -statistic'
     if multi_feat_file:
         cmd += f' -multi_feat_file'
-    remote_log_file = os.path.join(log_dir, f"server_output_{serverip}.log")
     asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, remote_log_file))
     # remote_run_command(ssh_pswd, serverip, cmd, remote_log_file)
