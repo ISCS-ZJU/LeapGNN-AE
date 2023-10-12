@@ -125,6 +125,11 @@ if __name__ == '__main__':
   train_nids = np.nonzero(np.ones_like(train_mask,dtype=bool))[0].astype(np.int64)
 
   labels = data.get_labels(args.dataset)
+
+  save_folder = os.path.join(args.dataset, f"dist_True/{args.partition}_pagraph")
+  if os.path.exists(save_folder):
+        print(f'-> Folder path {save_folder} 已经存在，分图算法退出')
+        sys.exit(0)
   
   # ordering
   if args.ordering:
@@ -144,7 +149,6 @@ if __name__ == '__main__':
   # partition
   p_v, p_trainv = dg(args.partition, adj, train_nids, args.num_hops)
   # print(p_trainv)
-  save_folder = os.path.join(args.dataset, f"dist_True/{args.partition}_pagraph")
   if not os.path.exists(save_folder):
       os.makedirs(save_folder)
   for nid, pid in enumerate(p_trainv):
