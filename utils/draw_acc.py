@@ -2,8 +2,20 @@ import matplotlib.pyplot as plt
 import os, re
 import yaml
 
+import argparse
+
 epoch_lst = [0, 1, 2, 3, 4, 5]
 accuracy_lst = [20, 30, 40, 35, 45, 50]
+
+his_epoch_lst = []
+his_accuracy_lst = []
+his_legend_lst = []
+
+def parse_args_func(argv):
+    parser = argparse.ArgumentParser(description='draw accuracy curve along with epoch')
+    parser.add_argument('--compare', action='store_true')
+    return parser.parse_args(argv)
+args = parse_args_func(None)
 
 def parse_config(confpath):
     with open(confpath, 'r') as fh:
@@ -26,17 +38,29 @@ def analyse_acc(filepath):
 
 def draw_acc(target_filename, srcfilepath):
     accuracy_lst, epoch_lst = analyse_acc(srcfilepath)
-    # plt.clf() # when comment this line, all lines will show on the same figure
-    plt.plot(epoch_lst, accuracy_lst)
+    if args.compare:
+        # 把其他文件里的几个线条合并画在一个图中
+        his_epoch_lst.append(epoch_lst)
+        his_accuracy_lst.append(accuracy_lst)
+        his_legend_lst.append(os.path.basename(srcfilepath))
+        print(his_epoch_lst)
+        for tmp_epoch, tmp_accuracy, tmp_legend in zip(his_epoch_lst, his_accuracy_lst, his_legend_lst):
+            plt.plot(tmp_epoch, tmp_accuracy, label = tmp_legend)
+    else:
+        # plt.clf() # when comment this line, all lines will show on the same figure
+        plt.plot(epoch_lst, accuracy_lst)
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.ylim(0, 100)  # Set the y-axis range
+    plt.legend()
     plt.savefig(target_filename)
+    plt.clf() # 清除窗口中之前的内容
 
 if __name__ == '__main__':
     cur_dir = os.path.dirname(__file__)
     files_list = parse_config(f'{cur_dir}/log_analys.yaml')
     for srcfilepath in files_list:
+        print(srcfilepath)
         filename = os.path.basename(srcfilepath)
         filedir = os.path.dirname(srcfilepath)
         target_filename = os.path.splitext(filename)[0] + '.png'
