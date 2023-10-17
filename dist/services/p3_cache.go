@@ -46,7 +46,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 	// 从并行文件系统中读取nid对应的feature数据
 	// TODO: 当前实现是1次加载全部的features到内存
 	if common.Config.Multi_feat_file == true{
-		feat_npy_filepath := fmt.Sprintf("%v/p3_feat%v.npy", common.Config.Dataset, dc.PartIdx)
+		feat_npy_filepath := fmt.Sprintf("%v/feat_p3/p3_feat%v.npy", common.Config.Dataset, dc.PartIdx)
 		log.Infof("%v\n", feat_npy_filepath)
 		featf, _ := os.Open(feat_npy_filepath)
 		// defer featf.Close()
