@@ -149,6 +149,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
                 train_lnid = fg_train_nid[cur_rank * ntrain_per_gpu: (cur_rank+1)*ntrain_per_gpu]
+                logging.debug(f'train_lnid first and last 20: {train_lnid[:20]}, {train_lnid[len(train_lnid)-20:]}')
             tmp = 0
             sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True) # shuffle=False because train_lnid has been shuffled
             for nfidx, nf in enumerate(sampler):
@@ -174,9 +175,17 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 #     raise Exception(f"pickle load failed.")
                 # os.remove(nf_fpath)
                 nf = nf_list[cur_rank][iter]
+                nf_nids = nf._node_mapping.tousertensor()
+                offsets, num_layers = nf._layer_offsets, nf.num_layers
+                if cur_rank == 0:
+                    logging.debug(f'nf_nids first 20: {nf_nids[0:20]}; nf_nids last 20: {nf_nids[len(nf_nids)-20:]}')
                 # featch feats for nf
                 cache_client.fetch_data(nf)
                 batch_nid = nf.layer_parent_nid(-1)
+                if cur_rank == 0:
+                    logging.debug(f'batch_nid last layer = {batch_nid}')
+                    logging.debug(f'last layer len of tnid = {len(nf_nids[offsets[num_layers-1]:offsets[num_layers]])}')
+                    logging.debug(f'features of last layer tnid: {nf._node_frames[-1]["features"]}, len = {len(nf._node_frames[-1]["features"])}')
                 labels = fg_labels[batch_nid].cuda(args.gpu, non_blocking=True)
                 # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                 pred = model(nf)

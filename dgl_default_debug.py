@@ -139,6 +139,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
                     train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
+                    logging.debug(f'train_lnid first and last 20: {train_lnid[:20]}, {train_lnid[len(train_lnid)-20:]}')
                     
                 ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
                 sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
@@ -151,12 +152,16 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 avg_loss = []
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in sampler:
+                    nf_nids = nf._node_mapping.tousertensor()
+                    logging.debug(f'nf_nids first 20: {nf_nids[0:20]}; nf_nids last 20: {nf_nids[len(nf_nids)-20:]}')
                     wait_sampler.append(time.time()-st)
                     # print(f'iter: {iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                         cache_client.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
+                    logging.debug(f'batch_nid last 20 = {batch_nid[len(batch_nid)-20:]}')
+                    logging.debug(f'features of last layer: {nf._node_frames[-1]["features"]}, len = {len(nf._node_frames[-1]["features"])}')
                     with torch.autograd.profiler.record_function('fetch label'):
                         labels = fg_labels[batch_nid].cuda(
                             args.gpu, non_blocking=True)

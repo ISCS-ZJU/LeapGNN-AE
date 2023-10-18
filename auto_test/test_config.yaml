@@ -28,17 +28,17 @@ model_name: "gcn"
 batch_size: 4096
 sampling: "2"
 n_epochs: 50
-learning_rate: 0.003
+learning_rate: 0.03
 cluster_build_port: "23457" # used by pytorch init_group
-grpc_port: "18114" # used for communication of cache server and client
+grpc_port: "18116" # used for communication of cache server and client
 dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
-hidden_size: 16
+hidden_size: 256
 
 # statistic
 log: True # rewrite statistic item in static_cache.yaml
 # log: False
-# eval: True
-eval: False
+eval: True
+# eval: False
 
 # Set the name of the server files to run
 server_files:

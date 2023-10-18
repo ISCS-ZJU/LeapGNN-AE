@@ -86,21 +86,21 @@ class DistCacheClient:
             # # fetch features from cache server
             
             # (non-stream method)
-            #     features = self.get_feats_from_server(tnid)
-            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
-            #     for name in self.dims:
-            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+                features = self.get_feats_from_server(tnid)
+            with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+                for name in self.dims:
+                    frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
             
-            # (stream method)
-                row_st_idx, row_ed_idx = 0, 0
-                for sub_features in self.get_stream_feats_from_server(tnid):
-                    for name in self.dims:
-                        sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
-                        row_ed_idx += sub_tensor.shape[0]
-                        # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
-                        # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
-                        frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
-                        row_st_idx = row_ed_idx
+            # # (stream method)
+            #     row_st_idx, row_ed_idx = 0, 0
+            #     for sub_features in self.get_stream_feats_from_server(tnid):
+            #         for name in self.dims:
+            #             sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+            #             row_ed_idx += sub_tensor.shape[0]
+            #             # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
+            #             # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+            #             frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+            #             row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
                 for name in self.dims:
