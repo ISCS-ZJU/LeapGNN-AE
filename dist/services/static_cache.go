@@ -48,7 +48,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 	// 从并行文件系统中读取nid对应的feature数据
 	// TODO: 当前实现是1次加载全部的features到内存
 	if common.Config.Multi_feat_file == true{
-		feat_npy_filepath := fmt.Sprintf("%v/feat_%v/feat%v.npy", common.Config.Dataset, Config.Partition_type, dc.PartIdx)
+		feat_npy_filepath := fmt.Sprintf("%v/feat_%v/feat%v.npy", common.Config.Dataset, common.Config.Partition_type, dc.PartIdx)
 		featf, _ := os.Open(feat_npy_filepath)
 		defer featf.Close()
 		r, err := npyio.NewReader(featf)
