@@ -61,7 +61,7 @@ def random_multi_file_feature(vnum, feat_size, part_num, dataset,part_type):
   for i in range(part_num):
     part_file = os.path.join(dataset,f'dist_True/{part_num}_{part_type}/{i}.npy')
     node_num = np.load(part_file).shape[0]
-    outfile = os.path.join(dataset, f'feat{i}.npy')
+    outfile = os.path.join(dataset, f'feat_{part_type}/feat{i}.npy')
     feat_mat = rng.random(size=(node_num, feat_size), dtype=np.float32)
     # feat_mat = np.random.random((node_num, feat_size)).astype(np.float32)
     if outfile:
@@ -82,7 +82,7 @@ def random_p3_feature(vnum, feat_size, part_num, dataset):
   sub_feat_size.append(feat_size - (part_num - 1)*int(feat_size / part_num))
   rng = np.random.default_rng()
   for i in range(part_num):
-    outfile = os.path.join(dataset, f'p3_feat{i}.npy')
+    outfile = os.path.join(dataset, f'feat_p3/p3_feat{i}.npy')
     feat_mat = rng.random(size=(vnum, sub_feat_size[i]), dtype=np.float32)
     # feat_mat = np.random.random((node_num, feat_size)).astype(np.float32)
     if outfile:
