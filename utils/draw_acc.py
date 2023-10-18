@@ -43,7 +43,6 @@ def draw_acc(target_filename, srcfilepath):
         his_epoch_lst.append(epoch_lst)
         his_accuracy_lst.append(accuracy_lst)
         his_legend_lst.append(os.path.basename(srcfilepath))
-        print(his_epoch_lst)
         for tmp_epoch, tmp_accuracy, tmp_legend in zip(his_epoch_lst, his_accuracy_lst, his_legend_lst):
             plt.plot(tmp_epoch, tmp_accuracy, label = tmp_legend)
     else:
@@ -51,7 +50,9 @@ def draw_acc(target_filename, srcfilepath):
         plt.plot(epoch_lst, accuracy_lst)
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
-    plt.ylim(0, 100)  # Set the y-axis range
+    min_y_value = min(accuracy_lst) if not args.compare else min([min(lst) for lst in his_accuracy_lst]) -1
+    max_y_value = max(accuracy_lst) if not args.compare else max([max(lst) for lst in his_accuracy_lst]) +1
+    plt.ylim(min_y_value, max_y_value)  # Set the y-axis range
     plt.legend()
     plt.savefig(target_filename)
     plt.clf() # 清除窗口中之前的内容

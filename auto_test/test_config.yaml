@@ -2,8 +2,8 @@
 # WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
   # - "10.214.243.19" # yq2
-  # - "10.214.241.227" # yq4
-  # - "10.214.241.228" # yq5
+  - "10.214.241.227" # yq4
+  - "10.214.241.228" # yq5
   - "10.214.241.223" # yq6
   - "10.214.241.232" # yq7
 
@@ -19,14 +19,15 @@ client_files:
   - "dgl_p3.py"
   - "dgl_p3_avoid_oom.py"
   - "dgl_jpgnn_trans_lessjp_avoid_error.py"
+  - "dgl_default_localshuffle.py" # 原始的 GNN 训练 - localshuffle 版本
 # Choose the client file to run
 run_client_idx: 0
 
 # training parameters
 model_name: "gcn"
-batch_size: 2048
-sampling: "2-2"
-n_epochs: 1
+batch_size: 4096
+sampling: "2"
+n_epochs: 50
 learning_rate: 0.003
 cluster_build_port: "23457" # used by pytorch init_group
 grpc_port: "18114" # used for communication of cache server and client
