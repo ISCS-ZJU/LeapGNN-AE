@@ -130,18 +130,28 @@ def run(gpu, ngpus_per_node, args, log_queue):
     # count number of model params
     print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
 
+    # 加载当前rank对应的训练点集合
+    split_nids_file_path = os.path.join(args.dataset, f'dist_True/{args.world_size}_metis/{args.rank}.npy')
+    print(f'Local nids path: {split_nids_file_path}')
+    local_nids = np.load(split_nids_file_path)
+    local_training_nids = np.intersect1d(local_nids, fg_train_nid)
+    print(f'Len of local training nids: {len(local_training_nids)}')
+
+
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
-                    ########## 获取当前gpu在当前epoch分配到的training node id ##########
+                    ########## 获取当前gpu在当前epoch分配到的training node id，只加载 local 的训练点 ##########
                     np.random.seed(epoch)
-                    np.random.shuffle(fg_train_nid)
-                    train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
+                    np.random.shuffle(local_training_nids)
+                    train_lnid = local_training_nids
+                    print(f'First 5 of shuffled local trianing nids: {train_lnid}')
+                    # train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
                     
                 ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
-                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
                 ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
@@ -217,8 +227,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
-    if not args.eval:
-        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
     # torch.distributed.barrier()

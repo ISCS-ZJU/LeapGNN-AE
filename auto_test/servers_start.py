@@ -121,6 +121,7 @@ for serverip in cluster_servers:
 
 print(f'\n=> 开始运行 server.go，运行分布式服务端')
 for serverip in cluster_servers:
+    remote_log_file = os.path.join(log_dir, f"server_output_{serverip}.log")
     # 在每个节点异步执行 go run server.go 
     cmd = f'cd {exec_dir} && nohup `which go` run server.go -dataset {dataset_path} -cachegroup "{cache_group}" -cachetype {cache_type} -partition_type "{partition_type}" -rpcport {grpc_port}'
     if statistic:

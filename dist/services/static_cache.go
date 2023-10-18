@@ -93,6 +93,7 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 			log.Fatal(err)
 		}
 		log.Info("[static_cache.go] Read features done.")
+		log.Infof("[static_cache.go] features[67210][0] = %v, features[29053][0] = %v.", features[67210*128], features[29053*128])
 	
 		// 初始化填充点的feature到缓存
 		start := time.Now()
