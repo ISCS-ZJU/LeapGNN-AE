@@ -80,7 +80,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 		featf.Close()
 		p3_cache.Feature_dim = int64(0)
 		for i:= 0; i < common.Config.Partition;i++{
-			feat_npy_filepath = fmt.Sprintf("%v/p3_feat%v.npy", common.Config.Dataset, i)
+			feat_npy_filepath = fmt.Sprintf("%v/feat_p3/p3_feat%v.npy", common.Config.Dataset, i)
 			featf, _ = os.Open(feat_npy_filepath)
 			r, err = npyio.NewReader(featf)
 			if err != nil {
