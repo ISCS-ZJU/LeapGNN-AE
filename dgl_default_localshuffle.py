@@ -136,10 +136,15 @@ def run(gpu, ngpus_per_node, args, log_queue):
     local_nids = np.load(split_nids_file_path)
     local_training_nids = np.intersect1d(local_nids, fg_train_nid)
     print(f'Len of local training nids: {len(local_training_nids)}')
+    # 让训练点数量均衡
+    if ntrain_per_gpu > len(local_training_nids):
+        local_training_nids = np.concatenate((local_training_nids, local_training_nids[0:ntrain_per_gpu - len(local_training_nids)]))
+    else:
+        local_training_nids = local_training_nids[:ntrain_per_gpu]
 
 
     #################### GNN训练 ####################
-    with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
+    with torch.autograd.profiler.profile(enabled=(args.gpu == -1), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
@@ -147,7 +152,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     np.random.seed(epoch)
                     np.random.shuffle(local_training_nids)
                     train_lnid = local_training_nids
-                    print(f'First 5 of shuffled local trianing nids: {train_lnid}')
+                    # print(f'First 5 of shuffled local trianing nids: {train_lnid}')
                     # train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
                     
                 ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
@@ -227,7 +232,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
-    logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
+    if not args.eval:
+        logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
     # torch.distributed.barrier()
@@ -316,17 +322,21 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}_localTrue.log')
     else:
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}_localTrue.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        if_delete = 'y'
-        if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename) # 删除已有日志，重新运行
-        else:
-            print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1) # 退出程序
+        # if_delete = 'y'
+        # if if_delete=='y' or if_delete=='Y':
+        #     os.remove(log_filename) # 删除已有日志，重新运行
+        # else:
+        #     print('已经运行过，无需重跑，直接退出程序')
+        #     sys.exit(-1) # 退出程序
+        while os.path.exists(log_filename):
+            base, extension = os.path.splitext(log_filename)
+            log_filename = f"{base}_1{extension}"
+            print(f"new log_filename: {log_filename}")
     
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()

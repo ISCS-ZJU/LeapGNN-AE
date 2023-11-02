@@ -54,7 +54,8 @@ def run(gpu, barrier, n_gnn_trainers, args):
     args.rank = gpu  # 模拟第n个gnn trainer
 
     #################### rank=0的进程负责metis切分图，并保存每个trainer分到的图数据id ####################
-    partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
+    # partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
+    partition_name = 'metis'
     if args.rank == 0:
         # 检查metis是否切分完全，没有的话执行切分
         part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_{partition_name}'
@@ -147,8 +148,8 @@ def run(gpu, barrier, n_gnn_trainers, args):
         logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
         logging.info(f"{'=='*10} | rank={args.rank},epoch={epoch} 采样node信息输出 | {'=='*10}")
         logging.info(f'rank={args.rank}, number of training batches: {len(batches_n_nodes)}')
-        logging.info(f'rank={args.rank}, the number of nodes for each tree spand by batch: {batches_n_nodes}, total nodes: {sum(batches_n_nodes)}')
-        logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes}')
+        logging.info(f'rank={args.rank}, the number of nodes for each tree spand by batch: {batches_n_nodes[:10]}, total nodes: {sum(batches_n_nodes)}')
+        logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes[:10]}')
         logging.info(f"{'=='*10} | rank={args.rank},epoch={epoch} 每个nf中和target node相同machine的占比 | {'=='*10}")
         logging.info(f"rank={args.rank}, same machine percentage with target node: {same_target_machine_per_nf}")
         logging.info(f"rank={args.rank}, same machine percentage with target node per nf: {round(sum(same_target_machine_per_nf) / len(same_target_machine_per_nf), 2)}")

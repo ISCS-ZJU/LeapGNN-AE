@@ -135,7 +135,7 @@ export GLOO_SOCKET_IFNAME=ens17f1 && time python3 dgl_default.py -mn gcn -bs 800
         + 使用方法：如模拟两个node：`python3 simulate/cha1/dgl_defaultsimulate.py -bs 8000 -ep 1 --world-size 2 --sampling 2-2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 - obsv1
     - obsv1/dgl_defaultsimulate.py 在 `dgl_default.py`代码基础上修改，用于模拟大规模分布式训练GNN，探究target node=1时生产的子树中和target node属于同一机器的比例：
-        + 使用方法：`python3 simulate/cha1/dgl_defaultsimulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
+        + 使用方法：`python3 simulate/obsv1/dgl_defaultsimulate.py -bs 1 -ep 1 --world-size 2 --sampling 2 -d ./dist/repgnn_data/ogbn_arxiv128/`
 
 ## 日志分析
 在utils目录下运行log_analys.py，需要分析的文件填写在里面的log_analys.yaml中 (支持填写文件夹的路径)

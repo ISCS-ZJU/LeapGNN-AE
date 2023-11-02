@@ -294,6 +294,65 @@ class DistCacheClient:
                     logging.debug(f'Final nfs._node_frames:{i}, frames[j]["features"].size(): {frames[j]["features"].size()}\n')
                     nfs[j]._node_frames[i] = FrameRef(Frame(frames[j]))
 
+    def construct_local_cached_dict(self, replace_prob, total_vertices, datasetpath, dist_num, rank):
+        self.replace_prob = replace_prob
+        self.total_vertices = total_vertices
+        self.datasetpath = datasetpath
+        self.dist_num = dist_num
+        self.rank = rank
+
+        # read metadata to record whether each vertex are cached locally
+        local_cached_path = os.path.join(datsetpath, f'dist_True/{dist_num}_metis/{rank}.npy')
+        local_cached_vertices = np.load(local_cached_path)
+        self.whether_local = np.zeros(total_vertices, dtype = bool) # default value is False
+        self.whether_local[local_cached_vertices] = True
+
+
+    def fetch_partial_remote_data(self, nfs):
+        # 对于不在本地的数据，按一定的概率替换为根节点
+        with torch.autograd.profiler.record_function('get nf_nids'):
+            # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
+            nf_nids = nodeflow._node_mapping.tousertensor()
+            offsets = nodeflow._layer_offsets
+            logging.debug(f'fetch_data batch onid, layer_offset: {nf_nids}, {offsets}')
+        logging.debug(f'nf.nlayers: {nodeflow.num_layers}')
+        for i in range(nodeflow.num_layers):
+            tnid = nf_nids[offsets[i]:offsets[i+1]]
+            # create frame
+            with torch.autograd.profiler.record_function('create frames'):
+                # with torch.cuda.device(self.gpuid):
+                #     frame = {name: torch.cuda.FloatTensor(tnid.size(0), self.dims[name])
+                #              for name in self.dims}  # 分配存放返回当前Layer特征的空间，size是(#onid, feature-dim)
+                frame = {name: torch.empty(tnid.size(0), self.dims[name]) for name in self.dims}
+                tnid = tnid.tolist()
+            with torch.autograd.profiler.record_function('fetch feat from cache server'):
+            # # fetch features from cache server
+            
+            # # (non-stream method)
+            #     features = self.get_feats_from_server(tnid)
+            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+            #     for name in self.dims:
+            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+            
+            # (stream method)
+                row_st_idx, row_ed_idx = 0, 0
+                for sub_features in self.get_stream_feats_from_server(tnid):
+                    for name in self.dims:
+                        sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                        row_ed_idx += sub_tensor.shape[0]
+                        # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
+                        # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+                        frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+                        row_st_idx = row_ed_idx
+            with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
+                # move features from cpu memory to gpu memory
+                for name in self.dims:
+                    frame[name].data = frame[name].data.cuda(self.gpuid)
+            # attach features to nodeflow
+            with torch.autograd.profiler.record_function('asign frame to nodeflow'):
+                logging.debug(f'Final nodeflow._node_frames:{i}, frame["features"].size(): {frame["features"].size()}\n')
+                nodeflow._node_frames[i] = FrameRef(Frame(frame))
+
     def get_feat_dim(self):
         response = self.stub.DCSubmit(distcache_pb2.DCRequest(
         type=distcache_pb2.get_feature_dim), timeout=1000) # response is DCReply type response

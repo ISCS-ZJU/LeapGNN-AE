@@ -1,7 +1,7 @@
 import os
 import re
 
-target_dir = '/home/weijian/gitclone/repgnn/simulate/multi_gpu_acc/logs'
+target_dir = '/home/weijian/gitclone/repgnn/logs'
 sigstr = 'Test Accuracy'
 target_files_lst = os.listdir(target_dir)
 target_files_lst.sort()
@@ -27,7 +27,13 @@ for fn in target_files_lst:
         sl = fn.split('sl')[1].split('_')[0]
         ntrainer = fn.split('trainer')[1].split('_')[0]
         bs = fn.split('bs')[1].split('_')[0]
-        local = fn.split('local')[1].split('.')[0]
+        if 'local' in fn:
+            try:
+                local = fn.split('local')[1].split('_')[0]
+            except Exception:
+                local = fn.split('local')[1].split('.')[0]
+        else:
+            local = False
         print(dataset, model+'-'+sl, ntrainer+'-'+bs, local, highest_acc, epoch_id)
 
 
