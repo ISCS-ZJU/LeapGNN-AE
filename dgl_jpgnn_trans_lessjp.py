@@ -250,6 +250,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         args.n_classes = 6
     elif 'pubmed' in args.dataset:
         args.n_classes = 3
+    elif 'reddit' in args.dataset:
+        args.n_classes = 41
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -328,6 +330,12 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     else:
                         adjust_jp_times = False
                         jp_times += 1 # 恢复性能更好的jp_times
+                
+                # # sync jp_times
+                # jp_times_tensor = torch.tensor(jp_times)
+                # dist.all_reduce(jp_times_tensor, op=torch.distributed.ReduceOp.SUM)
+                # jp_times = jp_times_tensor.item() // args.world_size
+
                 if jp_times > 0:
                     ########## 确定当前epoch每个gpu要训练的batch nid ###########
                     sub_batch_nid, sub_batch_offsets, model_trace = get_sub_batchs(epoch, fg_train_nid, world_size, ntrain_per_gpu, cache_client, nid2pid, gpuid, args.rank, split_fn, jp_times, miss_rate_lst)
@@ -538,13 +546,17 @@ if __name__ == '__main__':
     else:
         log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
-        # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        if_delete = 'y'
-        if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename) # 删除已有日志，重新运行
-        else:
-            print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1) # 退出程序
+        # # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        # if_delete = 'y'
+        # if if_delete=='y' or if_delete=='Y':
+        #     os.remove(log_filename) # 删除已有日志，重新运行
+        # else:
+        #     print('已经运行过，无需重跑，直接退出程序')
+        #     sys.exit(-1) # 退出程序
+        while os.path.exists(log_filename):
+            base, extension = os.path.splitext(log_filename)
+            log_filename = f"{base}_1{extension}"
+            print(f"new log_filename: {log_filename}")
 
     # if torch.cuda.is_available():
     #     ngpus_per_node = torch.cuda.device_count()
