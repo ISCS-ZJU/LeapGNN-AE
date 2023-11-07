@@ -309,6 +309,9 @@ class DistCacheClient:
 
 
     def fetch_partial_remote_data(self, nfs):
+        #######
+        # WIP #
+        #######
         # 对于不在本地的数据，按一定的概率替换为根节点
         with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid

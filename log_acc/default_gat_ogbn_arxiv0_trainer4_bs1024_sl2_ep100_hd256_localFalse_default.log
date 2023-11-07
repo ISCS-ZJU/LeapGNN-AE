@@ -1,0 +1,507 @@
+2023-11-02 20:51:35,082 - INFO - Rank 0 | Client Args: Namespace(dataset='/home/weijian/gitclone/repgnn/./dist/repgnn_data/ogbn_arxiv0', sampling='2', hidden_size=256, n_classes=60, batch_size=1024, dropout=0.2, lr=0.001, weight_decay=0, model_name='gat', epoch=100, num_worker=1, cache_size=0, seed=None, log=True, eval=True, dist_url='tcp://10.214.241.227:23457', world_size=4, rank=0, gpu=0, grpc_port='10.214.241.227:18116', mlp_layers=1, block='res+', conv='gen', gcn_aggr='max', norm='batch', t=1.0, p=1.0, y=0.0, learn_t=False, learn_p=False, learn_y=False, msg_norm=False, learn_msg_scale=False, distributed=True)
+2023-11-02 20:51:35,713 - INFO - Rank 0 | Added key: store_based_barrier_key:1 to store for rank: 0
+2023-11-02 20:51:35,733 - INFO - Rank 0 | Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
+2023-11-02 20:51:35,734 - INFO - Rank 0 | Using 4 distributed GPUs in total for training...
+2023-11-02 20:51:42,881 - INFO - Rank 0 | Reducer buckets have been rebuilt in this iteration.
+2023-11-02 20:51:45,557 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:51:45,557 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 0 on rank 0: 132430 / 177633 = 0.7455258876447507
+2023-11-02 20:51:45,559 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.006 s, total_remote_feats_gather_time = 1.244 s
+2023-11-02 20:51:45,559 - INFO - Rank 0 | => cur_epoch 0 finished on rank 0
+2023-11-02 20:51:47,833 - INFO - Rank 0 | Epoch: 0, Test Accuracy 0.37947894276873656
+2023-11-02 20:51:50,680 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:51:50,681 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 1 on rank 0: 414019 / 554913 = 0.7460971359474368
+2023-11-02 20:51:50,683 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.014 s, total_remote_feats_gather_time = 3.844 s
+2023-11-02 20:51:50,683 - INFO - Rank 0 | => cur_epoch 1 finished on rank 0
+2023-11-02 20:51:53,038 - INFO - Rank 0 | Epoch: 1, Test Accuracy 0.48574532914471974
+2023-11-02 20:51:55,990 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:51:55,990 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 2 on rank 0: 694907 / 931190 = 0.7462569400444592
+2023-11-02 20:51:55,991 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.024 s, total_remote_feats_gather_time = 6.607 s
+2023-11-02 20:51:55,992 - INFO - Rank 0 | => cur_epoch 2 finished on rank 0
+2023-11-02 20:51:58,366 - INFO - Rank 0 | Epoch: 2, Test Accuracy 0.5312610718756643
+2023-11-02 20:52:01,474 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:01,475 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 3 on rank 0: 975829 / 1307668 = 0.7462360476818275
+2023-11-02 20:52:01,476 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.034 s, total_remote_feats_gather_time = 9.344 s
+2023-11-02 20:52:01,477 - INFO - Rank 0 | => cur_epoch 3 finished on rank 0
+2023-11-02 20:52:03,865 - INFO - Rank 0 | Epoch: 3, Test Accuracy 0.546803032808182
+2023-11-02 20:52:06,845 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:06,846 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 4 on rank 0: 1256893 / 1684405 = 0.7461940566550206
+2023-11-02 20:52:06,847 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.045 s, total_remote_feats_gather_time = 12.032 s
+2023-11-02 20:52:06,848 - INFO - Rank 0 | => cur_epoch 4 finished on rank 0
+2023-11-02 20:52:09,237 - INFO - Rank 0 | Epoch: 4, Test Accuracy 0.555070033304202
+2023-11-02 20:52:12,169 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:12,170 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 5 on rank 0: 1538460 / 2061079 = 0.7464342705932184
+2023-11-02 20:52:12,171 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.054 s, total_remote_feats_gather_time = 14.797 s
+2023-11-02 20:52:12,171 - INFO - Rank 0 | => cur_epoch 5 finished on rank 0
+2023-11-02 20:52:14,647 - INFO - Rank 0 | Epoch: 5, Test Accuracy 0.5643054538583272
+2023-11-02 20:52:17,575 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:17,576 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 6 on rank 0: 1819939 / 2437885 = 0.7465237285597968
+2023-11-02 20:52:17,577 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.063 s, total_remote_feats_gather_time = 17.567 s
+2023-11-02 20:52:17,577 - INFO - Rank 0 | => cur_epoch 6 finished on rank 0
+2023-11-02 20:52:20,036 - INFO - Rank 0 | Epoch: 6, Test Accuracy 0.5689585941375156
+2023-11-02 20:52:23,083 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:23,084 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 7 on rank 0: 2100499 / 2813821 = 0.7464934692007772
+2023-11-02 20:52:23,086 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.07200000000000001 s, total_remote_feats_gather_time = 20.346 s
+2023-11-02 20:52:23,086 - INFO - Rank 0 | => cur_epoch 7 finished on rank 0
+2023-11-02 20:52:25,630 - INFO - Rank 0 | Epoch: 7, Test Accuracy 0.5715095542905733
+2023-11-02 20:52:28,516 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:28,517 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 8 on rank 0: 2382142 / 3190883 = 0.7465463321594681
+2023-11-02 20:52:28,518 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.081 s, total_remote_feats_gather_time = 23.118000000000002 s
+2023-11-02 20:52:28,518 - INFO - Rank 0 | => cur_epoch 8 finished on rank 0
+2023-11-02 20:52:30,913 - INFO - Rank 0 | Epoch: 8, Test Accuracy 0.5730684743841085
+2023-11-02 20:52:33,921 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:33,922 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 9 on rank 0: 2662564 / 3566902 = 0.7464640183554244
+2023-11-02 20:52:33,923 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.09 s, total_remote_feats_gather_time = 25.764 s
+2023-11-02 20:52:33,923 - INFO - Rank 0 | => cur_epoch 9 finished on rank 0
+2023-11-02 20:52:36,369 - INFO - Rank 0 | Epoch: 9, Test Accuracy 0.5751470345088221
+2023-11-02 20:52:39,342 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:39,343 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 10 on rank 0: 2943923 / 3943146 = 0.7465924416696719
+2023-11-02 20:52:39,344 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.098 s, total_remote_feats_gather_time = 28.446 s
+2023-11-02 20:52:39,344 - INFO - Rank 0 | => cur_epoch 10 finished on rank 0
+2023-11-02 20:52:41,746 - INFO - Rank 0 | Epoch: 10, Test Accuracy 0.5773673146420388
+2023-11-02 20:52:44,609 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:44,610 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 11 on rank 0: 3225704 / 4320585 = 0.7465896400603159
+2023-11-02 20:52:44,611 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.106 s, total_remote_feats_gather_time = 31.098 s
+2023-11-02 20:52:44,612 - INFO - Rank 0 | => cur_epoch 11 finished on rank 0
+2023-11-02 20:52:46,849 - INFO - Rank 0 | Epoch: 11, Test Accuracy 0.5773200746392044
+2023-11-02 20:52:49,899 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:49,900 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 12 on rank 0: 3507414 / 4697687 = 0.7466257330469229
+2023-11-02 20:52:49,901 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.114 s, total_remote_feats_gather_time = 33.676 s
+2023-11-02 20:52:49,901 - INFO - Rank 0 | => cur_epoch 12 finished on rank 0
+2023-11-02 20:52:52,379 - INFO - Rank 0 | Epoch: 12, Test Accuracy 0.5819495949169757
+2023-11-02 20:52:55,405 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:52:55,406 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 13 on rank 0: 3788066 / 5073598 = 0.7466232050706422
+2023-11-02 20:52:55,408 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.123 s, total_remote_feats_gather_time = 36.461 s
+2023-11-02 20:52:55,408 - INFO - Rank 0 | => cur_epoch 13 finished on rank 0
+2023-11-02 20:52:57,733 - INFO - Rank 0 | Epoch: 13, Test Accuracy 0.5784065947043957
+2023-11-02 20:53:00,614 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:00,615 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 14 on rank 0: 4069759 / 5451226 = 0.746576825103197
+2023-11-02 20:53:00,616 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.13 s, total_remote_feats_gather_time = 39.083 s
+2023-11-02 20:53:00,616 - INFO - Rank 0 | => cur_epoch 14 finished on rank 0
+2023-11-02 20:53:02,882 - INFO - Rank 0 | Epoch: 14, Test Accuracy 0.5802253348135201
+2023-11-02 20:53:05,759 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:05,761 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 15 on rank 0: 4351121 / 5828087 = 0.7465779079824992
+2023-11-02 20:53:05,762 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.138 s, total_remote_feats_gather_time = 41.572 s
+2023-11-02 20:53:05,762 - INFO - Rank 0 | => cur_epoch 15 finished on rank 0
+2023-11-02 20:53:08,051 - INFO - Rank 0 | Epoch: 15, Test Accuracy 0.5809103148546189
+2023-11-02 20:53:10,927 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:10,929 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 16 on rank 0: 4631617 / 6204170 = 0.7465328964228898
+2023-11-02 20:53:10,930 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.147 s, total_remote_feats_gather_time = 44.164 s
+2023-11-02 20:53:10,930 - INFO - Rank 0 | => cur_epoch 16 finished on rank 0
+2023-11-02 20:53:13,302 - INFO - Rank 0 | Epoch: 16, Test Accuracy 0.5830833549850013
+2023-11-02 20:53:16,149 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:16,150 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 17 on rank 0: 4913620 / 6581271 = 0.7466065445413204
+2023-11-02 20:53:16,151 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.156 s, total_remote_feats_gather_time = 46.858000000000004 s
+2023-11-02 20:53:16,151 - INFO - Rank 0 | => cur_epoch 17 finished on rank 0
+2023-11-02 20:53:18,533 - INFO - Rank 0 | Epoch: 17, Test Accuracy 0.5810992748659565
+2023-11-02 20:53:21,407 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:21,409 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 18 on rank 0: 5194379 / 6958157 = 0.7465164985498315
+2023-11-02 20:53:21,410 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.164 s, total_remote_feats_gather_time = 49.562 s
+2023-11-02 20:53:21,410 - INFO - Rank 0 | => cur_epoch 18 finished on rank 0
+2023-11-02 20:53:23,703 - INFO - Rank 0 | Epoch: 18, Test Accuracy 0.5824219949453197
+2023-11-02 20:53:26,698 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:26,700 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 19 on rank 0: 5476519 / 7335556 = 0.7465717663391841
+2023-11-02 20:53:26,701 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.17200000000000001 s, total_remote_feats_gather_time = 52.224000000000004 s
+2023-11-02 20:53:26,701 - INFO - Rank 0 | => cur_epoch 19 finished on rank 0
+2023-11-02 20:53:29,228 - INFO - Rank 0 | Epoch: 19, Test Accuracy 0.5819968349198101
+2023-11-02 20:53:32,153 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:32,154 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 20 on rank 0: 5756859 / 7711989 = 0.7464817442037327
+2023-11-02 20:53:32,155 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.18 s, total_remote_feats_gather_time = 55.051 s
+2023-11-02 20:53:32,155 - INFO - Rank 0 | => cur_epoch 20 finished on rank 0
+2023-11-02 20:53:34,631 - INFO - Rank 0 | Epoch: 20, Test Accuracy 0.5821857949311477
+2023-11-02 20:53:37,589 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:37,590 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 21 on rank 0: 6038487 / 8089299 = 0.7464784031348081
+2023-11-02 20:53:37,591 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.188 s, total_remote_feats_gather_time = 57.842 s
+2023-11-02 20:53:37,591 - INFO - Rank 0 | => cur_epoch 21 finished on rank 0
+2023-11-02 20:53:40,001 - INFO - Rank 0 | Epoch: 21, Test Accuracy 0.5834140350048421
+2023-11-02 20:53:43,000 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:43,001 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 22 on rank 0: 6319626 / 8465733 = 0.7464948398443466
+2023-11-02 20:53:43,002 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.197 s, total_remote_feats_gather_time = 60.589 s
+2023-11-02 20:53:43,002 - INFO - Rank 0 | => cur_epoch 22 finished on rank 0
+2023-11-02 20:53:45,437 - INFO - Rank 0 | Epoch: 22, Test Accuracy 0.5845005550700333
+2023-11-02 20:53:48,353 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:48,354 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 23 on rank 0: 6601758 / 8842956 = 0.7465555635468502
+2023-11-02 20:53:48,355 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.20600000000000002 s, total_remote_feats_gather_time = 63.314 s
+2023-11-02 20:53:48,355 - INFO - Rank 0 | => cur_epoch 23 finished on rank 0
+2023-11-02 20:53:50,723 - INFO - Rank 0 | Epoch: 23, Test Accuracy 0.5837683350261001
+2023-11-02 20:53:53,635 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:53,636 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 24 on rank 0: 6883619 / 9220365 = 0.7465668658453326
+2023-11-02 20:53:53,637 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.215 s, total_remote_feats_gather_time = 65.991 s
+2023-11-02 20:53:53,637 - INFO - Rank 0 | => cur_epoch 24 finished on rank 0
+2023-11-02 20:53:56,146 - INFO - Rank 0 | Epoch: 24, Test Accuracy 0.5841698750501925
+2023-11-02 20:53:59,060 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:53:59,061 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 25 on rank 0: 7165283 / 9597277 = 0.7465954145118454
+2023-11-02 20:53:59,062 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.224 s, total_remote_feats_gather_time = 68.737 s
+2023-11-02 20:53:59,062 - INFO - Rank 0 | => cur_epoch 25 finished on rank 0
+2023-11-02 20:54:01,332 - INFO - Rank 0 | Epoch: 25, Test Accuracy 0.5839336750360204
+2023-11-02 20:54:04,167 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:04,169 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 26 on rank 0: 7446477 / 9973903 = 0.7465960918208248
+2023-11-02 20:54:04,170 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.233 s, total_remote_feats_gather_time = 71.269 s
+2023-11-02 20:54:04,170 - INFO - Rank 0 | => cur_epoch 26 finished on rank 0
+2023-11-02 20:54:06,621 - INFO - Rank 0 | Epoch: 26, Test Accuracy 0.5843588350615301
+2023-11-02 20:54:09,515 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:09,516 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 27 on rank 0: 7728601 / 10350573 = 0.7466833961752649
+2023-11-02 20:54:09,517 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.242 s, total_remote_feats_gather_time = 73.94800000000001 s
+2023-11-02 20:54:09,517 - INFO - Rank 0 | => cur_epoch 27 finished on rank 0
+2023-11-02 20:54:11,823 - INFO - Rank 0 | Epoch: 27, Test Accuracy 0.5840517750431065
+2023-11-02 20:54:14,695 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:14,696 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 28 on rank 0: 8009731 / 10727078 = 0.7466833931849848
+2023-11-02 20:54:14,697 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.251 s, total_remote_feats_gather_time = 76.53 s
+2023-11-02 20:54:14,698 - INFO - Rank 0 | => cur_epoch 28 finished on rank 0
+2023-11-02 20:54:17,168 - INFO - Rank 0 | Epoch: 28, Test Accuracy 0.5850674351040461
+2023-11-02 20:54:20,042 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:20,043 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 29 on rank 0: 8290557 / 11103585 = 0.7466558773585288
+2023-11-02 20:54:20,045 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.26 s, total_remote_feats_gather_time = 79.296 s
+2023-11-02 20:54:20,045 - INFO - Rank 0 | => cur_epoch 29 finished on rank 0
+2023-11-02 20:54:22,481 - INFO - Rank 0 | Epoch: 29, Test Accuracy 0.5845241750714505
+2023-11-02 20:54:25,448 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:25,449 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 30 on rank 0: 8572749 / 11480824 = 0.7467015433735418
+2023-11-02 20:54:25,450 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.269 s, total_remote_feats_gather_time = 82.066 s
+2023-11-02 20:54:25,450 - INFO - Rank 0 | => cur_epoch 30 finished on rank 0
+2023-11-02 20:54:27,921 - INFO - Rank 0 | Epoch: 30, Test Accuracy 0.5840517750431065
+2023-11-02 20:54:30,905 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:30,907 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 31 on rank 0: 8853598 / 11857559 = 0.7466627827869126
+2023-11-02 20:54:30,908 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.281 s, total_remote_feats_gather_time = 84.85900000000001 s
+2023-11-02 20:54:30,908 - INFO - Rank 0 | => cur_epoch 31 finished on rank 0
+2023-11-02 20:54:33,441 - INFO - Rank 0 | Epoch: 31, Test Accuracy 0.5850438151026289
+2023-11-02 20:54:36,325 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:36,325 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 32 on rank 0: 9135154 / 12233851 = 0.7467112358978379
+2023-11-02 20:54:36,327 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.289 s, total_remote_feats_gather_time = 87.617 s
+2023-11-02 20:54:36,327 - INFO - Rank 0 | => cur_epoch 32 finished on rank 0
+2023-11-02 20:54:38,557 - INFO - Rank 0 | Epoch: 32, Test Accuracy 0.5828471549708293
+2023-11-02 20:54:41,469 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:41,469 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 33 on rank 0: 9416211 / 12610333 = 0.7467059751713139
+2023-11-02 20:54:41,470 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.299 s, total_remote_feats_gather_time = 90.187 s
+2023-11-02 20:54:41,470 - INFO - Rank 0 | => cur_epoch 33 finished on rank 0
+2023-11-02 20:54:43,738 - INFO - Rank 0 | Epoch: 33, Test Accuracy 0.5852327751139665
+2023-11-02 20:54:46,598 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:46,599 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 34 on rank 0: 9697249 / 12986741 = 0.7467038112179183
+2023-11-02 20:54:46,600 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.307 s, total_remote_feats_gather_time = 92.73100000000001 s
+2023-11-02 20:54:46,600 - INFO - Rank 0 | => cur_epoch 34 finished on rank 0
+2023-11-02 20:54:48,935 - INFO - Rank 0 | Epoch: 34, Test Accuracy 0.5827999149679949
+2023-11-02 20:54:51,855 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:51,857 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 35 on rank 0: 9978082 / 13362396 = 0.7467285058757427
+2023-11-02 20:54:51,858 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.316 s, total_remote_feats_gather_time = 95.32300000000001 s
+2023-11-02 20:54:51,858 - INFO - Rank 0 | => cur_epoch 35 finished on rank 0
+2023-11-02 20:54:54,175 - INFO - Rank 0 | Epoch: 35, Test Accuracy 0.5872404752344285
+2023-11-02 20:54:57,115 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:54:57,117 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 36 on rank 0: 10258894 / 13738717 = 0.7467141218499515
+2023-11-02 20:54:57,118 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.325 s, total_remote_feats_gather_time = 97.908 s
+2023-11-02 20:54:57,118 - INFO - Rank 0 | => cur_epoch 36 finished on rank 0
+2023-11-02 20:54:59,527 - INFO - Rank 0 | Epoch: 36, Test Accuracy 0.5866735952004157
+2023-11-02 20:55:02,406 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:02,407 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 37 on rank 0: 10540445 / 14114589 = 0.7467766153162518
+2023-11-02 20:55:02,408 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.335 s, total_remote_feats_gather_time = 100.61200000000001 s
+2023-11-02 20:55:02,409 - INFO - Rank 0 | => cur_epoch 37 finished on rank 0
+2023-11-02 20:55:04,683 - INFO - Rank 0 | Epoch: 37, Test Accuracy 0.5852327751139665
+2023-11-02 20:55:07,631 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:07,632 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 38 on rank 0: 10821597 / 14491170 = 0.7467717927537942
+2023-11-02 20:55:07,633 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.34400000000000003 s, total_remote_feats_gather_time = 103.175 s
+2023-11-02 20:55:07,633 - INFO - Rank 0 | => cur_epoch 38 finished on rank 0
+2023-11-02 20:55:10,215 - INFO - Rank 0 | Epoch: 38, Test Accuracy 0.5876892552613553
+2023-11-02 20:55:13,124 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:13,125 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 39 on rank 0: 11102664 / 14867720 = 0.7467630544562314
+2023-11-02 20:55:13,127 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.353 s, total_remote_feats_gather_time = 105.937 s
+2023-11-02 20:55:13,127 - INFO - Rank 0 | => cur_epoch 39 finished on rank 0
+2023-11-02 20:55:15,464 - INFO - Rank 0 | Epoch: 39, Test Accuracy 0.5868861752131705
+2023-11-02 20:55:18,495 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:18,497 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 40 on rank 0: 11383710 / 15245315 = 0.7467021835888599
+2023-11-02 20:55:18,498 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.363 s, total_remote_feats_gather_time = 108.61500000000001 s
+2023-11-02 20:55:18,498 - INFO - Rank 0 | => cur_epoch 40 finished on rank 0
+2023-11-02 20:55:20,822 - INFO - Rank 0 | Epoch: 40, Test Accuracy 0.5846422750785365
+2023-11-02 20:55:23,724 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:23,725 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 41 on rank 0: 11664487 / 15622314 = 0.7466555210706941
+2023-11-02 20:55:23,727 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.371 s, total_remote_feats_gather_time = 111.229 s
+2023-11-02 20:55:23,727 - INFO - Rank 0 | => cur_epoch 41 finished on rank 0
+2023-11-02 20:55:26,095 - INFO - Rank 0 | Epoch: 41, Test Accuracy 0.5852327751139665
+2023-11-02 20:55:28,964 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:28,965 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 42 on rank 0: 11945136 / 15998012 = 0.7466637729737919
+2023-11-02 20:55:28,966 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.38 s, total_remote_feats_gather_time = 113.83500000000001 s
+2023-11-02 20:55:28,967 - INFO - Rank 0 | => cur_epoch 42 finished on rank 0
+2023-11-02 20:55:31,201 - INFO - Rank 0 | Epoch: 42, Test Accuracy 0.5858468951508137
+2023-11-02 20:55:34,083 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:34,084 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 43 on rank 0: 12227444 / 16375751 = 0.7466798927267518
+2023-11-02 20:55:34,085 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.388 s, total_remote_feats_gather_time = 116.385 s
+2023-11-02 20:55:34,085 - INFO - Rank 0 | => cur_epoch 43 finished on rank 0
+2023-11-02 20:55:36,479 - INFO - Rank 0 | Epoch: 43, Test Accuracy 0.5845241750714505
+2023-11-02 20:55:39,388 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:39,389 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 44 on rank 0: 12509479 / 16753460 = 0.7466803275263737
+2023-11-02 20:55:39,390 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.396 s, total_remote_feats_gather_time = 119.028 s
+2023-11-02 20:55:39,390 - INFO - Rank 0 | => cur_epoch 44 finished on rank 0
+2023-11-02 20:55:41,596 - INFO - Rank 0 | Epoch: 44, Test Accuracy 0.5863901551834093
+2023-11-02 20:55:44,451 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:44,452 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 45 on rank 0: 12790198 / 17129549 = 0.7466745329955856
+2023-11-02 20:55:44,453 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.404 s, total_remote_feats_gather_time = 121.56400000000001 s
+2023-11-02 20:55:44,453 - INFO - Rank 0 | => cur_epoch 45 finished on rank 0
+2023-11-02 20:55:46,794 - INFO - Rank 0 | Epoch: 45, Test Accuracy 0.5848784750927085
+2023-11-02 20:55:49,716 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:49,719 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 46 on rank 0: 13071814 / 17506501 = 0.7466834177772017
+2023-11-02 20:55:49,719 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.41300000000000003 s, total_remote_feats_gather_time = 124.22200000000001 s
+2023-11-02 20:55:49,720 - INFO - Rank 0 | => cur_epoch 46 finished on rank 0
+2023-11-02 20:55:52,009 - INFO - Rank 0 | Epoch: 46, Test Accuracy 0.5856106951366417
+2023-11-02 20:55:55,009 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:55:55,010 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 47 on rank 0: 13353289 / 17883765 = 0.746671016981044
+2023-11-02 20:55:55,011 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.421 s, total_remote_feats_gather_time = 126.83 s
+2023-11-02 20:55:55,012 - INFO - Rank 0 | => cur_epoch 47 finished on rank 0
+2023-11-02 20:55:57,319 - INFO - Rank 0 | Epoch: 47, Test Accuracy 0.5856815551408933
+2023-11-02 20:56:00,278 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:00,279 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 48 on rank 0: 13633662 / 18259887 = 0.7466454748597294
+2023-11-02 20:56:00,280 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.429 s, total_remote_feats_gather_time = 129.442 s
+2023-11-02 20:56:00,280 - INFO - Rank 0 | => cur_epoch 48 finished on rank 0
+2023-11-02 20:56:02,757 - INFO - Rank 0 | Epoch: 48, Test Accuracy 0.587051515223091
+2023-11-02 20:56:05,631 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:05,632 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 49 on rank 0: 13914003 / 18636074 = 0.746616642539625
+2023-11-02 20:56:05,633 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.438 s, total_remote_feats_gather_time = 132.208 s
+2023-11-02 20:56:05,633 - INFO - Rank 0 | => cur_epoch 49 finished on rank 0
+2023-11-02 20:56:07,883 - INFO - Rank 0 | Epoch: 49, Test Accuracy 0.5877128752627725
+2023-11-02 20:56:10,800 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:10,801 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 50 on rank 0: 14194602 / 19012589 = 0.746589641210884
+2023-11-02 20:56:10,802 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.447 s, total_remote_feats_gather_time = 134.742 s
+2023-11-02 20:56:10,802 - INFO - Rank 0 | => cur_epoch 50 finished on rank 0
+2023-11-02 20:56:13,309 - INFO - Rank 0 | Epoch: 50, Test Accuracy 0.5845950350757021
+2023-11-02 20:56:16,196 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:16,197 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 51 on rank 0: 14476464 / 19389807 = 0.7466017583362228
+2023-11-02 20:56:16,198 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.455 s, total_remote_feats_gather_time = 137.451 s
+2023-11-02 20:56:16,198 - INFO - Rank 0 | => cur_epoch 51 finished on rank 0
+2023-11-02 20:56:18,387 - INFO - Rank 0 | Epoch: 51, Test Accuracy 0.5883506153010369
+2023-11-02 20:56:21,413 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:21,414 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 52 on rank 0: 14756717 / 19765777 = 0.7465791504174109
+2023-11-02 20:56:21,416 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.463 s, total_remote_feats_gather_time = 139.946 s
+2023-11-02 20:56:21,416 - INFO - Rank 0 | => cur_epoch 52 finished on rank 0
+2023-11-02 20:56:23,908 - INFO - Rank 0 | Epoch: 52, Test Accuracy 0.5864373951862437
+2023-11-02 20:56:26,912 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:26,913 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 53 on rank 0: 15037999 / 20141700 = 0.7466102166152807
+2023-11-02 20:56:26,915 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.47200000000000003 s, total_remote_feats_gather_time = 142.752 s
+2023-11-02 20:56:26,915 - INFO - Rank 0 | => cur_epoch 53 finished on rank 0
+2023-11-02 20:56:29,368 - INFO - Rank 0 | Epoch: 53, Test Accuracy 0.5872640952358457
+2023-11-02 20:56:32,369 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:32,370 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 54 on rank 0: 15319676 / 20519290 = 0.7465987370908058
+2023-11-02 20:56:32,371 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.481 s, total_remote_feats_gather_time = 145.482 s
+2023-11-02 20:56:32,371 - INFO - Rank 0 | => cur_epoch 54 finished on rank 0
+2023-11-02 20:56:34,799 - INFO - Rank 0 | Epoch: 54, Test Accuracy 0.5866972152018329
+2023-11-02 20:56:37,903 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:37,905 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 55 on rank 0: 15601223 / 20896026 = 0.7466119634422353
+2023-11-02 20:56:37,906 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.491 s, total_remote_feats_gather_time = 148.25300000000001 s
+2023-11-02 20:56:37,906 - INFO - Rank 0 | => cur_epoch 55 finished on rank 0
+2023-11-02 20:56:40,176 - INFO - Rank 0 | Epoch: 55, Test Accuracy 0.5862484351749061
+2023-11-02 20:56:43,022 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:43,023 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 56 on rank 0: 15881536 / 21271916 = 0.7465964043859519
+2023-11-02 20:56:43,025 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.5 s, total_remote_feats_gather_time = 150.794 s
+2023-11-02 20:56:43,025 - INFO - Rank 0 | => cur_epoch 56 finished on rank 0
+2023-11-02 20:56:45,288 - INFO - Rank 0 | Epoch: 56, Test Accuracy 0.5869097952145877
+2023-11-02 20:56:48,160 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:48,163 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 57 on rank 0: 16162836 / 21648805 = 0.7465925255458673
+2023-11-02 20:56:48,164 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.508 s, total_remote_feats_gather_time = 153.281 s
+2023-11-02 20:56:48,164 - INFO - Rank 0 | => cur_epoch 57 finished on rank 0
+2023-11-02 20:56:50,455 - INFO - Rank 0 | Epoch: 57, Test Accuracy 0.5859413751564825
+2023-11-02 20:56:53,372 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:53,373 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 58 on rank 0: 16444294 / 22025790 = 0.7465926988316878
+2023-11-02 20:56:53,375 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.517 s, total_remote_feats_gather_time = 155.854 s
+2023-11-02 20:56:53,375 - INFO - Rank 0 | => cur_epoch 58 finished on rank 0
+2023-11-02 20:56:55,696 - INFO - Rank 0 | Epoch: 58, Test Accuracy 0.5884214753052885
+2023-11-02 20:56:58,652 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:56:58,656 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 59 on rank 0: 16724832 / 22401743 = 0.7465861919762226
+2023-11-02 20:56:58,657 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.526 s, total_remote_feats_gather_time = 158.434 s
+2023-11-02 20:56:58,657 - INFO - Rank 0 | => cur_epoch 59 finished on rank 0
+2023-11-02 20:57:01,132 - INFO - Rank 0 | Epoch: 59, Test Accuracy 0.5879018352741101
+2023-11-02 20:57:03,961 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:03,962 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 60 on rank 0: 17005836 / 22777810 = 0.7465966218877056
+2023-11-02 20:57:03,963 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.535 s, total_remote_feats_gather_time = 161.223 s
+2023-11-02 20:57:03,963 - INFO - Rank 0 | => cur_epoch 60 finished on rank 0
+2023-11-02 20:57:06,245 - INFO - Rank 0 | Epoch: 60, Test Accuracy 0.5877128752627725
+2023-11-02 20:57:09,199 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:09,200 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 61 on rank 0: 17287776 / 23155196 = 0.7466046065859256
+2023-11-02 20:57:09,201 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.543 s, total_remote_feats_gather_time = 163.796 s
+2023-11-02 20:57:09,201 - INFO - Rank 0 | => cur_epoch 61 finished on rank 0
+2023-11-02 20:57:11,727 - INFO - Rank 0 | Epoch: 61, Test Accuracy 0.5894843753690625
+2023-11-02 20:57:14,575 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:14,576 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 62 on rank 0: 17568827 / 23531847 = 0.7465978764862784
+2023-11-02 20:57:14,577 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.552 s, total_remote_feats_gather_time = 166.54 s
+2023-11-02 20:57:14,577 - INFO - Rank 0 | => cur_epoch 62 finished on rank 0
+2023-11-02 20:57:16,911 - INFO - Rank 0 | Epoch: 62, Test Accuracy 0.5880907952854477
+2023-11-02 20:57:19,931 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:19,932 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 63 on rank 0: 17849770 / 23908419 = 0.7465893081428764
+2023-11-02 20:57:19,933 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.561 s, total_remote_feats_gather_time = 169.279 s
+2023-11-02 20:57:19,933 - INFO - Rank 0 | => cur_epoch 63 finished on rank 0
+2023-11-02 20:57:22,331 - INFO - Rank 0 | Epoch: 63, Test Accuracy 0.5879726952783617
+2023-11-02 20:57:25,311 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:25,314 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 64 on rank 0: 18130961 / 24284452 = 0.7466077883906954
+2023-11-02 20:57:25,314 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.5700000000000001 s, total_remote_feats_gather_time = 171.977 s
+2023-11-02 20:57:25,315 - INFO - Rank 0 | => cur_epoch 64 finished on rank 0
+2023-11-02 20:57:27,633 - INFO - Rank 0 | Epoch: 64, Test Accuracy 0.5881616552896993
+2023-11-02 20:57:30,472 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:30,473 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 65 on rank 0: 18412169 / 24661729 = 0.7465887326878015
+2023-11-02 20:57:30,474 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.579 s, total_remote_feats_gather_time = 174.552 s
+2023-11-02 20:57:30,474 - INFO - Rank 0 | => cur_epoch 65 finished on rank 0
+2023-11-02 20:57:32,908 - INFO - Rank 0 | Epoch: 65, Test Accuracy 0.5885631953137918
+2023-11-02 20:57:35,798 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:35,800 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 66 on rank 0: 18693980 / 25039020 = 0.7465939162155707
+2023-11-02 20:57:35,801 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.592 s, total_remote_feats_gather_time = 177.243 s
+2023-11-02 20:57:35,801 - INFO - Rank 0 | => cur_epoch 66 finished on rank 0
+2023-11-02 20:57:38,279 - INFO - Rank 0 | Epoch: 66, Test Accuracy 0.5878782152726929
+2023-11-02 20:57:41,186 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:41,187 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 67 on rank 0: 18974528 / 25415091 = 0.7465850899373132
+2023-11-02 20:57:41,188 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.604 s, total_remote_feats_gather_time = 179.999 s
+2023-11-02 20:57:41,188 - INFO - Rank 0 | => cur_epoch 67 finished on rank 0
+2023-11-02 20:57:43,666 - INFO - Rank 0 | Epoch: 67, Test Accuracy 0.5878782152726929
+2023-11-02 20:57:46,743 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:46,744 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 68 on rank 0: 19256057 / 25791543 = 0.746603528140988
+2023-11-02 20:57:46,745 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.613 s, total_remote_feats_gather_time = 182.744 s
+2023-11-02 20:57:46,745 - INFO - Rank 0 | => cur_epoch 68 finished on rank 0
+2023-11-02 20:57:49,286 - INFO - Rank 0 | Epoch: 68, Test Accuracy 0.5865318751919125
+2023-11-02 20:57:52,391 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:52,393 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 69 on rank 0: 19536129 / 26166513 = 0.7466080405898944
+2023-11-02 20:57:52,394 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.622 s, total_remote_feats_gather_time = 185.472 s
+2023-11-02 20:57:52,394 - INFO - Rank 0 | => cur_epoch 69 finished on rank 0
+2023-11-02 20:57:54,800 - INFO - Rank 0 | Epoch: 69, Test Accuracy 0.5877837352670241
+2023-11-02 20:57:57,722 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:57:57,724 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 70 on rank 0: 19818508 / 26543161 = 0.7466521413934083
+2023-11-02 20:57:57,725 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.631 s, total_remote_feats_gather_time = 188.145 s
+2023-11-02 20:57:57,725 - INFO - Rank 0 | => cur_epoch 70 finished on rank 0
+2023-11-02 20:58:00,142 - INFO - Rank 0 | Epoch: 70, Test Accuracy 0.5906181354370881
+2023-11-02 20:58:03,106 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:03,108 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 71 on rank 0: 20100099 / 26919482 = 0.7466748060010961
+2023-11-02 20:58:03,109 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.64 s, total_remote_feats_gather_time = 190.867 s
+2023-11-02 20:58:03,109 - INFO - Rank 0 | => cur_epoch 71 finished on rank 0
+2023-11-02 20:58:05,619 - INFO - Rank 0 | Epoch: 71, Test Accuracy 0.5889411153364669
+2023-11-02 20:58:08,601 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:08,602 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 72 on rank 0: 20382035 / 27296179 = 0.746699199180955
+2023-11-02 20:58:08,603 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.649 s, total_remote_feats_gather_time = 193.645 s
+2023-11-02 20:58:08,603 - INFO - Rank 0 | => cur_epoch 72 finished on rank 0
+2023-11-02 20:58:11,097 - INFO - Rank 0 | Epoch: 72, Test Accuracy 0.5893190353591421
+2023-11-02 20:58:14,005 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:14,007 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 73 on rank 0: 20663598 / 27673028 = 0.7467053478932627
+2023-11-02 20:58:14,008 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.658 s, total_remote_feats_gather_time = 196.394 s
+2023-11-02 20:58:14,008 - INFO - Rank 0 | => cur_epoch 73 finished on rank 0
+2023-11-02 20:58:16,325 - INFO - Rank 0 | Epoch: 73, Test Accuracy 0.5877128752627725
+2023-11-02 20:58:19,363 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:19,364 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 74 on rank 0: 20944798 / 28049479 = 0.7467089852185846
+2023-11-02 20:58:19,366 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.667 s, total_remote_feats_gather_time = 199.008 s
+2023-11-02 20:58:19,366 - INFO - Rank 0 | => cur_epoch 74 finished on rank 0
+2023-11-02 20:58:21,886 - INFO - Rank 0 | Epoch: 74, Test Accuracy 0.5879490752769445
+2023-11-02 20:58:24,760 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:24,761 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 75 on rank 0: 21226569 / 28426618 = 0.7467145405760193
+2023-11-02 20:58:24,762 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.677 s, total_remote_feats_gather_time = 201.74 s
+2023-11-02 20:58:24,762 - INFO - Rank 0 | => cur_epoch 75 finished on rank 0
+2023-11-02 20:58:27,277 - INFO - Rank 0 | Epoch: 75, Test Accuracy 0.5877128752627725
+2023-11-02 20:58:30,157 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:30,159 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 76 on rank 0: 21508381 / 28803670 = 0.7467236293152921
+2023-11-02 20:58:30,159 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.686 s, total_remote_feats_gather_time = 204.488 s
+2023-11-02 20:58:30,160 - INFO - Rank 0 | => cur_epoch 76 finished on rank 0
+2023-11-02 20:58:32,550 - INFO - Rank 0 | Epoch: 76, Test Accuracy 0.5900040154002409
+2023-11-02 20:58:35,392 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:35,394 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 77 on rank 0: 21790383 / 29180684 = 0.7467399667533495
+2023-11-02 20:58:35,395 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.6930000000000001 s, total_remote_feats_gather_time = 207.145 s
+2023-11-02 20:58:35,395 - INFO - Rank 0 | => cur_epoch 77 finished on rank 0
+2023-11-02 20:58:37,780 - INFO - Rank 0 | Epoch: 77, Test Accuracy 0.590476415428585
+2023-11-02 20:58:40,591 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:40,592 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 78 on rank 0: 22071540 / 29556557 = 0.7467561258911178
+2023-11-02 20:58:40,594 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.7020000000000001 s, total_remote_feats_gather_time = 209.769 s
+2023-11-02 20:58:40,594 - INFO - Rank 0 | => cur_epoch 78 finished on rank 0
+2023-11-02 20:58:42,895 - INFO - Rank 0 | Epoch: 78, Test Accuracy 0.5892954153577249
+2023-11-02 20:58:45,794 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:45,795 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 79 on rank 0: 22352093 / 29932412 = 0.7467521494759594
+2023-11-02 20:58:45,797 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.711 s, total_remote_feats_gather_time = 212.31900000000002 s
+2023-11-02 20:58:45,797 - INFO - Rank 0 | => cur_epoch 79 finished on rank 0
+2023-11-02 20:58:48,046 - INFO - Rank 0 | Epoch: 79, Test Accuracy 0.5892481753548905
+2023-11-02 20:58:50,947 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:50,949 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 80 on rank 0: 22633191 / 30309144 = 0.7467446457742257
+2023-11-02 20:58:50,950 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.72 s, total_remote_feats_gather_time = 214.77100000000002 s
+2023-11-02 20:58:50,950 - INFO - Rank 0 | => cur_epoch 80 finished on rank 0
+2023-11-02 20:58:53,319 - INFO - Rank 0 | Epoch: 80, Test Accuracy 0.588468715308123
+2023-11-02 20:58:56,233 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:58:56,234 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 81 on rank 0: 22913730 / 30685528 = 0.7467275778992625
+2023-11-02 20:58:56,236 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.729 s, total_remote_feats_gather_time = 217.34900000000002 s
+2023-11-02 20:58:56,236 - INFO - Rank 0 | => cur_epoch 81 finished on rank 0
+2023-11-02 20:58:58,600 - INFO - Rank 0 | Epoch: 81, Test Accuracy 0.5905945154356709
+2023-11-02 20:59:01,505 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:01,506 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 82 on rank 0: 23195126 / 31061509 = 0.7467482020915339
+2023-11-02 20:59:01,507 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.738 s, total_remote_feats_gather_time = 219.939 s
+2023-11-02 20:59:01,507 - INFO - Rank 0 | => cur_epoch 82 finished on rank 0
+2023-11-02 20:59:03,841 - INFO - Rank 0 | Epoch: 82, Test Accuracy 0.5894135153648109
+2023-11-02 20:59:06,722 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:06,724 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 83 on rank 0: 23476331 / 31438721 = 0.7467330175422848
+2023-11-02 20:59:06,725 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.745 s, total_remote_feats_gather_time = 222.53300000000002 s
+2023-11-02 20:59:06,725 - INFO - Rank 0 | => cur_epoch 83 finished on rank 0
+2023-11-02 20:59:09,120 - INFO - Rank 0 | Epoch: 83, Test Accuracy 0.5895788553747313
+2023-11-02 20:59:12,003 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:12,004 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 84 on rank 0: 23757727 / 31814833 = 0.746750014372227
+2023-11-02 20:59:12,005 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.754 s, total_remote_feats_gather_time = 225.234 s
+2023-11-02 20:59:12,005 - INFO - Rank 0 | => cur_epoch 84 finished on rank 0
+2023-11-02 20:59:14,561 - INFO - Rank 0 | Epoch: 84, Test Accuracy 0.5893662753619765
+2023-11-02 20:59:17,414 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:17,415 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 85 on rank 0: 24038636 / 32191576 = 0.7467368481741932
+2023-11-02 20:59:17,416 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.764 s, total_remote_feats_gather_time = 228.005 s
+2023-11-02 20:59:17,416 - INFO - Rank 0 | => cur_epoch 85 finished on rank 0
+2023-11-02 20:59:19,756 - INFO - Rank 0 | Epoch: 85, Test Accuracy 0.5896260953775657
+2023-11-02 20:59:22,629 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:22,630 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 86 on rank 0: 24320206 / 32568282 = 0.746745130737937
+2023-11-02 20:59:22,631 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.772 s, total_remote_feats_gather_time = 230.622 s
+2023-11-02 20:59:22,631 - INFO - Rank 0 | => cur_epoch 86 finished on rank 0
+2023-11-02 20:59:24,976 - INFO - Rank 0 | Epoch: 86, Test Accuracy 0.5909960554597633
+2023-11-02 20:59:27,776 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:27,777 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 87 on rank 0: 24601469 / 32944614 = 0.7467523826504691
+2023-11-02 20:59:27,778 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.78 s, total_remote_feats_gather_time = 233.205 s
+2023-11-02 20:59:27,779 - INFO - Rank 0 | => cur_epoch 87 finished on rank 0
+2023-11-02 20:59:30,118 - INFO - Rank 0 | Epoch: 87, Test Accuracy 0.5901457354087442
+2023-11-02 20:59:32,956 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:32,957 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 88 on rank 0: 24882126 / 33321550 = 0.7467277482590096
+2023-11-02 20:59:32,958 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.789 s, total_remote_feats_gather_time = 235.785 s
+2023-11-02 20:59:32,958 - INFO - Rank 0 | => cur_epoch 88 finished on rank 0
+2023-11-02 20:59:35,374 - INFO - Rank 0 | Epoch: 88, Test Accuracy 0.5908779554526773
+2023-11-02 20:59:38,266 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:38,268 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 89 on rank 0: 25164099 / 33698089 = 0.7467515146036916
+2023-11-02 20:59:38,269 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.797 s, total_remote_feats_gather_time = 238.441 s
+2023-11-02 20:59:38,269 - INFO - Rank 0 | => cur_epoch 89 finished on rank 0
+2023-11-02 20:59:40,595 - INFO - Rank 0 | Epoch: 89, Test Accuracy 0.590240215414413
+2023-11-02 20:59:43,487 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:43,489 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 90 on rank 0: 25445898 / 34074979 = 0.7467619569185941
+2023-11-02 20:59:43,490 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.805 s, total_remote_feats_gather_time = 241.00900000000001 s
+2023-11-02 20:59:43,490 - INFO - Rank 0 | => cur_epoch 90 finished on rank 0
+2023-11-02 20:59:45,794 - INFO - Rank 0 | Epoch: 90, Test Accuracy 0.5913031154781869
+2023-11-02 20:59:48,641 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:48,643 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 91 on rank 0: 25727536 / 34451716 = 0.7467708139704855
+2023-11-02 20:59:48,644 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.8130000000000001 s, total_remote_feats_gather_time = 243.501 s
+2023-11-02 20:59:48,644 - INFO - Rank 0 | => cur_epoch 91 finished on rank 0
+2023-11-02 20:59:50,964 - INFO - Rank 0 | Epoch: 91, Test Accuracy 0.5902165954129958
+2023-11-02 20:59:53,813 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:53,814 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 92 on rank 0: 26009188 / 34828123 = 0.7467869571954825
+2023-11-02 20:59:53,815 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.8210000000000001 s, total_remote_feats_gather_time = 246.08 s
+2023-11-02 20:59:53,815 - INFO - Rank 0 | => cur_epoch 92 finished on rank 0
+2023-11-02 20:59:56,179 - INFO - Rank 0 | Epoch: 92, Test Accuracy 0.5898386753903205
+2023-11-02 20:59:58,992 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 20:59:58,993 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 93 on rank 0: 26289790 / 35204910 = 0.746764868877665
+2023-11-02 20:59:58,994 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.8280000000000001 s, total_remote_feats_gather_time = 248.687 s
+2023-11-02 20:59:58,994 - INFO - Rank 0 | => cur_epoch 93 finished on rank 0
+2023-11-02 21:00:01,272 - INFO - Rank 0 | Epoch: 93, Test Accuracy 0.5910432954625977
+2023-11-02 21:00:04,112 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:04,113 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 94 on rank 0: 26571170 / 35581244 = 0.7467746209210673
+2023-11-02 21:00:04,114 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.837 s, total_remote_feats_gather_time = 251.201 s
+2023-11-02 21:00:04,114 - INFO - Rank 0 | => cur_epoch 94 finished on rank 0
+2023-11-02 21:00:06,372 - INFO - Rank 0 | Epoch: 94, Test Accuracy 0.5916810355008622
+2023-11-02 21:00:09,203 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:09,205 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 95 on rank 0: 26852060 / 35957770 = 0.7467665542106755
+2023-11-02 21:00:09,206 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.846 s, total_remote_feats_gather_time = 253.725 s
+2023-11-02 21:00:09,206 - INFO - Rank 0 | => cur_epoch 95 finished on rank 0
+2023-11-02 21:00:11,516 - INFO - Rank 0 | Epoch: 95, Test Accuracy 0.5917518955051138
+2023-11-02 21:00:14,351 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:14,353 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 96 on rank 0: 27133255 / 36334059 = 0.7467719199773414
+2023-11-02 21:00:14,354 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.854 s, total_remote_feats_gather_time = 256.26300000000003 s
+2023-11-02 21:00:14,354 - INFO - Rank 0 | => cur_epoch 96 finished on rank 0
+2023-11-02 21:00:16,764 - INFO - Rank 0 | Epoch: 96, Test Accuracy 0.5919172355150342
+2023-11-02 21:00:19,617 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:19,618 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 97 on rank 0: 27414771 / 36710551 = 0.7467817903359718
+2023-11-02 21:00:19,619 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.862 s, total_remote_feats_gather_time = 258.915 s
+2023-11-02 21:00:19,619 - INFO - Rank 0 | => cur_epoch 97 finished on rank 0
+2023-11-02 21:00:21,935 - INFO - Rank 0 | Epoch: 97, Test Accuracy 0.5909251954555117
+2023-11-02 21:00:24,749 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:24,751 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 98 on rank 0: 27696381 / 37088010 = 0.7467745236263688
+2023-11-02 21:00:24,752 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.871 s, total_remote_feats_gather_time = 261.48900000000003 s
+2023-11-02 21:00:24,752 - INFO - Rank 0 | => cur_epoch 98 finished on rank 0
+2023-11-02 21:00:27,204 - INFO - Rank 0 | Epoch: 98, Test Accuracy 0.5904527954271678
+2023-11-02 21:00:30,076 - INFO - Rank 0 | rank: 0, iter_num: 27
+2023-11-02 21:00:30,077 - INFO - Rank 0 | Epoch miss rate ( miss_num/try_num ) for epoch 99 on rank 0: 27977995 / 37464681 = 0.7467832169717393
+2023-11-02 21:00:30,078 - INFO - Rank 0 | Up to now, total_local_feats_gather_time = 0.88 s, total_remote_feats_gather_time = 264.216 s
+2023-11-02 21:00:30,078 - INFO - Rank 0 | => cur_epoch 99 finished on rank 0
+2023-11-02 21:00:32,368 - INFO - Rank 0 | Epoch: 99, Test Accuracy 0.5928147955688877
+2023-11-02 21:00:32,368 - INFO - Rank 0 | Max acc:0.5928147955688877
+2023-11-02 21:00:32,368 - INFO - Rank 0 | wait sampler total time: 0.02013397216796875, total iters: 27, avg iter time:0.0007457026728877315

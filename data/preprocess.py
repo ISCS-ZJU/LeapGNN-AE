@@ -130,7 +130,7 @@ def random_label(vnum, class_num, outfile=None):
 def split_dataset(vnum, outdir=None):
   """
   Split dataset to train/val/test.
-  train:val:test = 6.5:1:1.5 - similar to reddit
+  train:val:test = 6.5:1:2.5 - similar to reddit
   if outdir is provided:
     save as outdir/train.npy,
             outdir/val.npy,

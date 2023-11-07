@@ -2,27 +2,45 @@ import os
 import time
 
 server_cmd_lst = [
-    # 'python3 servers_start.py --dataset ogbn_products50 --cache_type static',
-    # 'python3 servers_start.py --dataset ogbn_products200 --cache_type static',
-    # 'python3 servers_start.py --dataset ogbn_products400 --cache_type static',
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static', # 补充之前缺少的几组实验
-    'python3 servers_start.py --dataset ogbn_products800 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static',
+    'python3 servers_start.py --dataset reddit0 --cache_type static',
+    # 'python3 servers_start.py --dataset reddit0 --cache_type static',
+    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static',
 ]
 
 client_cmd_lst = [
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products50 --n_epochs 3 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products50 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products200 --n_epochs 3 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products200 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products400 --n_epochs 3 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products400 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 4 --batch_size 256 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 2 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products0 --n_epochs 4 --batch_size 128 --hidden_size 16', # 补充之前缺少的几组实验
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products800 --n_epochs 2 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_products800 --n_epochs 4 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    #
+    # 'python3 clients_start.py --model_name gcn --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # #
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    # 'python3 clients_start.py --model_name graphsage --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset reddit0 --n_epochs 100 --batch_size 1024 --hidden_size 256',
+    'python3 clients_start.py --model_name gcn --sampling 2 --run_client_idx 7 --dataset reddit0 --n_epochs 100 --batch_size 4096 --hidden_size 256',
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 100 --batch_size 1024 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 100 --batch_size 2048 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 100 --batch_size 4096 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 100 --batch_size 8192 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset ogbn_products0 --n_epochs 100 --batch_size 1024 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset ogbn_products0 --n_epochs 100 --batch_size 2048 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset ogbn_products0 --n_epochs 100 --batch_size 4096 --hidden_size 256', 
+    # 'python3 clients_start.py --model_name gat --sampling 2 --run_client_idx 7 --dataset ogbn_products0 --n_epochs 100 --batch_size 8192 --hidden_size 256', 
 ]
 
 
@@ -49,8 +67,7 @@ if __name__ == '__main__':
                     break
                 
             # 执行两条client命令
-            client_cmdids = [server_cmdid*2, server_cmdid*2+1]
-            for client_cmdid in client_cmdids:
+            for client_cmdid in range(server_cmdid*8, (server_cmdid+1)*8):
                 returncode_client = os.system(client_cmd_lst[client_cmdid])
                 if returncode_client == 0:
                     continue
