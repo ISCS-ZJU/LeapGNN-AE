@@ -16,13 +16,17 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gcn, graphsage, gat, deep
+from model import gcn, graphsage, deep
+from model.dgl_gat_nodeflow.model import gat_nodeflow as gat
 import logging
 import time
 
 from storage.storage_dist import DistCacheClient
 
 from common.log import setup_primary_logging, setup_worker_logging
+
+from utils.get_memory_usage import get_cpu_memory_usage
+import gc
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -54,6 +58,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     #################### 参数正确性检查，打印训练参数 ####################
     sampling = args.sampling.split('-')
+    sampling_intlst = list(map(int, sampling))
     assert len(set(sampling)) == 1, 'Only Support the same number of neighbors for each layer'
     if gpu == 0:
         logging.info(f'Client Args: {args}')
@@ -73,23 +78,31 @@ def run(gpu, ngpus_per_node, args, log_queue):
         logging.info(f'Using {args.world_size} distributed GPUs in total for training...')
     
     #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
+    logging.info(f"{get_cpu_memory_usage('* start loading graph data *')}")
     fg_adj = data.get_struct(args.dataset)
+    logging.info(f"{get_cpu_memory_usage('after loading topology')}")
     fg_labels = data.get_labels(args.dataset)
+    logging.info(f"{get_cpu_memory_usage('after loading labels')}")
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
+    logging.info(f"{get_cpu_memory_usage('after loading mask')}")
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
+    logging.info(f"{get_cpu_memory_usage('after create fg_train_nid')}")
     ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
     print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    logging.info(f"{get_cpu_memory_usage('after create test_nid')}")
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
+    logging.info(f"{get_cpu_memory_usage('after create fg using DGLGraph()')}")
     torch.distributed.barrier()
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
     cache_client.Reset()
     featdim = cache_client.feat_dim
+    logging.info(f"{get_cpu_memory_usage('after create cache_client')}")
     print(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
@@ -113,18 +126,18 @@ def run(gpu, ngpus_per_node, args, log_queue):
         model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'gat':
-        model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
-            sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+        sampling_intlst = sampling_intlst + [sampling_intlst[-1]]
+        model = gat.GATNodeFlow(len(sampling_intlst)-1, featdim, [args.hidden_size], args.n_classes, sampling_intlst, args.dropout, args.dropout, True)
     elif args.model_name == 'deepergcn':
         args.n_layers = len(sampling)
         args.in_feats = featdim
         model = deep.DeeperGCN(args)
+    logging.info(f"{get_cpu_memory_usage('after creating gnn model')}")
     loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
     model.cuda(args.gpu)
-    model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[args.gpu])
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    logging.info(f"{get_cpu_memory_usage('after creating optimizer')}")
     max_acc = 0
 
     # count number of model params
@@ -133,16 +146,18 @@ def run(gpu, ngpus_per_node, args, log_queue):
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
+            logging.info(f"{get_cpu_memory_usage('* before one epoch training *')}")
             for epoch in range(args.epoch):
                 with torch.autograd.profiler.record_function('train data prepare'):
                     ########## 获取当前gpu在当前epoch分配到的training node id ##########
                     np.random.seed(epoch)
                     np.random.shuffle(fg_train_nid)
                     train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
-                    logging.debug(f'train_lnid first and last 20: {train_lnid[:20]}, {train_lnid[len(train_lnid)-20:]}')
+                    logging.info(f"{get_cpu_memory_usage('after creating local train_lnid')}")
                     
                 ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
                 sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=False, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+                logging.info(f"{get_cpu_memory_usage('after creating sampler')}")
 
                 ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
@@ -152,23 +167,21 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 avg_loss = []
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in sampler:
-                    nf_nids = nf._node_mapping.tousertensor()
-                    logging.debug(f'nf_nids first 20: {nf_nids[0:20]}; nf_nids last 20: {nf_nids[len(nf_nids)-20:]}')
+                    logging.info(f"{get_cpu_memory_usage(f'after getting cur nf, total #graph_node = {len(nf._node_mapping.tousertensor())}')}")
                     wait_sampler.append(time.time()-st)
                     # print(f'iter: {iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                         cache_client.fetch_data(nf)
+                        logging.info(f"{get_cpu_memory_usage('after fetching feats of cur nf')}")
                     batch_nid = nf.layer_parent_nid(-1)
-                    logging.debug(f'batch_nid last 20 = {batch_nid[len(batch_nid)-20:]}')
-                    logging.debug(f'features of last layer: {nf._node_frames[-1]["features"]}, len = {len(nf._node_frames[-1]["features"])}')
                     with torch.autograd.profiler.record_function('fetch label'):
-                        labels = fg_labels[batch_nid].cuda(
-                            args.gpu, non_blocking=True)
+                        labels = fg_labels[batch_nid].cuda(args.gpu, non_blocking=True)
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                         with torch.autograd.profiler.record_function('DDP forward'):
                             pred = model(nf)
+                            logging.info(f"{get_cpu_memory_usage('after forward computation done')}")
                         with torch.autograd.profiler.record_function('DDP calculate loss'):
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
@@ -181,10 +194,14 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         with torch.autograd.profiler.record_function('DDP backward'):
                             loss.backward()
+                            logging.info(f"{get_cpu_memory_usage('after backward computation done')}")
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
+                            logging.info(f"{get_cpu_memory_usage('after optimizer.step()')}")
                         torch.distributed.barrier()
                     # logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
+                    del(nf)
+                    gc.collect()
                         
                     iter += 1
                     st = time.time()
@@ -312,17 +329,21 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}_localFalse.log')
     else:
-        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}_localFalse.log')
     if os.path.exists(log_filename):
-        # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        if_delete = 'y'
-        if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename) # 删除已有日志，重新运行
-        else:
-            print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1) # 退出程序
+        # # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        # if_delete = 'y'
+        # if if_delete=='y' or if_delete=='Y':
+        #     os.remove(log_filename) # 删除已有日志，重新运行
+        # else:
+        #     print('已经运行过，无需重跑，直接退出程序')
+        #     sys.exit(-1) # 退出程序
+        while os.path.exists(log_filename):
+            base, extension = os.path.splitext(log_filename)
+            log_filename = f"{base}_1{extension}"
+            print(f"new log_filename: {log_filename}")
     
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()

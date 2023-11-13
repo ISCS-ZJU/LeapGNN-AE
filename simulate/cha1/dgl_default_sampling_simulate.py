@@ -173,7 +173,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
                 layer_accross_machines = len(layer_unique_pid)
                 # 计算完成该block GNN计算需要的模型参数和优化器的迁移数据量
                 # logging.info(f'i = {i}, len(block_trans_model_opti)={len(block_trans_model_opti)}')
-                block_trans_model_opti[i] += n_model_param * 3 * (layer_accross_machines - 1) # adam优化器的参数量是模型参数量2倍
+                block_trans_model_opti[i] += n_model_param * (layer_accross_machines - 1) # adam优化器的参数量是模型参数量2倍
                 ## 计算完成该block GNN计算需要的中间数据的迁移数据量
                 # 迁移节点顺序
                 trans_machine_sequence = [(args.rank+i)%args.world_size for i in range(layer_accross_machines)]

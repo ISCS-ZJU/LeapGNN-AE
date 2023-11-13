@@ -259,3 +259,13 @@ p3需要单独的模型结构，目前仅支持gcn，对应版本为gcn_p3.py
   | dgl_jpgnn_trans_multiplenfs.py | f | 设计点2：在1的基础上，提前预取 nfs 减少nfs间冗余的特征传输 |
   | dgl_jpgnn_trans_lessjp(_avoid_error).py | f | 设计点3：在2的基础上，减少要跳跃的机器数量，avoid_error 版本用于降低需要训练的 iter 数量  |
   | dgl_p3(_avoid_oom).py | f | 复现p3的混合并行训练方式 |
+
+## Debug
+yq4,5:
+go run server.go -dataset ./repgnn_data/ogbn_arxiv0/ -cachegroup '10.214.241.227,10.214.241.228' -cachetype 'static' -partition_type 'metis' -rpcport 18116
+python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.227:23457' --world-size 2 --rank 0 --grpc-port 10.214.241.227:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
+python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.227:23457' --world-size 2 --rank 1 --grpc-port 10.214.241.228:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
+
+go run server.go -dataset ./repgnn_data/ogbn_arxiv128/ -cachegroup '10.214.241.228,10.214.241.223' -cachetype 'static' -partition_type 'metis' -rpcport 18116 -multi_feat_file
+python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.228:23457' --world-size 2 --rank 0 --grpc-port 10.214.241.228:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
+python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.228:23457' --world-size 2 --rank 1 --grpc-port 10.214.241.223:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
