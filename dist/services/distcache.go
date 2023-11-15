@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+
 	// "sort"
 	"strings"
 	"time"
@@ -41,7 +42,7 @@ func initDistCache(dc *DistCache) {
 	// 初始化
 	dc.all_cache_mng_init_funcs = map[string]interface{}{
 		"static": init_static_cache_mng,
-		"p3": init_P3_cache_mng,
+		"p3":     init_P3_cache_mng,
 	}
 	// 确定当前node对应的part id
 	ips_slice := strings.Split(dc.Cache_group, ",")
@@ -64,7 +65,9 @@ func initDistCache(dc *DistCache) {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				dc.Curaddr = ipnet.IP.String()
-				break
+				if strings.HasPrefix(dc.Curaddr, "12.") {
+					break
+				}
 			}
 		}
 	}
@@ -85,7 +88,7 @@ func initDistCache(dc *DistCache) {
 	start := time.Now()
 	dc.Nid2Pid = make(map[int64]int64)
 	for pid := 0; pid < len(ips_slice); pid++ {
-		partgnid_npy_filepath := fmt.Sprintf("%v/dist_True/%v_%v/%v.npy", common.Config.Dataset, common.Config.Partition,common.Config.Partition_type, pid)
+		partgnid_npy_filepath := fmt.Sprintf("%v/dist_True/%v_%v/%v.npy", common.Config.Dataset, common.Config.Partition, common.Config.Partition_type, pid)
 
 		var gnid []int64 // 当前part需要读取的node feature数量
 		f, _ := os.Open(partgnid_npy_filepath)

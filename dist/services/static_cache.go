@@ -169,7 +169,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 			remote_addr := DCRuntime.Ip_slice[server_node_id]
 			ctx, channel := context.WithTimeout(context.Background(), time.Hour)
 			defer channel()
-			st := time.Now()
+			// st := time.Now()
 			ret, err := peerclient.GrpcClients[remote_addr].DCSubmit(ctx, &cache.DCRequest{Type: cache.OpType_get_features_by_peer_server, Ids: ip2ids[server_node_id]})
 			if err != nil {
 				fmt.Println(err)
@@ -181,7 +181,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 
 			// log.Infof("[static_cache.go] extract features from ret: %v", time.Since(st))
 			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
-			st = time.Now()
+			// st = time.Now()
 			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
 				src_st_idx = j * static_cache.Feature_dim
 				src_ed_idx = (j + 1) * static_cache.Feature_dim
@@ -192,7 +192,7 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 
 				copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
 			}
-			log.Infof("[static_cache.go] copy features to local dest array: %v", time.Since(st)) // 1.5ms
+			// log.Infof("[static_cache.go] copy features to local dest array: %v", time.Since(st)) // 1.5ms
 		}
 		// st := time.Now()
 		byte_ret_features := encodeUnsafe(ret_features) // 113ns

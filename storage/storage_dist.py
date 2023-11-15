@@ -85,22 +85,22 @@ class DistCacheClient:
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
             # # fetch features from cache server
             
-            # (non-stream method)
-                features = self.get_feats_from_server(tnid)
-            with torch.autograd.profiler.record_function('convert byte features to float tensor'):
-                for name in self.dims:
-                    frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
+            # # (non-stream method)
+            #     features = self.get_feats_from_server(tnid)
+            # with torch.autograd.profiler.record_function('convert byte features to float tensor'):
+            #     for name in self.dims:
+            #         frame[name].data = torch.frombuffer(features, dtype=torch.float32).reshape(len(tnid), self.feat_dim)
             
-            # # (stream method)
-            #     row_st_idx, row_ed_idx = 0, 0
-            #     for sub_features in self.get_stream_feats_from_server(tnid):
-            #         for name in self.dims:
-            #             sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
-            #             row_ed_idx += sub_tensor.shape[0]
-            #             # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
-            #             # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
-            #             frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
-            #             row_st_idx = row_ed_idx
+            # (stream method)
+                row_st_idx, row_ed_idx = 0, 0
+                for sub_features in self.get_stream_feats_from_server(tnid):
+                    for name in self.dims:
+                        sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
+                        row_ed_idx += sub_tensor.shape[0]
+                        # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
+                        # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+                        frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+                        row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
                 for name in self.dims:
@@ -497,9 +497,6 @@ class DistCacheClientP3:
         self.miss_num = 0
 
         self.cnt = 0
-        # self.feats_chunk_size = 4*1024*1024 # 4MB
-        # self.feats_chunk_size = self.getMaxNumDivisibleByXYAnd1024(self.feat_dim, 4)
-        # print(f'-> feats chunk size: {self.feats_chunk_size}')
 
         # rm /dev/shm/repgnn_shm*
         prefix = "repgnn_shm"
@@ -508,6 +505,9 @@ class DistCacheClientP3:
         
         # feat_len received from server
         self.feat_len = self.feat_dim // world_size if rank != world_size -1 else self.feat_dim // world_size + self.feat_dim % world_size
+        self.feats_chunk_size = 4*1024*1024 # 4MB
+        self.feats_chunk_size = self.getMaxNumDivisibleByXYAnd1024(self.feat_len, 4)
+        print(f'-> feats chunk size: {self.feats_chunk_size}')
 
     def fetch_data(self, nodeflow):
         with torch.autograd.profiler.record_function('get nf_nids'):
@@ -536,16 +536,17 @@ class DistCacheClientP3:
                     # padding with zero to feat dim
                     frame[name].data = F.pad(frame[name].data, (0, self.feat_dim - self.feat_len))
             
-            # (stream method)
-                # row_st_idx, row_ed_idx = 0, 0
-                # for sub_features in self.get_stream_feats_from_server(tnid):
-                #     for name in self.dims:
-                #         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
-                #         row_ed_idx += sub_tensor.shape[0]
-                #         # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
-                #         # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
-                #         frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
-                #         row_st_idx = row_ed_idx
+            # # (stream method)
+            #     row_st_idx, row_ed_idx = 0, 0
+            #     for sub_features in self.get_stream_feats_from_server(tnid):
+            #         for name in self.dims:
+            #             sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_len)
+            #             row_ed_idx += sub_tensor.shape[0]
+            #             # print(f'sub_tensor dim0 size: {sub_tensor.shape[0]}')
+            #             # frame[name].data = torch.cat((frame[name].data, sub_tensor), dim=0)
+            #             sub_tensor = F.pad(sub_tensor, (0, self.feat_dim - self.feat_len))
+            #             frame[name][row_st_idx:row_ed_idx, :] = sub_tensor
+            #             row_st_idx = row_ed_idx
             with torch.autograd.profiler.record_function('move feats from CPU to GPU'):
                 # move features from cpu memory to gpu memory
                 for name in self.dims:
@@ -617,6 +618,48 @@ class DistCacheClientP3:
             if i % x == 0 and i % y == 0 and i % 1024 == 0:
                 return i
         return -1 # If no number found
+
+    def get_stream_feats_from_server(self, nids):
+        err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_stream_features_by_client, ids=nids), timeout=100000)
+        # print(f'err = {err}')
+        if err!=None:
+            # yield features block
+            filename_base = '/dev/shm/repgnn_shm'
+            expected_byte_len = len(nids)*self.feat_dim*4 # float32
+            expected_feat_chunks = (expected_byte_len -1 + self.feats_chunk_size) // self.feats_chunk_size
+            last_ck_size = expected_byte_len % self.feats_chunk_size
+            st_ckid, ed_ckid = self.cnt, self.cnt+expected_feat_chunks
+            for ckid in range(st_ckid, ed_ckid):
+                filename = filename_base + f'{ckid}'
+                while True:
+                    if os.path.exists(filename):
+                        if os.path.getsize(filename) == self.feats_chunk_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(self.feats_chunk_size))
+                                mm.close()
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                        elif ckid==ed_ckid-1 and os.path.getsize(filename) == last_ck_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(last_ck_size))
+                                mm.close()
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                    else:
+                        # print(f'waiting file {filename}')
+                        continue
+        else:
+            return err
+    
 
 
 

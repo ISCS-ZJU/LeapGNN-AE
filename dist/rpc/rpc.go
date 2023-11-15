@@ -3,6 +3,7 @@ package rpc
 import (
 	"net"
 	"strconv"
+	"strings"
 
 	"main/common"
 
@@ -27,7 +28,9 @@ func run_grpc_server() {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				curaddr = ipnet.IP.String()
-				break
+				if strings.HasPrefix(curaddr, "12.") {
+					break
+				}
 			}
 		}
 	}

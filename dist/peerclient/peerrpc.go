@@ -27,7 +27,9 @@ func Build() {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				Curaddr = ipnet.IP.String()
-				break
+				if strings.HasPrefix(Curaddr, "12.") {
+					break
+				}
 			}
 		}
 	}
