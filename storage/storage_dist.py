@@ -108,7 +108,7 @@ class DistCacheClient:
             
             # (stream method)
                 row_st_idx, row_ed_idx = 0, 0
-                for sub_features in self.get_stream_feats_from_server(tnid):
+                for sub_features in self.get_stream_feats_from_server_v2(tnid):
                     for name in self.dims:
                         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                         row_ed_idx += sub_tensor.shape[0]
@@ -228,7 +228,7 @@ class DistCacheClient:
             # fetch features from cache server
             tmp_tensor_lst = []
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
-                for sub_features in self.get_stream_feats_from_server(unique_tnids_flat):
+                for sub_features in self.get_stream_feats_from_server_v2(unique_tnids_flat):
                     sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                     # n_sub_tensor_row = sub_tensor.shape[0]
                     tmp_tensor_lst.append(sub_tensor)
@@ -287,7 +287,7 @@ class DistCacheClient:
             # fetch features from cache server
             tmp_tensor_lst = []
             with torch.autograd.profiler.record_function('fetch feat from cache server'):
-                for sub_features in self.get_stream_feats_from_server(unique_tnids_flat):
+                for sub_features in self.get_stream_feats_from_server_v2(unique_tnids_flat):
                     sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                     # n_sub_tensor_row = sub_tensor.shape[0]
                     tmp_tensor_lst.append(sub_tensor)
@@ -442,7 +442,7 @@ class DistCacheClient:
                 splitlen.append(len(ip2ids))
 
         err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
-        type=distcache_pb2.get_stream_features_by_client, ids=nids, serids=ip2ids, seplen=splitlen), timeout=100000)
+        type=distcache_pb2.get_stream_features_by_client, serids=ip2ids, seplen=splitlen), timeout=100000)
         # print(f'err = {err}')
         if err!=None:
             # yield features block

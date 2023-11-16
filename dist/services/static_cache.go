@@ -155,7 +155,7 @@ func processIDs(ids []int64, ip2ids map[int64][]int64, gnid2retid map[int64]int6
 			mutex.Unlock()
 		}(int64(retid), nid)
 	}
-	
+
 	wg.Wait()
 	close(serverNodeIDs)
 
@@ -238,19 +238,19 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 		static_cache.Lock()
 		defer static_cache.Unlock()
 		static_cache.Get_request_num += int64(len(ids)) // 总请求数增加
-		
+
 		// ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
 		// 将ids中的点根据所在server cache的位置分类
 		ip2ids := make(map[int64][]int64)   // key: server node id; value: requests ids
 		gnid2retid := make(map[int64]int64) // key: graph node id; value: ret_features location
 		server_node_id := int64(-1)
 
-		// for retid, nid := range ids {
-		// 	server_node_id = DCRuntime.Nid2Pid[nid]
-		// 	ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
-		// 	gnid2retid[nid] = int64(retid)
-		// }
-		processIDs(ids, ip2ids, gnid2retid)
+		for retid, nid := range ids {
+			server_node_id = DCRuntime.Nid2Pid[nid]
+			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
+			gnid2retid[nid] = int64(retid)
+		}
+		// processIDs(ids, ip2ids, gnid2retid)
 		st_remote_time := time.Now()
 
 		// 读取本地缓存的数据
@@ -301,18 +301,18 @@ func (static_cache *Static_cache_mng) Get(ids []int64) ([]byte, error) {
 	}
 }
 
-func (static_cache *Static_cache_mng) FastGet(ids []int64, serids []int64, seplen []int64) ([]byte, error) {
+func (static_cache *Static_cache_mng) FastGet(serids []int64, seplen []int64) ([]byte, error) {
 	if !common.Config.Statistic {
 		static_cache.RLock()
 		defer static_cache.RUnlock()
 
-		ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
+		ret_features := make([]float32, len(serids)*int(static_cache.Feature_dim)) // return features
 		// 将ids中的点根据所在server cache的位置分类
 		ip2ids := make(map[int64][]int64)   // key: server node id; value: requests ids
 		gnid2retid := make(map[int64]int64) // key: graph node id; value: ret_features location
 		server_node_id := int64(-1)
 
-		for retid, nid := range ids {
+		for retid, nid := range serids {
 			server_node_id = DCRuntime.Nid2Pid[nid]
 			ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
 			gnid2retid[nid] = int64(retid)
@@ -376,47 +376,45 @@ func (static_cache *Static_cache_mng) FastGet(ids []int64, serids []int64, seple
 		// 读写锁
 		static_cache.Lock()
 		defer static_cache.Unlock()
-		static_cache.Get_request_num += int64(len(ids)) // 总请求数增加
+		static_cache.Get_request_num += int64(len(serids)) // 总请求数增加
 
-		
+		st_remote_time := time.Now()
 		// ret_features := make([]float32, len(ids)*int(static_cache.Feature_dim)) // return features
 		// 将ids中的点根据所在server cache的位置分类
-		ip2ids := make(map[int64][]int64)   // key: server node id; value: requests ids
-		gnid2retid := make(map[int64]int64) // key: graph node id; value: ret_features location
+		ip2ids := make(map[int64][]int64) // key: server node id; value: requests ids
 		// server_node_id := int64(-1)
 
 		for idx, id := range seplen {
-			if idx == 0{
+			if idx == 0 {
 				ip2ids[int64(idx)] = serids[:id]
-			}else{
-				ip2ids[int64(idx)] = serids[seplen[idx-1]: seplen[idx]]
+			} else {
+				ip2ids[int64(idx)] = serids[seplen[idx-1]:seplen[idx]]
 			}
 		}
-		st_remote_time := time.Now()
-		for retid, nid := range ids {
-			// server_node_id = DCRuntime.Nid2Pid[nid]
-			// ip2ids[server_node_id] = append(ip2ids[server_node_id], nid)
-			gnid2retid[nid] = int64(retid)
-		}
-		
 		
 		// 读取本地缓存的数据
 		st_local_time := time.Now()
 		server_node_id := DCRuntime.PartIdx
 		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
+		if server_node_id == 0 {
+			st_idx = 0  // row id
+		} else {
+			st_idx = seplen[server_node_id-1] // row id
+		}
 		static_cache.Local_hit_num += int64(len(ip2ids[server_node_id])) // 本地命中数增加
+		ret_id = st_idx
 		for _, local_hit_nid := range ip2ids[server_node_id] {
-			ret_id = gnid2retid[local_hit_nid]
 			st_idx, ed_idx = ret_id*static_cache.Feature_dim, (ret_id+1)*static_cache.Feature_dim
 			copy(static_cache.Ret_features[st_idx:ed_idx], static_cache.cache[local_hit_nid])
 			// copy(ret_features[st_idx:ed_idx], static_cache.cache[local_hit_nid])
+			ret_id += 1
 		}
 		static_cache.Local_feats_gather_time = append(static_cache.Local_feats_gather_time, float32(time.Since(st_local_time)/time.Millisecond))
 
 		// 发起peerServerGet请求(从本地id开始++并循回)，将收到的结果进行整理，得到ids的feature，返回结果
 		total_server := int64(len(DCRuntime.Ip_slice))
-		gnid := int64(-1)
-		src_st_idx, src_ed_idx, dst_st_idx, dst_ed_idx := int64(-1), int64(-1), int64(-1), int64(-1)
+		// gnid := int64(-1)
+		dst_st_idx, dst_ed_idx := int64(-1), int64(-1)
 
 		for i := int64(0); i < total_server-1; i++ {
 			server_node_id = (server_node_id + 1) % total_server
@@ -430,20 +428,29 @@ func (static_cache *Static_cache_mng) FastGet(ids []int64, serids []int64, seple
 			}
 			fetched_featurs := ret.GetRfeatures()
 			// 从ret.GetFeatures()中按static_cache.Feature_dim为单位读取features到ret_features中
-			for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
-				src_st_idx = j * static_cache.Feature_dim
-				src_ed_idx = (j + 1) * static_cache.Feature_dim
-				gnid = ip2ids[server_node_id][j] // cur graph node id
-				ret_id = gnid2retid[gnid]
-				dst_st_idx = ret_id * static_cache.Feature_dim
-				dst_ed_idx = (ret_id + 1) * static_cache.Feature_dim
 
-				copy(static_cache.Ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
-				// copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
+			// for j := int64(0); j < int64(len(ip2ids[server_node_id])); j++ {
+			// 	src_st_idx = j * static_cache.Feature_dim
+			// 	src_ed_idx = (j + 1) * static_cache.Feature_dim
+			// 	gnid = ip2ids[server_node_id][j] // cur graph node id
+			// 	ret_id = gnid2retid[gnid]
+			// 	dst_st_idx = ret_id * static_cache.Feature_dim
+			// 	dst_ed_idx = (ret_id + 1) * static_cache.Feature_dim
+
+			// 	copy(static_cache.Ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
+			// 	// copy(ret_features[dst_st_idx:dst_ed_idx], fetched_featurs[src_st_idx:src_ed_idx])
+			// }
+			if server_node_id == 0 {
+				dst_st_idx = 0 * static_cache.Feature_dim
+				dst_ed_idx = seplen[0] * static_cache.Feature_dim
+			} else {
+				dst_st_idx = seplen[server_node_id-1] * static_cache.Feature_dim
+				dst_ed_idx = seplen[server_node_id] * static_cache.Feature_dim
 			}
+			copy(static_cache.Ret_features[dst_st_idx:dst_ed_idx], fetched_featurs)
 		}
 		static_cache.Remote_feats_gather_time = append(static_cache.Remote_feats_gather_time, float32(time.Since(st_remote_time)/time.Millisecond))
-		return encodeUnsafe(static_cache.Ret_features[:len(ids)*int(static_cache.Feature_dim)]), nil
+		return encodeUnsafe(static_cache.Ret_features[:len(serids)*int(static_cache.Feature_dim)]), nil
 		// return encodeUnsafe(ret_features), nil
 	}
 }

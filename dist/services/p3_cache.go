@@ -24,7 +24,7 @@ type P3_cache_mng struct {
 	Remote_feats_gather_time []float32 // time of remote feats gathering
 	MaxChunkSize             int64     // for stream transfer
 	offset             int64     
-	feat_len             int64     
+	feat_len             int64   
 }
 
 func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
@@ -197,6 +197,10 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 		// log.Infof("len of ret_features %v after Get", len(ret_features))
 		return encodeUnsafe(ret_features), nil
 	}
+}
+
+func (p3_cache *P3_cache_mng) FastGet(serids []int64, seplen []int64) ([]byte, error) {
+	return nil, nil
 }
 
 func (p3_cache *P3_cache_mng) PeerServerGet(ids []int64) ([]float32, error) {

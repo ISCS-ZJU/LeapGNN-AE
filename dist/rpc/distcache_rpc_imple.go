@@ -4,6 +4,7 @@ import (
 	"main/common"
 	"main/rpc/cache"
 	"main/services"
+
 	// "time"
 
 	log "github.com/sirupsen/logrus"
@@ -32,8 +33,14 @@ func Grpc_op_imple_get_stream_features_by_client(request *cache.DCRequest) (*cac
 	// log.Infof("[distcache_rpc_imple.go] get_features_by_client 操作被调用 for %v gnids.", len(request.Ids))
 	// st := time.Now()
 	var reply cache.DCReply
-	features, err := services.DCRuntime.CacheMng.Get(request.Ids)
-	// features, err := services.DCRuntime.CacheMng.FastGet(request.Ids, request.Serids, request.Seplen)
+	var features []byte
+	var err error
+	if services.DCRuntime.CacheMng.Get_type() == "static_cache"{
+		features, err = services.DCRuntime.CacheMng.FastGet(request.Serids, request.Seplen)
+	}else{
+		features, err = services.DCRuntime.CacheMng.Get(request.Ids)
+	}
+	
 	// totalTime += float64(time.Since(st) / time.Millisecond)
 	if err != nil {
 		log.Fatal("Get error")

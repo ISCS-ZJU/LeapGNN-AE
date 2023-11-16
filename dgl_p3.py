@@ -223,6 +223,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         
                     cur_iter += 1
                     st = time.time()
+                    logging.info(f'xxxx')
                 logging.info(f'rank: {args.rank}, iter_num: {cur_iter}')
                 
                 ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
