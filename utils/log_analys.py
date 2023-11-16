@@ -2,6 +2,8 @@ import re
 import pandas as pd
 import os
 import yaml
+import numpy as np
+import math
 table_offset = 7
 
 def parse_config(confpath):
@@ -35,7 +37,7 @@ def divide_by_epoch_num(value, epoch_num):
     else:
         return value
 
-analys_list = parse_config('./log_analys.yaml')
+# analys_list = parse_config('./log_analys.yaml')
 
 pattens = {
     'total_local_feats_gather_time' : 1,
@@ -96,7 +98,8 @@ if __name__ == '__main__':
     # number = re.findall("[\d,.]+",str)
     datas = []
     # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
-    analys_list = extract_log_files(analys_list)
+    # analys_list = extract_log_files(analys_list)
+    analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/in/'])
     analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
         # 确定epoch num，从而后续计算平均一个epoch的时间，方便比较
@@ -115,6 +118,21 @@ if __name__ == '__main__':
                         data[patten] = float(re.findall("[\d .]+",remain[offset])[0])
                         if 'ms' in remain[offset]:
                             data[patten] /= 1000
+                if 'dataset=\'' in line:
+                    dataset = line.split('dataset=\'')[1].split('\',')[0]
+                if 'iter_num:' in line:
+                    iter_num = int(line.split('iter_num:')[1])
+                if 'world_size=' in line:
+                    world_size = int(line.split('world_size=')[1].split(',')[0])
+                if 'batch_size=' in line:
+                    batch_size =int(line.split('batch_size=')[1].split(',')[0])
+
+            tol_node = np.sum(np.load(os.path.join(dataset,'train.npy')))
+            exp_iter = math.ceil(tol_node//world_size/batch_size)
+            rate = exp_iter / iter_num 
+
+        if 'total epochs time' not in data.keys():
+            continue
         # 后处理
         if 'model transfer' not in data.keys():
             data['model transfer'] = 0 # 填充默认值
@@ -150,7 +168,7 @@ if __name__ == '__main__':
 
         # 计算平均每个epoch的时间
         for k, v in data.items():
-            data[k] = divide_by_epoch_num(v, epoch_num)
+            data[k] = divide_by_epoch_num(v, epoch_num / rate)
         
         if data['try_num'] != 0:
             data['miss-rate'] = data['miss_num'] / data['try_num']
