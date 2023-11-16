@@ -27,6 +27,8 @@ message DCRequest{
     OpType type = 1; // request type
     int64 idx = 2; // graph node idx
     repeated int64 ids = 3; // multiple graph node ids
+    repeated int64 serids = 4; // server id with graph node ids resides on
+    repeated int64 seplen = 5; // splitlen in get_stream_feats_from_server
 }
 
 message DCReply{

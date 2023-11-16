@@ -23,6 +23,8 @@ const FILENAME_BASE string = "/dev/shm/repgnn_shm"
 var cnt int = 0
 var mu_cnt sync.Mutex
 
+// var totalTime float64 = 0
+
 type dcrpcserver struct {
 	cache.UnimplementedOperatorServer
 	cache.UnimplementedOperatorFeaturesServer
@@ -114,16 +116,19 @@ func writeShmFiles(reply_chunks [][]byte, CHUNK_SIZE int) error {
 
 // Op func imple
 func (s *dcrpcserver) DCSubmitFeatures(request *cache.DCRequest, stream cache.OperatorFeatures_DCSubmitFeaturesServer) error {
+	// st := time.Now()
 	var reply *cache.DCReply
 	// fmt.Printf("enter dcsubmit server with cnt: %v\n", cnt)
 	switch request.Type {
 	case cache.OpType_get_stream_features_by_client:
 		reply, _ = Grpc_op_imple_get_stream_features_by_client(request)
 	}
+	// totalTime += float64(time.Since(st) / time.Millisecond)
 	// log.Info("len of reply.Features:", len(reply.Features))
 	// ensure max chunk byte size considering feat_dim
 	CHUNK_SIZE := int(services.DCRuntime.CacheMng.Get_MaxChunkSize())
 	reply_chunks := ChunkBytes(reply.Features, CHUNK_SIZE)
+	// totalTime += float64(time.Since(st)/time.Millisecond)
 	// fmt.Printf("len(chunk): %v\n", len(reply_chunks))
 	// shm_size := int64(len(reply.Features))
 	// a go routine to write features into shm

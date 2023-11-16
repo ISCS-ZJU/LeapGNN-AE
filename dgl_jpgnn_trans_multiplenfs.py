@@ -123,6 +123,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         args.n_classes = 6
     elif 'pubmed' in args.dataset:
         args.n_classes = 3
+    elif 'in' in args.dataset:
+        args.n_classes = 60
+    elif 'uk' in args.dataset:
+        args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
