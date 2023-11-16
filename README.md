@@ -269,3 +269,9 @@ python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url '
 go run server.go -dataset ./repgnn_data/ogbn_arxiv128/ -cachegroup '10.214.241.228,10.214.241.223' -cachetype 'static' -partition_type 'metis' -rpcport 18116 -multi_feat_file
 python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.228:23457' --world-size 2 --rank 0 --grpc-port 10.214.241.228:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
 python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url 'tcp://10.214.241.228:23457' --world-size 2 --rank 1 --grpc-port 10.214.241.223:18116 -d dist/repgnn_data/ogbn_arxiv0 -hd 32
+
+## 开发日志
+- 11.16试图减少额外开销。原理：增加FastGet接口，把ip2ids放到client端，利用numpy的向量并行加速；然后传送给server执行FastGet函数替代Get；使用步骤：
+  1. `distcache_rpc_imple.go` 中的 `Grpc_op_imple_get_stream_features_by_client` 函数的Get调用换成FastGet（注释切换即可）；
+  2. `storage_dist.py` 中 `get_stream_feats_from_server`接口换成 `get_stream_feats_from_server_v2`；
+  3. client的主运行代码（如dgl_default.py）中的增加 `cache_client.ConstructNid2Pid(args.dataset, args.world_size, 'metis', len(fg_train_mask))` 生成构建 ip2ids 所需的 Nid2Pid。

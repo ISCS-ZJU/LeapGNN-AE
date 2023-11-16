@@ -2,10 +2,15 @@
 # WARNING: rewrite cache_group item in ./dist/conf/static_cache.yaml
 cluster_servers:
   # - "10.214.243.19" # yq2
-  - "10.214.241.227" # yq4
-  - "10.214.241.228" # yq5
-  - "10.214.241.223" # yq6
-  - "10.214.241.232" # yq7
+  # - "10.214.241.227" # yq4
+  # - "10.214.241.228" # yq5
+  # - "10.214.241.223" # yq6
+  # - "10.214.241.232" # yq7
+  - "12.12.12.4" # yq4
+  - "12.12.12.3" # yq5
+  - "12.12.12.2" # yq6
+  - "12.12.12.1" # yq7
+
 
 # sshinfo
 ssh_pswd: "wwpwcl44"
@@ -20,9 +25,9 @@ client_files:
   - "dgl_p3_avoid_oom.py"
   - "dgl_jpgnn_trans_lessjp_avoid_error.py"
   - "dgl_default_localshuffle.py" # 原始的 GNN 训练 - localshuffle 版本
-  - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
+  # - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
 # Choose the client file to run
-run_client_idx: 7
+run_client_idx: 0
 
 # training parameters
 model_name: "gat"
@@ -30,7 +35,7 @@ batch_size: 4096
 sampling: "2"
 n_epochs: 3
 learning_rate: 0.001
-cluster_build_port: "23457" # used by pytorch init_group
+cluster_build_port: "23458" # used by pytorch init_group
 grpc_port: "18116" # used for communication of cache server and client
 dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 256
@@ -38,7 +43,7 @@ hidden_size: 256
 # statistic
 log: True # rewrite statistic item in static_cache.yaml
 # log: False
-eval: True
+eval: False
 # eval: False
 
 # Set the name of the server files to run

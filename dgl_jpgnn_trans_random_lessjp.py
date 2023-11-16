@@ -618,15 +618,22 @@ def send_recv_model_trace_trace(model_trace, model, gpu, rank, jp_cnt, machine2m
     # logging.debug(f'cur machine2modelid: {machine2model}')
 
 
-def generate_collision_table_dict(k, ):
+def generate_collision_table_dict(k):
     # 生成 random 删除后的碰撞表格; k=num_parallel_model or world_size;
     # initial table
     table = np.zeros((k,k))
     table[0] = np.arange(k)
     for i in range(1, k):
         table[i] = np.roll(table[i-1], -1)
+    print('init table:')
+    print(table)
     # random delete
     for delnum in range(1, k):
+        new_table = np.zeros((k, k-delnum))
         for row in range(table.shape[0]):
             delete_col_idx = np.random.randint(0, len(table[row]))
+            new_table[row] = np.delete(table[row], delete_col_idx)
+        table = new_table
+        print(f'delnum = {delnum}, table:')
+        print(table)
             
