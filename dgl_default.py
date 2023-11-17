@@ -17,7 +17,8 @@ from dgl import DGLGraph
 from utils.help import Print
 import storage
 from model import gcn, graphsage, deep
-from model.dgl_gat_nodeflow.model import gat_nodeflow as gat
+from model import gat
+# from model.dgl_gat_nodeflow.model import gat_nodeflow as gat
 import logging
 import time
 
@@ -120,8 +121,9 @@ def run(gpu, ngpus_per_node, args, log_queue):
         model = graphsage.GraphSageSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, args.dropout)
     elif args.model_name == 'gat':
-        sampling_intlst = sampling_intlst + [sampling_intlst[-1]]
-        model = gat.GATNodeFlow(len(sampling_intlst)-1, featdim, [args.hidden_size], args.n_classes, sampling_intlst, args.dropout, args.dropout, True)
+        model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+        # sampling_intlst = sampling_intlst + [sampling_intlst[-1]]
+        # model = gat.GATNodeFlow(len(sampling_intlst)-1, featdim, [args.hidden_size], args.n_classes, sampling_intlst, args.dropout, args.dropout, True)
     elif args.model_name == 'deepergcn':
         args.n_layers = len(sampling)
         args.in_feats = featdim

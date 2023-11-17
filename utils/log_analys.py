@@ -37,7 +37,7 @@ def divide_by_epoch_num(value, epoch_num):
     else:
         return value
 
-# analys_list = parse_config('./log_analys.yaml')
+analys_list = parse_config('./log_analys.yaml')
 
 pattens = {
     'total_local_feats_gather_time' : 1,
@@ -98,10 +98,13 @@ if __name__ == '__main__':
     # number = re.findall("[\d,.]+",str)
     datas = []
     # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
-    # analys_list = extract_log_files(analys_list)
-    analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/in/'])
+    analys_list = extract_log_files(analys_list)
+    # analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/in/'])
     analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
+        iter_num = -1
+        avg_epoch_time_jpless = -1
+        new_jp_times = -1
         # 确定epoch num，从而后续计算平均一个epoch的时间，方便比较
         epoch_num = find_ep_number(file_path)
         with open(file_path,'r') as f:
@@ -126,10 +129,18 @@ if __name__ == '__main__':
                     world_size = int(line.split('world_size=')[1].split(',')[0])
                 if 'batch_size=' in line:
                     batch_size =int(line.split('batch_size=')[1].split(',')[0])
+                if 'avg_epoch_time of' in line:
+                    avg_epoch_time_jpless = float(line.split("avg_epoch_time of [")[1].split(' ')[0][:-1])
+                if 'new jp_times' in line:
+                    new_jp_times = int(line.split('new jp_times is ')[1])
+                
 
             tol_node = np.sum(np.load(os.path.join(dataset,'train.npy')))
             exp_iter = math.ceil(tol_node//world_size/batch_size)
-            rate = exp_iter / iter_num 
+            if iter_num != -1:
+                rate = exp_iter / iter_num 
+            else:
+                rate = 1
 
         if 'total epochs time' not in data.keys():
             continue
@@ -166,9 +177,18 @@ if __name__ == '__main__':
         if 'p3' in file_path:
             data['total epochs time'] -= data['get_nfs']
 
+
         # 计算平均每个epoch的时间
         for k, v in data.items():
             data[k] = divide_by_epoch_num(v, epoch_num / rate)
+        
+        # 如果是jpless，自动提取最小的时间作为total_epoch_time，其余的时间自动缩小相应倍数，打印最终跳跃次数
+        if avg_epoch_time_jpless!= -1:
+            print(file_path, 'final jp_times:', new_jp_times)
+            scale = data['total epochs time'] / avg_epoch_time_jpless
+            for k, v in data.items():
+                if k != '# client-server request nodes' and k!= '# local missed' and k!='miss-rate' and k!='name':
+                    data[k] = v / scale
         
         if data['try_num'] != 0:
             data['miss-rate'] = data['miss_num'] / data['try_num']
@@ -176,6 +196,7 @@ if __name__ == '__main__':
             data['miss-rate'] = '/'
 
         datas.append(data)
+        # print(data)
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
@@ -192,4 +213,5 @@ if __name__ == '__main__':
     writer = pd.ExcelWriter('./data.xlsx')  # 初始化一个writer
     pf.to_excel(writer, float_format='%.5f',index=False)  # table输出为excel, 传入writer
     writer._save()
+    print(f'-> write to data.xlsx done.')
 

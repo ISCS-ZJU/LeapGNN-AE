@@ -49,6 +49,10 @@ def parse_command_line_args():
                         help='cache type name')
     parser.add_argument('--dataset', type=str, default='',
                         help='training dataset name')
+    parser.add_argument('--multi_feat_file', type=bool, default=False,
+                        help='training dataset name')
+    parser.add_argument('--partition_type', type=str, default=False,
+                        help='training dataset name')
     args = parser.parse_args()
 
     return args
@@ -87,9 +91,13 @@ auto_test_file = './test_config.yaml'
 args = parse_command_line_args()
 if args.cache_type != '':
     cache_type = args.cache_type
+if args.partition_type != '':
+    partition_type = args.partition_type
 if args.dataset != '':
     dataset = args.dataset
     dataset_path = os.path.join('./repgnn_data/', dataset)
+if args.multi_feat_file:
+    multi_feat_file = args.multi_feat_file
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
 for serverip in cluster_servers:

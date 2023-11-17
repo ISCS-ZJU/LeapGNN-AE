@@ -434,12 +434,15 @@ class DistCacheClient:
     def get_stream_feats_from_server_v2(self, nids):
         with torch.autograd.profiler.record_function('construct ip2ids'):
             # construct ip2ids + splitlen ->  [[], [], []]
-            ip2ids = []
+            ip2ids = [None] * len(nids)
+            curr_idx = 0
             splitlen = []
             nids_np = np.array(nids)
             for i in range(self.world_size):
-                ip2ids.extend(nids_np[self.Nid2pid[nids_np] == i].tolist())
-                splitlen.append(len(ip2ids))
+                tmplst = nids_np[self.Nid2pid[nids_np] == i]
+                ip2ids[curr_idx:curr_idx+len(tmplst)] = tmplst.tolist()
+                curr_idx += len(tmplst)
+                splitlen.append(curr_idx)
 
         err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
         type=distcache_pb2.get_stream_features_by_client, serids=ip2ids, seplen=splitlen), timeout=100000)
