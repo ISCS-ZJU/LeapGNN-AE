@@ -51,7 +51,9 @@ def parse_command_line_args():
                         help='training dataset name')
     parser.add_argument('--multi_feat_file', type=bool, default=False,
                         help='training dataset name')
-    parser.add_argument('--partition_type', type=str, default=False,
+    parser.add_argument('--partition_type', type=str, default='',
+                        help='training dataset name')
+    parser.add_argument('--cluster_servers', type=str, default='',
                         help='training dataset name')
     args = parser.parse_args()
 
@@ -98,6 +100,10 @@ if args.dataset != '':
     dataset_path = os.path.join('./repgnn_data/', dataset)
 if args.multi_feat_file:
     multi_feat_file = args.multi_feat_file
+if args.cluster_servers != '':
+    cluster_servers = eval(args.cluster_servers)
+    print(cluster_servers, type(cluster_servers))
+# sys.exit()
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
 for serverip in cluster_servers:

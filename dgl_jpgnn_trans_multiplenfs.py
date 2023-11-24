@@ -229,13 +229,14 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     st = time.time()
                     if sub_nf_id % world_size == 0:
                         # 一次获取world_size个nf，进行预取
-                        sub_nfs_lst = [] # 存放提前预取的包含features的nf
-                        for j in range(world_size):
-                            try:
-                                sub_nfs_lst.append(next(sampler_iterator)) # 获取子图topo
-                            except StopIteration:
-                                continue # 可能不足batch size个
-                        wait_sampler.append(time.time() - st)
+                        with torch.autograd.profiler.record_function('get sub_nfs_lst'):
+                            sub_nfs_lst = [] # 存放提前预取的包含features的nf
+                            for j in range(world_size):
+                                try:
+                                    sub_nfs_lst.append(next(sampler_iterator)) # 获取子图topo
+                                except StopIteration:
+                                    continue # 可能不足batch size个
+                            wait_sampler.append(time.time() - st)
                         with torch.autograd.profiler.record_function('fetch feat'):
                             fetch_func(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    
                     # 选择其中一个sub_nf参与后续计算
@@ -334,7 +335,7 @@ def parse_args_func(argv):
                         choices=['gat', 'graphsage', 'gcn', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
-    parser.add_argument('-wkr', '--num-worker', default=1,
+    parser.add_argument('-wkr', '--num-worker', default=4,
                         type=int, help='sampling worker')
     parser.add_argument('-cs', '--cache-size', default=0,
                         type=int, help='cache size in each gpu (GB)')

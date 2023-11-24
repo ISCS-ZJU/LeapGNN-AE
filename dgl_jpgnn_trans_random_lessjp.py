@@ -238,6 +238,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
     cache_client.Reset()
+    cache_client.ConstructNid2Pid(args.dataset, args.world_size, 'metis', len(fg_train_mask))
     featdim = cache_client.feat_dim
     print(f'Got feature dim from server: {featdim}')
 
@@ -252,6 +253,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         args.n_classes = 3
     elif 'reddit' in args.dataset:
         args.n_classes = 41
+    elif 'in' in args.dataset:
+        args.n_classes = 60
+    elif 'uk' in args.dataset:
+        args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -315,10 +320,13 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         with torch.autograd.profiler.record_function('total epochs time'):
             epoch_st = time.time()
             for epoch in range(args.epoch):
+                epoch_time_step = 0
+                colide_table = None
                 ########## 计算监视下的一个epoch的平均训练时间 ##########
                 if len(moniter_epoch_time) >= args.moniter_epochs and adjust_jp_times==True:
                     avg_epoch_time = sum(moniter_epoch_time) / len(moniter_epoch_time)
-                    if avg_epoch_time < last_avg_epoch_time:
+                    # if avg_epoch_time < last_avg_epoch_time:
+                    if jp_times > args.world_size - 1:
                         logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is smaller than last avg epoch time {last_avg_epoch_time}")
                         jp_times -= 1
                         logging.info(f"new jp_times is {jp_times}")
@@ -328,8 +336,13 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         moniter_epoch_time = []
                         last_avg_epoch_time = avg_epoch_time # update last_avg_epoch_time
                     else:
-                        adjust_jp_times = False
-                        jp_times += 1 # 恢复性能更好的jp_times
+                        # adjust_jp_times = False
+                        # jp_times += 1 # 恢复性能更好的jp_times
+                        # jp_times 后续都保持3
+                        # 生成当前 epoch 需要的time_step列表
+                        colide_table = generate_collision_table_dict(4, len(sub_batch_offsets))
+                    logging.info(f"cur_jp_times = {jp_times}")
+
                 
                 # # sync jp_times
                 # jp_times_tensor = torch.tensor(jp_times)
@@ -394,17 +407,28 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         fetch_func([sub_nf])
 
                     if sub_nf._node_mapping.tousertensor().shape[0] > 0:
-                        batch_nid = sub_nf.layer_parent_nid(-1)
-                        with torch.autograd.profiler.record_function('fetch label'):
-                            labels = fg_labels[batch_nid].cuda(gpuid, non_blocking=True)
+                            st = time.time()
+                            batch_nid = sub_nf.layer_parent_nid(-1)
+                            with torch.autograd.profiler.record_function('fetch label'):
+                                labels = fg_labels[batch_nid].cuda(gpuid, non_blocking=True)
+                            with torch.autograd.profiler.record_function('gpu-compute'):
+                                pred = model(sub_nf)
+                                loss = loss_fn(pred, labels)
+                            with torch.autograd.profiler.record_function('sync before compute'):    
+                            # 同步
+                                dist.barrier()
+                            with torch.autograd.profiler.record_function('gpu-compute'):
+                                loss.backward()
+                            ed = time.time()
+                    # two model compute
+                    if colide_table is not None:
+                        logging.info("colide")
                         with torch.autograd.profiler.record_function('gpu-compute'):
-                            pred = model(sub_nf)
-                            loss = loss_fn(pred, labels)
-                        with torch.autograd.profiler.record_function('sync before compute'):    
-                        # 同步
-                            dist.barrier()
-                        with torch.autograd.profiler.record_function('gpu-compute'):
-                            loss.backward()
+                            if colide_table[args.rank][epoch_time_step]:
+                                # simulate another model compute
+                                time.sleep(ed-st)
+                    
+                    epoch_time_step += 1
                     
                     with torch.autograd.profiler.record_function('sync for each sub_iter'):    
                         # 同步
@@ -542,9 +566,9 @@ if __name__ == '__main__':
     if len(args.sampling.split('-')) > 10:
         fanout = sampling_lst[0]
         sampling_len = len(sampling_lst)
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_random_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{fanout}x{sampling_len}_ep{args.epoch}_hd{args.hidden_size}.log')
     else:
-        log_filename = os.path.join(log_dir, f'jpgnn_trans_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
+        log_filename = os.path.join(log_dir, f'jpgnn_trans_random_lessjp_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
         # # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
         # if_delete = 'y'
@@ -618,22 +642,44 @@ def send_recv_model_trace_trace(model_trace, model, gpu, rank, jp_cnt, machine2m
     # logging.debug(f'cur machine2modelid: {machine2model}')
 
 
-def generate_collision_table_dict(k):
-    # 生成 random 删除后的碰撞表格; k=num_parallel_model or world_size;
+def generate_collision_table_dict(k, times):
+    # 生成 random 删除后的碰撞表格; k=num_parallel_model or =world_size;
+    # times: 重复执行几次
+    # return: 每个模型在每个time step是否有colide (不会重复计算，以前一个模型为准)
+    ret = None
     # initial table
     table = np.zeros((k,k))
     table[0] = np.arange(k)
     for i in range(1, k):
         table[i] = np.roll(table[i-1], -1)
-    print('init table:')
+    # print('init table:')
     print(table)
     # random delete
-    for delnum in range(1, k):
+    delnum = 1
+    # for delnum in range(1, k):
+    for _ in range(times):
         new_table = np.zeros((k, k-delnum))
         for row in range(table.shape[0]):
             delete_col_idx = np.random.randint(0, len(table[row]))
             new_table[row] = np.delete(table[row], delete_col_idx)
-        table = new_table
-        print(f'delnum = {delnum}, table:')
-        print(table)
+        # table = new_table
+        # print(f'delnum = {delnum}, table:')
+        # print(new_table)
+        # 对于每个机器来说，计算发生碰撞的iter id
+        colide_table = calculate_colide(new_table)
+        # print(colide_table)
+        if ret is None:
+            ret = colide_table
+        else:
+            ret = np.concatenate((ret, colide_table), axis=1)
+    return ret
+
+def calculate_colide(ar):
+    row, col = ar.shape[0], ar.shape[1]
+    ret_ar = np.zeros_like(ar)
+    for r in range(row):
+        for c in range(col):
+            for tmpr in range(r+1, row):
+                ret_ar[r][c] += (ar[tmpr][c] == ar[r][c])
+    return ret_ar
             

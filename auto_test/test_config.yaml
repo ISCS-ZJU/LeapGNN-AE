@@ -25,6 +25,7 @@ client_files:
   - "dgl_p3_avoid_oom.py"
   - "dgl_jpgnn_trans_lessjp_avoid_error.py"
   - "dgl_default_localshuffle.py" # 原始的 GNN 训练 - localshuffle 版本
+  - "dgl_jpgnn_trans_random_lessjp.py"
   # - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
 # Choose the client file to run
 run_client_idx: 0

@@ -333,6 +333,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         moniter_epoch_time = []
                         last_avg_epoch_time = avg_epoch_time # update last_avg_epoch_time
                     else:
+                        logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is larger than last avg epoch time {last_avg_epoch_time}")
                         adjust_jp_times = False
                         jp_times += 1 # 恢复性能更好的jp_times
                 
@@ -438,6 +439,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     logging.info(f'Up to now, total_local_feats_gather_time = {time_local*0.001} s, total_remote_feats_gather_time = {time_remote*0.001} s')
                 print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
+                # logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time}")
 
                 if args.eval:
                     num_acc = 0  
