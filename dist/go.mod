@@ -7,6 +7,7 @@ require (
 	github.com/campoy/embedmd v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jinzhu/configor v1.2.1 // indirect
+	github.com/kshedden/gonpy v0.0.0-20210519231815-fa3c8dd8e59b // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sbinet/npyio v0.7.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect

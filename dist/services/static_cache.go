@@ -12,6 +12,7 @@ import (
 	"time"
 	"unsafe"
 
+	gonpy "github.com/kshedden/gonpy"
 	npyio "github.com/sbinet/npyio"
 	log "github.com/sirupsen/logrus"
 )
@@ -61,13 +62,17 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 		log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
 		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
 
-		features := make([]float32, shape[0]*shape[1])
+		// features := make([]float32, shape[0]*shape[1])
+		var features []float32
+		// featf, _ = os.Open(feat_npy_filepath)
+		rf, _ := gonpy.NewFileReader(feat_npy_filepath)
+		features, _ = rf.GetFloat32()
 
-		err = r.Read(&features)
+		// err = r.Read(&features)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Info("[static_cache.go] Read features done.")
+		log.Infof("[static_cache.go] Read features done with shape %v", rf.Shape)
 
 		// 初始化填充点的feature到缓存
 		start := time.Now()
@@ -391,13 +396,13 @@ func (static_cache *Static_cache_mng) FastGet(serids []int64, seplen []int64) ([
 				ip2ids[int64(idx)] = serids[seplen[idx-1]:seplen[idx]]
 			}
 		}
-		
+
 		// 读取本地缓存的数据
 		st_local_time := time.Now()
 		server_node_id := DCRuntime.PartIdx
 		st_idx, ed_idx, ret_id := int64(-1), int64(-1), int64(-1)
 		if server_node_id == 0 {
-			st_idx = 0  // row id
+			st_idx = 0 // row id
 		} else {
 			st_idx = seplen[server_node_id-1] // row id
 		}

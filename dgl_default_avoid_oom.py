@@ -78,12 +78,13 @@ def run(gpu, ngpus_per_node, args, log_queue):
     fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
     ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
-    print('fg_train_nid:',fg_train_nid.shape[0], 'ntrain_per_GPU:', ntrain_per_gpu)
+    logging.info(f'fg_train_nid:{fg_train_nid.shape[0]} ntrain_per_GPU:{ntrain_per_gpu}')
     test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
     fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
+    del fg_adj
     torch.distributed.barrier()
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
@@ -91,10 +92,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
     cache_client.Reset()
     cache_client.ConstructNid2Pid(args.dataset, args.world_size, 'metis', len(fg_train_mask))
     featdim = cache_client.feat_dim
-    print(f'Got feature dim from server: {featdim}')
+    logging.info(f'Got feature dim from server: {featdim}')
 
     #################### 创建分布式训练GNN模型、优化器 ####################
-    print(f'dataset:', args.dataset)
+    logging.info(f'dataset:{args.dataset}')
     if 'ogbn_arxiv' in args.dataset:
         args.n_classes = 40
     elif 'ogbn_products' in args.dataset:
@@ -105,6 +106,12 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 3
     elif 'reddit' in args.dataset:
         args.n_classes = 41
+    elif 'twitter' in args.dataset:
+        args.n_classes = 172
+    elif 'uk' in args.dataset:
+        args.n_classes = 60
+    elif 'gsh' in args.dataset:
+        args.n_classes = 172
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -129,7 +136,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     max_acc = 0
 
     # count number of model params
-    print('Total number of model params:', sum([p.numel() for p in model.parameters()]))
+    logging.info(f'Total number of model params:{sum([p.numel() for p in model.parameters()])}')
 
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
@@ -141,8 +148,9 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     np.random.shuffle(fg_train_nid)
                     train_lnid = fg_train_nid[args.rank * ntrain_per_gpu: (args.rank+1)*ntrain_per_gpu]
                     
-                ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
-                sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
+                with torch.autograd.profiler.record_function('construct sampler:'):
+                    ########## 根据分配到的Training node id, 构造图节点batch采样器 ###########
+                    sampler = dgl.contrib.sampling.NeighborSampler(fg, args.batch_size, expand_factor=int(sampling[0]), num_hops=len(sampling)+1, neighbor_type='in', shuffle=True, num_workers=args.num_worker, seed_nodes=train_lnid, prefetch=True, add_self_loop=True)
 
                 ########## 利用每个batch的训练点采样生成的子树nf，进行GNN训练 ###########
                 model.train()
@@ -150,8 +158,16 @@ def run(gpu, ngpus_per_node, args, log_queue):
                 wait_sampler = []
                 st = time.time()
                 avg_loss = []
+                nf_lst = []
+                with torch.autograd.profiler.record_function('preget nfs'):
+                    cnt = 0
+                    for nf in sampler:
+                        nf_lst.append(nf)
+                        cnt += 1
+                        if cnt > args.iter_stop:
+                            break
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
-                for nf in sampler:
+                for nf in nf_lst:
                     wait_sampler.append(time.time()-st)
                     # print(f'iter: {iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
@@ -159,8 +175,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         cache_client.fetch_data(nf)
                     batch_nid = nf.layer_parent_nid(-1)
                     with torch.autograd.profiler.record_function('fetch label'):
-                        labels = fg_labels[batch_nid].cuda(
-                            args.gpu, non_blocking=True)
+                        labels = fg_labels[batch_nid].cuda(args.gpu, non_blocking=True)
                     with torch.autograd.profiler.record_function('gpu-compute with optimizer.step'):
                         # each_sub_iter_nsize.append(nf._node_mapping.tousertensor().size(0))
                         with torch.autograd.profiler.record_function('DDP forward'):
@@ -247,7 +262,7 @@ def parse_args_func(argv):
                         choices=['deepergcn', 'gat', 'graphsage', 'gcn', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
-    parser.add_argument('-wkr', '--num-worker', default=1,
+    parser.add_argument('-wkr', '--num-worker', default=4,
                         type=int, help='sampling worker')
     parser.add_argument('-cs', '--cache-size', default=0,
                         type=int, help='cache size in each gpu (GB)')
