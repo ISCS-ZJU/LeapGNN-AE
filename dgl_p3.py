@@ -27,21 +27,24 @@ from common.log import setup_primary_logging, setup_worker_logging
 
 # torch.autograd.set_detect_anomaly(True)
 
-nfs_cache = [] # avoid all_gather_object of nfs frequently
-def get_nfs(nf, world_size,gpu_id):
-    global nfs_cache
-    if len(nfs_cache) == 0:
-        nfs = [_ for _ in range(world_size)]
-        dist.all_gather_object(nfs,nf)
-        nfs_cache.append(nfs)
-    else:
-        nfs = nfs_cache[0]
-    with torch.autograd.profiler.record_function('topology transfer'):
-        # WARNING: only for performance test
-        nblocks = nf.num_layers-1
-        local_topo = [nf.block_adjacency_matrix(block_id=i, ctx=torch.device(f'cuda:{gpu_id}')) for i in range(nblocks)]
-        topos = [_ for _ in range(world_size)]
-        dist.all_gather_object(topos, local_topo)
+# nfs_cache = [] # avoid all_gather_object of nfs frequently
+def get_nfs(nf, world_size,fg):
+    # global nfs_cache
+    # if len(nfs_cache) == 0:
+    nfs = [_ for _ in range(world_size)]
+    nf._parent = None
+    dist.all_gather_object(nfs,nf)
+    for i in nfs:
+        i._parent = fg
+        # nfs_cache.append(nfs)
+    # else:
+    #     nfs = nfs_cache[0]
+    # with torch.autograd.profiler.record_function('topology transfer'):
+    #     # WARNING: only for performance test
+    #     nblocks = nf.num_layers-1
+    #     local_topo = [nf.block_adjacency_matrix(block_id=i, ctx=torch.device(f'cuda:{gpu_id}')) for i in range(nblocks)]
+    #     topos = [_ for _ in range(world_size)]
+    #     dist.all_gather_object(topos, local_topo)
 
     return nfs
 
@@ -189,7 +192,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                     with torch.autograd.profiler.record_function('get_nfs'):
                         # additional_nf = [next(sampler_iter) for _ in range(args.world_size-1)]
                         # nfs = get_nfs(nf, args.world_size, additional_nf)
-                        nfs = get_nfs(nf, args.world_size, args.gpu)
+                        nfs = get_nfs(nf, args.world_size, fg)
                     
                     # print(f'cur_iter: {cur_iter}')
                     with torch.autograd.profiler.record_function('fetch feat'):
@@ -210,7 +213,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                                 pred = pred[:len(labels)]
                             loss = loss_fn(pred, labels)
                             # logging.info(f'loss: {loss} pred:{pred.argmax(dim=-1)}')
-                            avg_loss.append(loss)
+                            # avg_loss.append(loss)
                             # logging.info(f'loss: {loss}')
                         with torch.autograd.profiler.record_function('DDP optimizer.zero()'):
                             optimizer.zero_grad()
@@ -223,7 +226,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         with torch.autograd.profiler.record_function('DDP optimizer.step()'):
                             optimizer.step()
                         torch.distributed.barrier()
-                    logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
+                    # logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
                         
                     cur_iter += 1
                     st = time.time()
@@ -267,7 +270,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
         logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
-    # torch.distributed.barrier()
+    torch.distributed.barrier()
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
