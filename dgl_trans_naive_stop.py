@@ -161,15 +161,10 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 60
     elif 'in_2004' in args.dataset:
         args.n_classes = 60
-    elif 'it' in args.dataset:
-        args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
     max_acc = 0
     exp_iter_num = math.ceil(ntrain_per_gpu/args.batch_size)
-    num = 36
-    val = torch.empty(trans_num[f"{args.model_name}_{ args.dataset.strip('/').split('/')[-1]}_{args.batch_size}_{args.hidden_size}"]//exp_iter_num//num,dtype=torch.float32)
-    new_val = torch.empty_like(val)
     # count number of model params
     
 
@@ -199,17 +194,18 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         # 将nf._node_frame中填充每层神经元的node Frame (一个frame是一个字典，存储feat)
                         cache_client.fetch_data(nf)
                     # logging.info(f'avg loss = {sum(avg_loss)/len(avg_loss)}')
-                        
+                    num = 36
                     for _ in range(num):
                         with torch.autograd.profiler.record_function('init data'):
-                            val,new_val = new_val,val
-                            val = val + 1
-                            new_val = new_val + 1
+                            val = torch.empty(trans_num[f"{args.model_name}_{ args.dataset.strip('/').split('/')[-1]}_{args.batch_size}_{args.hidden_size}"]//exp_iter_num//num,dtype=torch.float32)
+                            new_val = torch.empty_like(val)
                         with torch.autograd.profiler.record_function('model transfer'):
                             ########## 模型参数在分布式GPU间进行传输 ###########
                             new_val = send_recv(val,new_val,args.rank,args.world_size)
                     iter += 1
                     st = time.time()
+                    if iter > args.iter_stop:
+                        break
                     # logging.info(f'rank: {args.rank}, iter_num: {iter}')
                 
                 ########## 当一个epoch结束，打印从当前client发送到本地cache server的请求中，本地命中数/本地总请求数 ###########
@@ -296,6 +292,7 @@ def parse_args_func(argv):
     parser.add_argument('--learn_y', action='store_true')
     parser.add_argument('--msg_norm', action='store_true')
     parser.add_argument('--learn_msg_scale', action='store_true')
+    parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
     return parser.parse_args(argv)
 
 
