@@ -140,6 +140,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_classes = 60
     elif 'in_2004' in args.dataset:
         args.n_classes = 60
+    elif 'it' in args.dataset:
+        args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':

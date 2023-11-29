@@ -147,10 +147,11 @@ class GraphSageSampling(nn.Module):
         nf_nids = nf._node_mapping.tousertensor()
         offsets = nf._layer_offsets # 这里的layer含义不是Block，一个Block包含输入Layer和输出layer
         for blkid, layer in enumerate(self.layers):
-            aggr_results = len(nf_nids[offsets[blkid]: offsets[blkid+1]]) * self.layers[blkid].fc_neigh.in_features
+            # aggr_results = len(nf_nids[offsets[blkid]: offsets[blkid+1]]) * self.layers[blkid].fc_neigh.in_features
             tensor_after_combine_and_w = len(nf_nids[offsets[blkid+1]: offsets[blkid+2]])*self.layers[blkid].fc_neigh.out_features
 
-            cur_block_comb_size = aggr_results + tensor_after_combine_and_w
+            # cur_block_comb_size = aggr_results + tensor_after_combine_and_w
+            cur_block_comb_size = tensor_after_combine_and_w
             self.total_comb_size += old_comb_size
             old_comb_size += cur_block_comb_size
 

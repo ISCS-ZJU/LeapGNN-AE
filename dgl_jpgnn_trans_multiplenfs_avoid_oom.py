@@ -131,6 +131,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         args.n_classes = 60
     elif 'twitter' in args.dataset:
         args.n_classes = 172
+    elif 'it' in args.dataset:
+        args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
     if args.model_name == 'gcn':
@@ -239,6 +241,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                                     sub_nfs_lst.append(next(sampler_iterator)) # 获取子图topo
                                 except StopIteration:
                                     continue # 可能不足batch size个
+                            dist.barrier()
                             wait_sampler.append(time.time() - st)
                         with torch.autograd.profiler.record_function('fetch feat'):
                             fetch_func(sub_nfs_lst) # 获取feats存入sub_nfs_lst列中中的对象属性    

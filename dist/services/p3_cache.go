@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	gonpy "github.com/kshedden/gonpy"
 	npyio "github.com/sbinet/npyio"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,8 +24,8 @@ type P3_cache_mng struct {
 	Local_feats_gather_time  []float32 // time of local feats gathering
 	Remote_feats_gather_time []float32 // time of remote feats gathering
 	MaxChunkSize             int64     // for stream transfer
-	offset             int64     
-	feat_len             int64   
+	offset                   int64
+	feat_len                 int64
 }
 
 func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
@@ -45,7 +46,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 
 	// 从并行文件系统中读取nid对应的feature数据
 	// TODO: 当前实现是1次加载全部的features到内存
-	if common.Config.Multi_feat_file == true{
+	if common.Config.Multi_feat_file == true {
 		feat_npy_filepath := fmt.Sprintf("%v/feat_p3/p3_feat%v.npy", common.Config.Dataset, dc.PartIdx)
 		log.Infof("%v\n", feat_npy_filepath)
 		featf, _ := os.Open(feat_npy_filepath)
@@ -56,20 +57,23 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 		}
 		log.Infof("[p3_cache.go] npy-header: %v\n", r.Header)
 		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
-	
-		features := make([]float32, shape[0]*shape[1])
-	
-		err = r.Read(&features)
+
+		// features := make([]float32, shape[0]*shape[1])
+		var features []float32
+		rf, _ := gonpy.NewFileReader(feat_npy_filepath)
+		features, _ = rf.GetFloat32()
+
+		// err = r.Read(&features)
 		if err != nil {
 			log.Fatal(err)
 		}
-	
+
 		// 初始化填充点的feature到缓存
 		cur_cache_id := DCRuntime.PartIdx
 		tol_node := int64(len(DCRuntime.Ip_slice))
 		p3_cache.feat_len = int64(shape[1])
 		p3_cache.offset = (int64(shape[1]) / tol_node) * cur_cache_id
-		
+
 		start := time.Now()
 		for nid := int64(0); nid < int64(shape[0]); nid++ {
 			start_index, end_index := nid*int64(shape[1]), (nid+1)*int64(shape[1])
@@ -79,7 +83,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 		log.Infof("[p3_cache.go] It takes %v to cache these nodes' features.", time.Since(start))
 		featf.Close()
 		p3_cache.Feature_dim = int64(0)
-		for i:= 0; i < common.Config.Partition;i++{
+		for i := 0; i < common.Config.Partition; i++ {
 			feat_npy_filepath = fmt.Sprintf("%v/feat_p3/p3_feat%v.npy", common.Config.Dataset, i)
 			featf, _ = os.Open(feat_npy_filepath)
 			r, err = npyio.NewReader(featf)
@@ -90,7 +94,7 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 			p3_cache.Feature_dim = p3_cache.Feature_dim + int64(shape[1])
 			featf.Close()
 		}
-	}else{
+	} else {
 		feat_npy_filepath := fmt.Sprintf("%v/feat.npy", common.Config.Dataset)
 		featf, _ := os.Open(feat_npy_filepath)
 		defer featf.Close()
@@ -100,27 +104,30 @@ func init_P3_cache_mng(dc *DistCache) *P3_cache_mng {
 		}
 		log.Infof("[p3_cache.go] npy-header: %v\n", r.Header)
 		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
-	
-		features := make([]float32, shape[0]*shape[1])
-	
-		err = r.Read(&features)
+
+		// features := make([]float32, shape[0]*shape[1])
+		var features []float32
+		rf, _ := gonpy.NewFileReader(feat_npy_filepath)
+		features, _ = rf.GetFloat32()
+
+		// err = r.Read(&features)
 		if err != nil {
 			log.Fatal(err)
 		}
-	
+
 		// 初始化填充点的feature到缓存
 		cur_cache_id := DCRuntime.PartIdx
 		tol_node := int64(len(DCRuntime.Ip_slice))
-		if cur_cache_id == tol_node - 1{
-			p3_cache.feat_len = (int64(shape[1]) / tol_node) + int64(shape[1]) % tol_node
-		}else{
+		if cur_cache_id == tol_node-1 {
+			p3_cache.feat_len = (int64(shape[1]) / tol_node) + int64(shape[1])%tol_node
+		} else {
 			p3_cache.feat_len = (int64(shape[1]) / tol_node)
 		}
 		p3_cache.offset = (int64(shape[1]) / tol_node) * cur_cache_id
-	
+
 		start := time.Now()
 		for nid := int64(0); nid < int64(shape[0]); nid++ {
-			start_index, end_index := nid*int64(shape[1]) + p3_cache.offset, (nid)*int64(shape[1]) + p3_cache.offset + p3_cache.feat_len
+			start_index, end_index := nid*int64(shape[1])+p3_cache.offset, (nid)*int64(shape[1])+p3_cache.offset+p3_cache.feat_len
 			p3_cache.Put(nid, features[start_index:end_index])
 		}
 		// log.Infof("[p3_cache.go] successfully cached %v nodes features.", len(gnid))
@@ -163,7 +170,7 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 		var feats []float32
 		for st, local_hit_nid := range ids {
 			// ret_id = gnid2retid[local_hit_nid]
-			st_idx, ed_idx = int64(st)*p3_cache.feat_len,  int64(st+1)*p3_cache.feat_len
+			st_idx, ed_idx = int64(st)*p3_cache.feat_len, int64(st+1)*p3_cache.feat_len
 			// st := time.Now()
 			feats = p3_cache.cache[local_hit_nid]
 			// log.Infof("[p3_cache.go] read features from local: %v", time.Since(st)) // 200ns
@@ -172,7 +179,7 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 			// log.Infof("[p3_cache.go] copy to dest array: %v", time.Since(st)) // copy的时间大概是read local features时间的3倍；450ns-1us
 		}
 		log.Infof("[p3_cache.go] read features from local and copy to dest array: %v", time.Since(st_local_total)) // 135ms
-		byte_ret_features := encodeUnsafe(ret_features) // 113ns
+		byte_ret_features := encodeUnsafe(ret_features)                                                            // 113ns
 		// log.Infof("[p3_cache.go] convert []float to []byte: %v", time.Since(st))
 		return byte_ret_features, nil
 	} else {
@@ -186,7 +193,7 @@ func (p3_cache *P3_cache_mng) Get(ids []int64) ([]byte, error) {
 
 		// 读取本地缓存的数据
 		st_local_time := time.Now()
-		st_idx, ed_idx:= int64(-1), int64(-1)
+		st_idx, ed_idx := int64(-1), int64(-1)
 		// p3_cache.Local_hit_num += int64(len(ip2ids[server_node_id])) // 本地命中数增加
 		// log.Infof("[p3_cache.go] len of ids: %v", len(ids))
 		for st, local_hit_nid := range ids {

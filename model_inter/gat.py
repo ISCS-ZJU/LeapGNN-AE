@@ -141,10 +141,11 @@ class GATSampling(nn.Module):
             nf_nids = nf._node_mapping.tousertensor()
             offsets = nf._layer_offsets # 这里的layer含义不是Block，一个Block包含输入Layer和输出layer
             for blkid, layer in enumerate(self.gat_layers):
-                aggr_results = len(nf_nids[offsets[blkid]: offsets[blkid+1]]) * self.gat_layers[blkid].fc.in_features
+                # aggr_results = len(nf_nids[offsets[blkid]: offsets[blkid+1]]) * self.gat_layers[blkid].fc.in_features
                 tensor_after_combine_and_w = len(nf_nids[offsets[blkid+1]: offsets[blkid+2]])*self.gat_layers[blkid].fc.out_features
 
-                cur_block_comb_size = aggr_results + tensor_after_combine_and_w
+                # cur_block_comb_size = aggr_results + tensor_after_combine_and_w
+                cur_block_comb_size = tensor_after_combine_and_w
                 self.total_comb_size += old_comb_size
                 old_comb_size += cur_block_comb_size
 
