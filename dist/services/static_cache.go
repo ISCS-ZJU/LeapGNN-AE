@@ -94,9 +94,12 @@ func init_static_cache_mng(dc *DistCache) *Static_cache_mng {
 		log.Infof("[static_cache.go] npy-header: %v\n", r.Header)
 		shape := r.Header.Descr.Shape // shape[0]-# of nodes, shape[1]-node feat dim
 
-		features := make([]float32, shape[0]*shape[1])
+		var features []float32
+		// featf, _ = os.Open(feat_npy_filepath)
+		rf, _ := gonpy.NewFileReader(feat_npy_filepath)
+		features, _ = rf.GetFloat32()
 
-		err = r.Read(&features)
+		// err = r.Read(&features)
 		if err != nil {
 			log.Fatal(err)
 		}

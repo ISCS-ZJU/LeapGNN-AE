@@ -168,7 +168,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
                         cnt += 1
                         if cnt > args.iter_stop:
                             break
-                    torch.distributed.barrier()
+                    # torch.distributed.barrier()
                 # each_sub_iter_nsize = [] #  记录每次前传计算的 sub_batch的树的点树
                 for nf in nf_lst:
                     wait_sampler.append(time.time()-st)
