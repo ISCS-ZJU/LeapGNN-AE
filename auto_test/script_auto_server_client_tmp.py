@@ -15,6 +15,7 @@ server_cmd_lst = [
     # 'python3 servers_start.py --dataset twitter600 --cache_type static --partition_type metis --multi_feat_file True',
     # it
     'python3 servers_start.py --dataset it --cache_type static --partition_type metis --multi_feat_file True',
+    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
     # 'python3 servers_start.py --dataset it --cache_type p3 --partition_type metis --multi_feat_file True',
     # # p3
     # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type p3 --partition_type metis',
@@ -78,8 +79,10 @@ client_cmd_lst = [
     
     # it
     # default
-    # 'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 16 --iter_stop 5',
-    # 'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 32 --iter_stop 5',
+    'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 16 --iter_stop 5',
+    'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 32 --iter_stop 5',
+    # 'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 1024 --hidden_size 16 --iter_stop 5',
+    # 'python3 clients_start.py --model_name gat --sampling 5-5 --run_client_idx 9 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 1024 --hidden_size 32 --iter_stop 5',
     # 'python3 clients_start.py --model_name graphsage --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 16 --iter_stop 5',
     # 'python3 clients_start.py --model_name graphsage --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 32 --iter_stop 5',
     # 'python3 clients_start.py --model_name gcn --sampling 5-5 --run_client_idx 9 --dataset it --n_epochs 3 --batch_size 1024 --hidden_size 16 --iter_stop 5',
@@ -374,7 +377,7 @@ if __name__ == '__main__':
 
     # client_cmd_num = [24,12,12,12,12,6,6,6]
     # client_cmd_num = [12, 24, 12, 24, 6, 6, 6, 6, 6, 12, 6, 12, 3, 3, 3, 3]
-    client_cmd_num = [3, 3]
+    client_cmd_num = [2]
     offset = 0
     for server_cmdid, server_cmd in enumerate(server_cmd_lst):
         returncode_server = os.system(server_cmd)

@@ -56,5 +56,5 @@ server_files:
   - "static_cache.yaml"
 run_server_idx: 0 # Choose the client file to run
 cache_type: "static" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
-multi_feat_file: true # each part has one feat file
+multi_feat_file: false # each part has one feat file
 partition_type: "metis" # [metis, pg]
