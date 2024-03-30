@@ -68,6 +68,20 @@ class NaiveCacheClient:
         if any(filename.startswith(prefix) for filename in os.listdir("/dev/shm")):
             os.system("rm " + os.path.join(" /dev/shm", prefix) + "*")
 
+    def ConstructNid2Pid(self, datasetpath, partition_num, partition_type, total_graph_nodes):
+        # construct Nid2pid
+        self.Nid2pid = np.zeros(total_graph_nodes)
+        partition_path = os.path.join(datasetpath, f'dist_True/{partition_num}_{partition_type}/')
+        npy_files = [file for file in os.listdir(partition_path) if file.endswith('.npy')]
+        world_size = 0
+        for file_name in npy_files:
+            world_size += 1
+            pid = int(file_name.split('.')[0])
+            file_path = os.path.join(partition_path, file_name)
+            tmp_array = np.load(file_path)
+            self.Nid2pid[tmp_array] = pid
+        self.world_size = world_size
+
     def fetch_data(self, nodeflow):
         with torch.autograd.profiler.record_function('get nf_nids'):
             # 把sub-graph的lnid都加载到gpu,这里的node_mapping是从nf-level -> part-graph lnid
@@ -95,7 +109,7 @@ class NaiveCacheClient:
             
             # (stream method)
                 row_st_idx, row_ed_idx = 0, 0
-                for sub_features in self.get_stream_feats_from_server(tnid):
+                for sub_features in self.get_stream_feats_from_server_v2(tnid):
                     for name in self.dims:
                         sub_tensor = torch.frombuffer(sub_features, dtype=torch.float32).reshape(-1, self.feat_dim)
                         row_ed_idx += sub_tensor.shape[0]
@@ -380,6 +394,56 @@ class NaiveCacheClient:
     def get_stream_feats_from_server(self, nids):
         err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
         type=distcache_pb2.get_stream_features_by_client, ids=nids), timeout=100000)
+        # print(f'err = {err}')
+        if err!=None:
+            # yield features block
+            filename_base = '/dev/shm/repgnn_shm'
+            expected_byte_len = len(nids)*self.feat_dim*4 # float32
+            expected_feat_chunks = (expected_byte_len -1 + self.feats_chunk_size) // self.feats_chunk_size
+            last_ck_size = expected_byte_len % self.feats_chunk_size
+            st_ckid, ed_ckid = self.cnt, self.cnt+expected_feat_chunks
+            for ckid in range(st_ckid, ed_ckid):
+                filename = filename_base + f'{ckid}'
+                while True:
+                    if os.path.exists(filename):
+                        if os.path.getsize(filename) == self.feats_chunk_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(self.feats_chunk_size))
+                                mm.close()
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                        elif ckid==ed_ckid-1 and os.path.getsize(filename) == last_ck_size:
+                            with open(filename, 'r+b') as fh:
+                                # feats_bytes = bytes(fh.read()) # affect accuracy
+                                mm = mmap.mmap(fh.fileno(), 0)
+                                feats_bytes = bytes(mm.read(last_ck_size))
+                                mm.close()
+                            os.remove(filename)
+                            self.cnt += 1
+                            yield feats_bytes
+                            break
+                    else:
+                        # print(f'waiting file {filename}')
+                        continue
+        else:
+            return err
+
+    def get_stream_feats_from_server_v2(self, nids):
+        with torch.autograd.profiler.record_function('construct ip2ids'):
+            # construct ip2ids + splitlen ->  [[], [], []]
+            ip2ids = []
+            splitlen = []
+            nids_np = np.array(nids)
+            for i in range(self.world_size):
+                ip2ids.extend(nids_np[self.Nid2pid[nids_np] == i].tolist())
+                splitlen.append(len(ip2ids))
+
+        err = self.stub_features.DCSubmitFeatures(distcache_pb2.DCRequest(
+        type=distcache_pb2.get_stream_features_by_client, serids=ip2ids, seplen=splitlen), timeout=100000)
         # print(f'err = {err}')
         if err!=None:
             # yield features block
