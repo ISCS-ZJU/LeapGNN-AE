@@ -10,31 +10,31 @@ server_cmd_lst = [
     
     # # hd 128
     # # static
-    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
+    'python3 servers_start.py --dataset ogbn_arxiv128 --cache_type static --partition_type metis',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
     'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
     'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
     # 'python3 servers_start.py --dataset it --cache_type static --partition_type metis --multi_feat_file True',
     # # p3
-    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type p3 --partition_type metis',
+    'python3 servers_start.py --dataset ogbn_arxiv128 --cache_type p3 --partition_type metis',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type p3 --partition_type metis',
     'python3 servers_start.py --dataset in_2004 --cache_type p3 --partition_type metis --multi_feat_file True',
     'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
 
     # # hd 128
     # # naive
-    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
+    'python3 servers_start.py --dataset ogbn_arxiv128 --cache_type static --partition_type metis',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
     'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
     'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
     
     # # hd 64
     # # static
-    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
+    # 'python3 servers_start.py --dataset ogbn_arxiv128 --cache_type static --partition_type metis',
     # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
     # 'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
     # 'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
-    # 'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type p3 --partition_type metis',
+    # 'python3 servers_start.py --dataset ogbn_arxiv128 --cache_type p3 --partition_type metis',
     # 'python3 servers_start.py --dataset ogbn_products0 --cache_type p3 --partition_type metis',
     # 'python3 servers_start.py --dataset in_2004 --cache_type p3 --partition_type metis --multi_feat_file True',
     # 'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
@@ -51,31 +51,31 @@ client_cmd_lst = [
 
     # # 18*4 bar
     # # arxiv
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 16',
 
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 3 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 4096 --hidden_size 128',
 
     # #products    
     # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
@@ -125,19 +125,19 @@ client_cmd_lst = [
 
     # # p3
     # # arxiv
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
 
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 4 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset ogbn_arxiv128 --n_epochs 3 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 2 --dataset ogbn_arxiv128 --n_epochs 3 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset ogbn_arxiv128 --n_epochs 3 --batch_size 8000 --hidden_size 128',
 
     
 
@@ -179,13 +179,13 @@ client_cmd_lst = [
 
     # naive
     # arxiv
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    'python3 clients_start.py --model_name graphsage --sampling 10-10 --run_client_idx 8 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128',
 
     # products
     # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 8 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16',

@@ -56,7 +56,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
     args.rank = gpu  # 模拟第n个gnn trainer
 
     #################### rank=0的进程负责metis切分图，并保存每个trainer分到的图数据id ####################
-    partition_name = 'metis' if 'papers' not in args.dataset else 'pagraph'
+    partition_name = 'metis' if ('papers' not in args.dataset and 'it' not in args.dataset) else 'pagraph'
     if args.rank == 0:
         # 检查metis是否切分完全，没有的话执行切分
         part_results_path = f'{args.dataset}/dist_True/{n_gnn_trainers}_{partition_name}'

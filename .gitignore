@@ -18,3 +18,5 @@ nohup.out
 data.xlsx
 log_analys.yaml
 *.png
+script_auto_server_client_tmp.py
+auto_test/script_auto_server_client_tmp_try.py
