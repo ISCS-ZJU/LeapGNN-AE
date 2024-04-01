@@ -31,6 +31,29 @@ from common.log import setup_primary_logging, setup_worker_logging
 import threading
 sem = threading.Semaphore(1000) #设置线程数限制防止崩溃 
 
+import GPUtil
+from threading import Thread
+import time
+
+class Monitor(Thread):
+    def __init__(self, delay):
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay # Time between calls to GPUtil
+        self.load = []
+        self.start()
+
+    def run(self):
+        while not self.stopped:
+            # GPUtil.showUtilization()
+            gpu = GPUtil.getGPUs()
+            self.load.append(gpu[1].load*100)
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
+        
+
 """
 lessjp 功能实现思路:
 1. 前k个epoch 构造矩阵，n*n, 每个格子填写 miss_rate；
@@ -316,6 +339,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     machine2model = [i for i in range(args.world_size)] # 记录随着模型的迁移，每个机器(按顺序)上对应的 model_id, 初始状态下机器id=model_id
     
     last_avg_epoch_time = float('inf')
+    monitor = Monitor(0.1)
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             epoch_st = time.time()
@@ -470,12 +494,14 @@ def run(gpuid, ngpus_per_node, args, log_queue):
 
     
     # logging.info(prof.export_chrome_trace('tmp.json'))
+    monitor.stop()
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
     logging.info(f'all_epoch_time:{all_epoch_time}')
+    logging.info(f'gpu util:{monitor.load}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
