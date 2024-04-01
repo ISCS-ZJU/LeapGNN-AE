@@ -393,12 +393,16 @@ if __name__ == '__main__':
         log_filename = os.path.join(log_dir, f'jpgnn_trans_multinfs_dedup_{args.deduplicate}_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
         # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        if_delete = 'y'
-        if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename) # 删除已有日志，重新运行
-        else:
-            print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1) # 退出程序
+        # if_delete = 'y'
+        # if if_delete=='y' or if_delete=='Y':
+        #     os.remove(log_filename) # 删除已有日志，重新运行
+        # else:
+        #     print('已经运行过，无需重跑，直接退出程序')
+        #     sys.exit(-1) # 退出程序
+        while os.path.exists(log_filename):
+            base, extension = os.path.splitext(log_filename)
+            log_filename = f"{base}_1{extension}"
+        print(f"new log_filename: {log_filename}")
 
     # if torch.cuda.is_available():
     #     ngpus_per_node = torch.cuda.device_count()
