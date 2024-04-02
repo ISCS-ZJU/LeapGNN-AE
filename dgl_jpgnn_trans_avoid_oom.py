@@ -28,7 +28,29 @@ warnings.filterwarnings("ignore")
 import logging
 from common.log import setup_primary_logging, setup_worker_logging
 
+import GPUtil
+from threading import Thread
+import time
 
+class Monitor(Thread):
+    def __init__(self, delay, gpuid):
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay # Time between calls to GPUtil
+        self.gpuid = gpuid
+        self.load = []
+        self.start()
+        # print(f'self.gpuid = {self.gpuid}')
+
+    def run(self):
+        while not self.stopped:
+            # GPUtil.showUtilization()
+            gpu = GPUtil.getGPUs()
+            self.load.append(gpu[self.gpuid].load*100)
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
 
 
 def main(ngpus_per_node):
@@ -162,6 +184,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         else:
             return np.split(a, np.arange(args.batch_size, len(a), args.batch_size)) # 例如a=[0,1, ..., 9]，bs=3，那么切割的结果是[0,1,2], [3,4,5], [6,7,8], [9]
     
+    if args.gputil:
+        monitor = Monitor(args.util_interval, args.gpu)
+
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
@@ -276,12 +301,15 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
                     max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
+    if args.gputil:
+        monitor.stop()
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
-
+    if args.gputil:
+        logging.info(f'gpu util:{monitor.load}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -329,6 +357,8 @@ def parse_args_func(argv):
     parser.add_argument('--grpc-port', default="10.5.30.43:18110", type=str,
                         help='grpc port to connect with cache servers.')
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     return parser.parse_args(argv)
 
 

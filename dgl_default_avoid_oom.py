@@ -24,6 +24,30 @@ from storage.storage_dist import DistCacheClient
 
 from common.log import setup_primary_logging, setup_worker_logging
 
+import GPUtil
+from threading import Thread
+import time
+
+class Monitor(Thread):
+    def __init__(self, delay, gpuid):
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay # Time between calls to GPUtil
+        self.gpuid = gpuid
+        self.load = []
+        self.start()
+        # print(f'self.gpuid = {self.gpuid}')
+
+    def run(self):
+        while not self.stopped:
+            # GPUtil.showUtilization()
+            gpu = GPUtil.getGPUs()
+            self.load.append(gpu[self.gpuid].load*100)
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
+
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
     if args.seed is not None:
@@ -139,6 +163,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
 
     # count number of model params
     logging.info(f'Total number of model params:{sum([p.numel() for p in model.parameters()])}')
+    if args.gputil:
+        monitor = Monitor(args.util_interval, args.gpu)
 
     #################### GNN训练 ####################
     with torch.autograd.profiler.profile(enabled=(args.gpu == 0), use_cuda=True) as prof:
@@ -235,13 +261,18 @@ def run(gpu, ngpus_per_node, args, log_queue):
                             num_acc += (pred.argmax(dim=1) == batch_labels).sum().cpu().item()
                     max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
-
+    if args.gputil:
+        monitor.stop()
+    
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total iters: {len(wait_sampler)}, avg iter time:{sum(wait_sampler)/len(wait_sampler)}')
+    if args.gputil:
+        logging.info(f'gpu util:{monitor.load}')
     # torch.distributed.barrier()
+
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -309,6 +340,8 @@ def parse_args_func(argv):
     parser.add_argument('--msg_norm', action='store_true')
     parser.add_argument('--learn_msg_scale', action='store_true')
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     return parser.parse_args(argv)
 
 

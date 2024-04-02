@@ -28,6 +28,29 @@ warnings.filterwarnings("ignore")
 import logging
 from common.log import setup_primary_logging, setup_worker_logging
 
+import GPUtil
+from threading import Thread
+import time
+
+class Monitor(Thread):
+    def __init__(self, delay, gpuid):
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay # Time between calls to GPUtil
+        self.gpuid = gpuid
+        self.load = []
+        self.start()
+        # print(f'self.gpuid = {self.gpuid}')
+
+    def run(self):
+        while not self.stopped:
+            # GPUtil.showUtilization()
+            gpu = GPUtil.getGPUs()
+            self.load.append(gpu[self.gpuid].load*100)
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
 
 
 
@@ -145,6 +168,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
     max_acc = 0
 
+    if args.gputil:
+        monitor = Monitor(args.util_interval, args.gpu)
+
     #################### 每个训练node id对应到part id ####################
     max_train_nid = np.max(fg_train_nid)+1
     nid2pid = np.zeros(max_train_nid, dtype=np.int64)-1
@@ -255,6 +281,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 # print(f'=> cur_epoch {epoch} finished on rank {args.rank}')
                 logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
 
+                if args.gputil:
+                    monitor.stop()
+                
                 if args.eval:
                     num_acc = 0  
                     for nf in dgl.contrib.sampling.NeighborSampler(fg,len(test_nid),
@@ -279,7 +308,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
-
+    if args.gputil:
+        logging.info(f'gpu util:{monitor.load}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -326,6 +356,8 @@ def parse_args_func(argv):
                         help='GPU id to use.')
     parser.add_argument('--grpc-port', default="10.5.30.43:18110", type=str,
                         help='grpc port to connect with cache servers.')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     return parser.parse_args(argv)
 
 

@@ -36,18 +36,20 @@ from threading import Thread
 import time
 
 class Monitor(Thread):
-    def __init__(self, delay):
+    def __init__(self, delay, gpuid):
         super(Monitor, self).__init__()
         self.stopped = False
         self.delay = delay # Time between calls to GPUtil
+        self.gpuid = gpuid
         self.load = []
         self.start()
+        # print(f'self.gpuid = {self.gpuid}')
 
     def run(self):
         while not self.stopped:
             # GPUtil.showUtilization()
             gpu = GPUtil.getGPUs()
-            self.load.append(gpu[1].load*100)
+            self.load.append(gpu[self.gpuid].load*100)
             time.sleep(self.delay)
 
     def stop(self):
@@ -339,7 +341,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     machine2model = [i for i in range(args.world_size)] # 记录随着模型的迁移，每个机器(按顺序)上对应的 model_id, 初始状态下机器id=model_id
     
     last_avg_epoch_time = float('inf')
-    monitor = Monitor(0.1)
+    if args.gputil:
+        monitor = Monitor(args.util_interval, args.gpu)
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             epoch_st = time.time()
@@ -494,14 +497,16 @@ def run(gpuid, ngpus_per_node, args, log_queue):
 
     
     # logging.info(prof.export_chrome_trace('tmp.json'))
-    monitor.stop()
+    if args.gputil:
+        monitor.stop()
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
     logging.info(prof.key_averages().table(sort_by='cuda_time_total'))
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
     logging.info(f'all_epoch_time:{all_epoch_time}')
-    logging.info(f'gpu util:{monitor.load}')
+    if args.gputil:
+        logging.info(f'gpu util:{monitor.load}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -555,6 +560,8 @@ def parse_args_func(argv):
     parser.add_argument('--default-time', default='-1', type=float, help='one epoch time of default mode')
     parser.add_argument('--moniter-epochs', default=1, type=int, help='number of epochs to moniter each epoch training time')
 
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
 
     return parser.parse_args(argv)
 

@@ -31,7 +31,29 @@ from common.log import setup_primary_logging, setup_worker_logging
 import threading
 sem = threading.Semaphore(1000) #设置线程数限制防止崩溃 
 
+import GPUtil
+from threading import Thread
+import time
 
+class Monitor(Thread):
+    def __init__(self, delay, gpuid):
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay # Time between calls to GPUtil
+        self.gpuid = gpuid
+        self.load = []
+        self.start()
+        # print(f'self.gpuid = {self.gpuid}')
+
+    def run(self):
+        while not self.stopped:
+            # GPUtil.showUtilization()
+            gpu = GPUtil.getGPUs()
+            self.load.append(gpu[self.gpuid].load*100)
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
 
 def main(ngpus_per_node):
     #################### 固定随机种子，增强实验可复现性；参数正确性检查 ####################
@@ -179,6 +201,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         print('-> 将调用不去冗余的 fetch_multiple_nfs_v2 函数')
         logging.info('-> 调用不去冗余的 fetch_multiple_nfs_v2 函数')
 
+    if args.gputil:
+        monitor = Monitor(args.util_interval, args.gpu)
+
     with torch.autograd.profiler.profile(enabled=(gpuid == 0), use_cuda=True, with_stack=True) as prof:
         with torch.autograd.profiler.record_function('total epochs time'):
             for epoch in range(args.epoch):
@@ -311,7 +336,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     max_acc = max(num_acc / len(test_nid),max_acc)
                     logging.info(f'Epoch: {epoch}, Test Accuracy {num_acc / len(test_nid)}')
       
-    
+    if args.gputil:
+        monitor.stop()
+
     # logging.info(prof.export_chrome_trace('tmp.json'))
     if args.eval:
         logging.info(f'Max acc:{max_acc}')
@@ -319,6 +346,8 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     logging.info(
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
 
+    if args.gputil:
+        logging.info(f'gpu util:{monitor.load}')
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -369,6 +398,8 @@ def parse_args_func(argv):
     parser.add_argument('--nodedup', dest='deduplicate', action='store_false', default=True)
 
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     return parser.parse_args(argv)
 
 

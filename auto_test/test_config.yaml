@@ -33,12 +33,12 @@ client_files:
   - "dgl_jpgnn_trans_avoid_oom.py"
   # - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
 # Choose the client file to run
-run_client_idx: 0
+run_client_idx: 4
 
 # training parameters
-model_name: "gcn"
+model_name: "gat"
 batch_size: 4096
-sampling: "2"
+sampling: "2-2"
 n_epochs: 3
 learning_rate: 0.001
 cluster_build_port: "23459" # used by pytorch init_group
@@ -51,6 +51,8 @@ log: True # rewrite statistic item in static_cache.yaml
 # log: False
 eval: False
 # eval: False
+gputil: False
+utilinterval: 0.05
 
 # Set the name of the server files to run
 server_files:

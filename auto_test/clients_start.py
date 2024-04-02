@@ -40,6 +40,8 @@ def parse_test_config(confpath):
         # statistic
         log = data['log']
         evalu = data['eval']
+        gputil = data['gputil']
+        utilinterval = data['utilinterval']
 
         # ssh info
         ssh_pswd = data['ssh_pswd']
@@ -59,6 +61,8 @@ def parse_test_config(confpath):
         log,
         evalu,
         ssh_pswd,
+        gputil,
+        utilinterval
     )
 
 def remote_run_command(ssh_pswd, serverip, cmd):
@@ -90,6 +94,9 @@ def parse_command_line_args():
     parser.add_argument('--cluster_servers', type=str, default='',
                         help='cluster IPs')
     parser.add_argument('--iter_stop', type=int, default=-1, help='early stop to avoid oom')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
+    
     args = parser.parse_args()
 
     return args
@@ -112,6 +119,8 @@ auto_test_file = './test_config.yaml'
     log,
     evalu,
     ssh_pswd,
+    gputil,
+    utilinterval,
 ) = parse_test_config(auto_test_file)
 
 # 覆写 yaml 中定义的值，方便批量执行client命令
@@ -135,6 +144,10 @@ if args.dataset != '':
 if args.cluster_servers != '':
     cluster_servers = eval(args.cluster_servers)
     world_size = len(cluster_servers)
+if args.gputil:
+    gputil = True
+if args.util_interval:
+    utilinterval = args.util_interval
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -162,6 +175,10 @@ for serverip in cluster_servers:
         cmd += " --log"
     if evalu == True:
         cmd += " --eval"
+    if gputil == True:
+        cmd += " --gputil"
+    if utilinterval != None:
+        cmd += f" --util-interval {utilinterval}"
     if args.iter_stop != -1:
         cmd += f" --iter_stop {args.iter_stop}"
     # 获取运行本文件时添加的额外命令行参数
