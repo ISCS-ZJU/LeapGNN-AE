@@ -277,9 +277,6 @@ python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url '
   3. client的主运行代码（如dgl_default.py）中的增加 `cache_client.ConstructNid2Pid(args.dataset, args.world_size, 'metis', len(fg_train_mask))` 生成构建 ip2ids 所需的 Nid2Pid。
 
 ## 测 GPU 利用率
-方式1：使用 `servers_start.py` 和 `clients_start.py` 版本：
-1. 填写 `auto_test/test_config.yaml`，设置 gputil = True, util_interval = xx (s); 设置服务器和客户端跑的代码；
-2. 执行 `python3 servers_start.py` 观察日志启动服务器后，执行 `python3 clients_start.py`。
-
-方式2：直接使用 `script_auto_server_client.py` 版本：
-1. 
+1. 一个终端进入 `auto_test`，并执行 `python3 servers_start.py --dataset ogbn_arxiv128 --cache_type static --partition_type metis` 启动服务器；
+2. 另一个终端进入 `auto_test`，并执行 `python3 clients_start.py --model_name gcn --sampling 2-2 --run_client_dix 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128 --gputil --util-interval 0.03` 启动客户端；
+3. 如果要默认开启 gputil， 则需要修改 `auto_test/test_config.yaml` 文件中的 gputil 为 True.
