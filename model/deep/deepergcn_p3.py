@@ -6,10 +6,11 @@ import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 import logging
 from torch_sparse import SparseTensor
+import torch.distributed as dist
 
-class DeeperGCN(torch.nn.Module):
+class P3_DeeperGCN(torch.nn.Module):
     def __init__(self, args):
-        super(DeeperGCN, self).__init__()
+        super(P3_DeeperGCN, self).__init__()
 
         self.num_layers = args.n_layers + 1
         self.dropout = args.dropout
@@ -78,18 +79,33 @@ class DeeperGCN(torch.nn.Module):
             self.gcns.append(gcn)
             self.norms.append(norm_layer(norm, hidden_channels))
 
-    def forward(self, nf):
-        x = nf.layers[0].data['features']
-        col, row, _ = nf.block_edges(0, remap_local=False)
-        col = nf.map_from_parent_nid(0,nf.map_to_parent_nid(col),remap_local=True)
-        row = nf.map_from_parent_nid(0,nf.map_to_parent_nid(row),remap_local=True)
+    def forward(self, nfs, rank):
+        x = []
+        edge_index = []
+        h_list = []
+        for nf in nfs:
+            x = nf.layers[0].data['features']
+            col, row, _ = nf.block_edges(0, remap_local=False)
+            col = nf.map_from_parent_nid(0,nf.map_to_parent_nid(col),remap_local=True)
+            row = nf.map_from_parent_nid(0,nf.map_to_parent_nid(row),remap_local=True)
 
-        edge_index = SparseTensor(row=row,col=col,sparse_sizes=[x.shape[0],x.shape[0]]).cuda(self.gpu)
+            edge_index.append(SparseTensor(row=row,col=col,sparse_sizes=[x.shape[0],x.shape[0]]).cuda(self.gpu))
 
-        h = self.node_features_encoder(x)
+            h_list.append(self.node_features_encoder(x))
 
         if self.block == 'res+':
-            h = self.gcns[0](h, edge_index)
+            mp_out = []
+            for i,nf in enumerate(nfs):
+                h0 = self.gcns[0](h_list[i], edge_index[i])
+                mp_out.append(h0.clone())
+
+            nf = nfs[rank]
+            num = len(mp_out)
+            with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+                for i in range(num):
+                    dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+
+            h = mp_out[rank]
 
             if self.checkpoint_grad:
 
@@ -118,9 +134,19 @@ class DeeperGCN(torch.nn.Module):
             h = F.dropout(h, p=self.dropout, training=self.training)
 
         elif self.block == 'res':
+            mp_out = []
+            for i,nf in enumerate(nfs):
+                h0 = F.relu(self.norms[0](self.gcns[0](h_list[i], edge_index[i])))
+                h0 = F.dropout(h0, p=self.dropout, training=self.training)
+                mp_out.append(h0.clone())
 
-            h = F.relu(self.norms[0](self.gcns[0](h, edge_index)))
-            h = F.dropout(h, p=self.dropout, training=self.training)
+            nf = nfs[rank]
+            num = len(mp_out)
+            with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+                for i in range(num):
+                    dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+
+            h = mp_out[rank]
 
             for layer in range(1, self.num_layers):
                 h1 = self.gcns[layer](h, edge_index)
@@ -134,9 +160,20 @@ class DeeperGCN(torch.nn.Module):
             raise NotImplementedError('To be implemented')
 
         elif self.block == 'plain':
+            mp_out = []
+            for i,nf in enumerate(nfs):
+                h0 = F.relu(self.norms[0](self.gcns[0](h_list[i], edge_index[i])))
+                h0 = F.dropout(h0, p=self.dropout, training=self.training)
+                mp_out.append(h0.clone())
 
-            h = F.relu(self.norms[0](self.gcns[0](h, edge_index)))
-            h = F.dropout(h, p=self.dropout, training=self.training)
+            nf = nfs[rank]
+            num = len(mp_out)
+            with torch.autograd.profiler.record_function('all_reduce hidden vectors'):
+                for i in range(num):
+                    dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
+
+            h = mp_out[rank]
+
 
             for layer in range(1, self.num_layers):
                 h1 = self.gcns[layer](h, edge_index)

@@ -153,6 +153,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
         args.n_layers = len(sampling)
         args.in_feats = featdim
         model = deep.DeeperGCN(args)
+    elif args.model_name == 'film':
+        model = deep.GNNFiLM(featdim, args.hidden_size, args.n_classes, len(sampling) + 1, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
@@ -293,7 +295,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['deepergcn', 'gat', 'graphsage', 'gcn', 'demo'], help='GNN model name')
+                        choices=['deepergcn', 'gat', 'graphsage', 'gcn', 'film', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=4,
