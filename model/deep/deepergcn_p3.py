@@ -81,7 +81,7 @@ class P3_DeeperGCN(torch.nn.Module):
 
     def forward(self, nfs, rank):
         x = []
-        edge_index = []
+        edge_index0 = []
         h_list = []
         for nf in nfs:
             x = nf.layers[0].data['features']
@@ -89,14 +89,14 @@ class P3_DeeperGCN(torch.nn.Module):
             col = nf.map_from_parent_nid(0,nf.map_to_parent_nid(col),remap_local=True)
             row = nf.map_from_parent_nid(0,nf.map_to_parent_nid(row),remap_local=True)
 
-            edge_index.append(SparseTensor(row=row,col=col,sparse_sizes=[x.shape[0],x.shape[0]]).cuda(self.gpu))
+            edge_index0.append(SparseTensor(row=row,col=col,sparse_sizes=[x.shape[0],x.shape[0]]).cuda(self.gpu))
 
             h_list.append(self.node_features_encoder(x))
 
         if self.block == 'res+':
             mp_out = []
             for i,nf in enumerate(nfs):
-                h0 = self.gcns[0](h_list[i], edge_index[i])
+                h0 = self.gcns[0](h_list[i], edge_index0[i])
                 mp_out.append(h0.clone())
 
             nf = nfs[rank]
@@ -106,6 +106,7 @@ class P3_DeeperGCN(torch.nn.Module):
                     dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
 
             h = mp_out[rank]
+            edge_index = edge_index0[rank]
 
             if self.checkpoint_grad:
 
@@ -147,6 +148,7 @@ class P3_DeeperGCN(torch.nn.Module):
                     dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
 
             h = mp_out[rank]
+            edge_index = edge_index0[rank]
 
             for layer in range(1, self.num_layers):
                 h1 = self.gcns[layer](h, edge_index)
@@ -173,6 +175,7 @@ class P3_DeeperGCN(torch.nn.Module):
                     dist.all_reduce(mp_out[i],dist.ReduceOp.SUM)
 
             h = mp_out[rank]
+            edge_index = edge_index0[rank]
 
 
             for layer in range(1, self.num_layers):
