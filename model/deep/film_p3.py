@@ -77,7 +77,7 @@ class P3_GNNFiLM(nn.Module):
         mp_out = []
         for nf in nfs:
             h = nf.layers[0].data['features']
-            h = layer(nf, h, i)
+            h = self.film_layers[0](nf, h, i)
             mp_out.append(h.clone())
 
         nf = nfs[rank]
