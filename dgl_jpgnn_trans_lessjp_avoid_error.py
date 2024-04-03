@@ -563,6 +563,28 @@ def parse_args_func(argv):
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
+    # args for deepergcn
+    parser.add_argument('--mlp_layers', type=int, default=1,
+                            help='the number of layers of mlp in conv')
+    parser.add_argument('--block', default='res+', type=str,
+                            help='deepergcn layer: graph backbone block type {res+, res, dense, plain}')
+    parser.add_argument('--conv', type=str, default='gen',
+                            help='the type of deepergcn GCN layers')
+    parser.add_argument('--gcn_aggr', type=str, default='max',
+                            help='the aggregator of GENConv [mean, max, add, softmax, softmax_sg, softmax_sum, power, power_sum]')
+    parser.add_argument('--norm', type=str, default='batch',
+                            help='the type of normalization layer')
+    parser.add_argument('--t', type=float, default=1.0,
+                            help='the temperature of SoftMax')
+    parser.add_argument('--p', type=float, default=1.0,
+                            help='the power of PowerMean')
+    parser.add_argument('--y', type=float, default=0.0,
+                            help='the power of degrees')
+    parser.add_argument('--learn_t', action='store_true')
+    parser.add_argument('--learn_p', action='store_true')
+    parser.add_argument('--learn_y', action='store_true')
+    parser.add_argument('--msg_norm', action='store_true')
+    parser.add_argument('--learn_msg_scale', action='store_true')
     return parser.parse_args(argv)
 
 
