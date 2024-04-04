@@ -16,7 +16,7 @@ import data
 from dgl import DGLGraph
 from utils.help import Print
 import storage
-from model import gat, gcn, graphsage
+from model import gat, gcn, graphsage,deep
 from utils.ring_all_reduce_demo import allreduce
 from multiprocessing import Process, Queue
 from storage.storage_dist import DistCacheClient
@@ -160,6 +160,12 @@ def run(gpuid, ngpus_per_node, args, log_queue):
     elif args.model_name == 'gat':
         model = gat.GATSampling(featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+    elif args.model_name == 'deepergcn':
+        args.n_layers = len(sampling)
+        args.in_feats = featdim
+        model = deep.DeeperGCN(args)
+    elif args.model_name == 'film':
+        model = deep.GNNFiLM(featdim, args.hidden_size, args.n_classes, len(sampling) + 1, args.dropout)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,eps=1e-5)
@@ -331,7 +337,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['gat', 'graphsage', 'gcn', 'demo'], help='GNN model name')
+                        choices=['deepergcn', 'gat', 'graphsage', 'gcn', 'film', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=1,
@@ -359,6 +365,28 @@ def parse_args_func(argv):
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
+    # args for deepergcn
+    parser.add_argument('--mlp_layers', type=int, default=1,
+                            help='the number of layers of mlp in conv')
+    parser.add_argument('--block', default='res+', type=str,
+                            help='deepergcn layer: graph backbone block type {res+, res, dense, plain}')
+    parser.add_argument('--conv', type=str, default='gen',
+                            help='the type of deepergcn GCN layers')
+    parser.add_argument('--gcn_aggr', type=str, default='max',
+                            help='the aggregator of GENConv [mean, max, add, softmax, softmax_sg, softmax_sum, power, power_sum]')
+    parser.add_argument('--norm', type=str, default='batch',
+                            help='the type of normalization layer')
+    parser.add_argument('--t', type=float, default=1.0,
+                            help='the temperature of SoftMax')
+    parser.add_argument('--p', type=float, default=1.0,
+                            help='the power of PowerMean')
+    parser.add_argument('--y', type=float, default=0.0,
+                            help='the power of degrees')
+    parser.add_argument('--learn_t', action='store_true')
+    parser.add_argument('--learn_p', action='store_true')
+    parser.add_argument('--learn_y', action='store_true')
+    parser.add_argument('--msg_norm', action='store_true')
+    parser.add_argument('--learn_msg_scale', action='store_true')
     return parser.parse_args(argv)
 
 
