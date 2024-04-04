@@ -69,7 +69,7 @@ class GNNFiLM(nn.Module):
             self.film_layers.append(
                 GNNFiLMLayer(hidden_size, hidden_size, dropout)
             )
-        # self.predict = nn.Linear(hidden_size, out_size, bias=True)
+        self.predict = nn.Linear(hidden_size, out_size, bias=True)
 
     def forward(self, nf):
         # nf.layers[0].data['activation'] = nf.layers[0].data['features']
@@ -81,8 +81,8 @@ class GNNFiLM(nn.Module):
         for i, layer in enumerate(self.film_layers):
             h = layer(nf, h, i)
             # h = h[nf.map_from_parent_nid(i,nf.layer_parent_nid(i+1),remap_local=True)]
-        # h = self.predict(
-        #     h_dict[out_key]
-        # )  # use the final embed to predict, out_size = num_classes
+        h = self.predict(
+            h
+        )  # use the final embed to predict, out_size = num_classes
         h = torch.sigmoid(h)
         return h
