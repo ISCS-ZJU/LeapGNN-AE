@@ -70,6 +70,7 @@ class P3_GNNFiLM(nn.Module):
             self.film_layers.append(
                 GNNFiLMLayer(hidden_size, hidden_size, dropout)
             )
+        self.predict = nn.Linear(hidden_size, out_size, bias=True)
 
     def forward(self, nfs, rank):
         # nf.layers[0].data['activation'] = nf.layers[0].data['features']
@@ -90,5 +91,8 @@ class P3_GNNFiLM(nn.Module):
             if i == 0:
                 continue
             x = layer(nf, x, i)
+        x = self.predict(
+            x
+        )
         x = torch.sigmoid(x)
         return x
