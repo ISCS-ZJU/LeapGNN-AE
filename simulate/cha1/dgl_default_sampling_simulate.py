@@ -18,6 +18,7 @@ import multiprocessing as mpg
 from dgl import DGLGraph
 import storage
 from model_inter import gcn, graphsage, gat
+from model_inter.deep import deepergcn, film
 import logging
 import time
 
@@ -40,7 +41,7 @@ def main(ngpus_per_node):
     assert n_gnn_trainers > 1, 'This version only support distributed GNN training with multiple nodes'
     #################### 产生n_gnn_trainers个进程，模拟分布式训练 ####################
     barrier = mpg.Barrier(n_gnn_trainers) # 用于多进程同步
-    # mpg.spawn(run, nprocs=n_gnn_trainers, args=(barrier, n_gnn_trainers, args))
+    # mp.spawn(run, nprocs=n_gnn_trainers, args=(barrier, n_gnn_trainers, args))
     for i in range(n_gnn_trainers):
         p = mpg.Process(target=run, args=(i, barrier, n_gnn_trainers, args))
         p.start()
@@ -106,6 +107,12 @@ def run(gpu, barrier, n_gnn_trainers, args):
     elif args.model_name == 'gat':
         model = gat.GATSampling(args.featdim, args.hidden_size, args.n_classes, len(
             sampling), F.relu, [2 for _ in range(len(sampling) + 1)] ,args.dropout, args.dropout)
+    elif args.model_name == 'deepergcn':
+        args.n_layers = len(sampling)
+        args.in_feats = args.featdim
+        model = deepergcn.DeeperGCN(args)
+    elif args.model_name == 'film':
+        model = film.GNNFiLM(args.featdim, args.hidden_size, args.n_classes, len(sampling) + 1, args.dropout)
     # model = gcn.GCNSampling(args.featdim, args.hidden_size, args.n_classes, len(sampling), F.relu, args.dropout)
     n_model_param = sum([p.numel() for p in model.parameters()])
 
@@ -231,7 +238,7 @@ def parse_args_func(argv):
     parser.add_argument('-wdy', '--weight-decay', default=0,
                         type=float, help='weight decay')
     parser.add_argument('-mn', '--model-name', default='graphsage', type=str,
-                        choices=['graphsage', 'gcn', 'demo', 'gat'], help='GNN model name')
+                        choices=['deepergcn', 'gat', 'graphsage', 'gcn', 'film', 'demo'], help='GNN model name')
     parser.add_argument('-ep', '--epoch', default=3,
                         type=int, help='total trianing epoch')
     parser.add_argument('-wkr', '--num-worker', default=1,
@@ -241,7 +248,9 @@ def parse_args_func(argv):
     parser.add_argument('--seed', default=None, type=int,
                         help='seed for initializing training. ')
     parser.add_argument('--log', dest='log', action='store_true',
-                    help='adding this flag means log hit rate information')                    
+                    help='adding this flag means log hit rate information')  
+    parser.add_argument('--gpu', default=None, type=int,
+                        help='GPU id to use.')                  
     # simulation related
     parser.add_argument('--world-size', default=1, type=int,
                         help='number of nodes for distributed training')
@@ -250,10 +259,34 @@ def parse_args_func(argv):
     parser.add_argument('--featdim', default=128, type=int,
                         help='dimension of each feature in simulation')
 
+    # args for deepergcn
+    parser.add_argument('--mlp_layers', type=int, default=1,
+                            help='the number of layers of mlp in conv')
+    parser.add_argument('--block', default='res+', type=str,
+                            help='deepergcn layer: graph backbone block type {res+, res, dense, plain}')
+    parser.add_argument('--conv', type=str, default='gen',
+                            help='the type of deepergcn GCN layers')
+    parser.add_argument('--gcn_aggr', type=str, default='max',
+                            help='the aggregator of GENConv [mean, max, add, softmax, softmax_sg, softmax_sum, power, power_sum]')
+    parser.add_argument('--norm', type=str, default='batch',
+                            help='the type of normalization layer')
+    parser.add_argument('--t', type=float, default=1.0,
+                            help='the temperature of SoftMax')
+    parser.add_argument('--p', type=float, default=1.0,
+                            help='the power of PowerMean')
+    parser.add_argument('--y', type=float, default=0.0,
+                            help='the power of degrees')
+    parser.add_argument('--learn_t', action='store_true')
+    parser.add_argument('--learn_p', action='store_true')
+    parser.add_argument('--learn_y', action='store_true')
+    parser.add_argument('--msg_norm', action='store_true')
+    parser.add_argument('--learn_msg_scale', action='store_true')
+
     return parser.parse_args(argv)
 
 
 if __name__ == '__main__':
+    # torch.multiprocessing.set_start_method('spawn')
     args = parse_args_func(None)
     ngpus_per_node = args.ngpus_per_node
     modelname = args.model_name

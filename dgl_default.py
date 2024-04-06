@@ -329,6 +329,7 @@ def parse_args_func(argv):
     parser.add_argument('--learn_y', action='store_true')
     parser.add_argument('--msg_norm', action='store_true')
     parser.add_argument('--learn_msg_scale', action='store_true')
+    
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     return parser.parse_args(argv)
