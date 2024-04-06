@@ -5,27 +5,77 @@ import getpass
 server_cmd_lst = [
     # # 18*4 bar
     # # hd 128
+    # gcn
     # # static
     'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
-    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
-    # 'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
-    # 'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
+    'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
     # # p3
     'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type p3 --partition_type metis',
-    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type p3 --partition_type metis',
-    # 'python3 servers_start.py --dataset in_2004 --cache_type p3 --partition_type metis --multi_feat_file True',
-    # 'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type p3 --partition_type metis',
+    'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset in_2004 --cache_type p3 --partition_type metis --multi_feat_file True',
+    # film
+    # # static
+    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis',
+    'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset in_2004 --cache_type static --partition_type metis --multi_feat_file True',
+    # # p3
+    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type p3 --partition_type metis',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type p3 --partition_type metis',
+    'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
+    'python3 servers_start.py --dataset in_2004 --cache_type p3 --partition_type metis --multi_feat_file True',
 ]
 
 client_cmd_lst = [
     # deep models
-    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name film --sampling 2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name film --sampling 2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # static
+    # arxiv
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    # products
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_products0 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 11 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 13 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    # uk
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset uk_2007 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 11 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 13 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    # in
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset in_2004 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset in_2004 --n_epochs 3 --batch_size 512 --hidden_size 16',
+
     # p3
-    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
-    'python3 clients_start.py --model_name film --sampling 2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 128',
+    # arxiv
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+     # products
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+     # uk
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+     # in
+    'python3 clients_start.py --model_name deepergcn --sampling 2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset in_2004 --n_epochs 3 --batch_size 512 --hidden_size 16',
+
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset ogbn_products0 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 11 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 13 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset uk_2007 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 11 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 13 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 6 --iter_stop 3 --dataset in_2004 --n_epochs 5 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 9 --iter_stop 3 --dataset in_2004 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_arxiv0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset ogbn_products0 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset uk_2007 --n_epochs 3 --batch_size 512 --hidden_size 16',
+    'python3 clients_start.py --model_name film --sampling 2-2-2-2-2-2-2-2-2 --run_client_idx 5 --iter_stop 3 --dataset in_2004 --n_epochs 3 --batch_size 512 --hidden_size 16',
+
 ]
 
 
@@ -44,7 +94,9 @@ if __name__ == '__main__':
     elif username == 'qhy':
         file_path = '/home/qhy/gnn/repgnn/dist/server_done.txt'
 
-    client_cmd_num = [4,2]
+    client_cmd_num = [2, 4, 4, 2, 1,1,1,1, 2, 4, 4, 2, 1,1,1,1,]
+    # client_cmd_num = [ 4, 2, 1,1,1,1,  4, 2, 1,1,1,1,]
+    # client_cmd_num = [ 3, 1, 1,1,1,1,  3, 1, 1,1,1,1,]
     offset = 0
     for server_cmdid, server_cmd in enumerate(server_cmd_lst):
         returncode_server = os.system(server_cmd)

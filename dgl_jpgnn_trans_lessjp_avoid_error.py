@@ -356,6 +356,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 ########## 计算监视下的一个epoch的平均训练时间 ##########
                 if len(moniter_epoch_time) >= args.moniter_epochs and adjust_jp_times==True:
                     avg_epoch_time = sum(moniter_epoch_time) / len(moniter_epoch_time)
+                    # 避免各机器间数据不一致
+                    tmp_tensor = torch.tensor(avg_epoch_time)
+                    dist.all_reduce(tmp_tensor, op=dist.ReduceOp.SUM)
+                    avg_epoch_time = tmp_tensor.item() / args.world_size
                     if avg_epoch_time < last_avg_epoch_time:
                         logging.info(f"avg_epoch_time of {moniter_epoch_time} is {avg_epoch_time} which is smaller than last avg epoch time {last_avg_epoch_time}")
                         jp_times -= 1
