@@ -60,11 +60,12 @@ def get_batches(train_ind, batch_size=1, shuffle=True):
         yield cur_ind
         i += batch_size
 
-def _one_layer_sampling(adj, probs, v_indices, output_size):
+def _one_layer_sampling(adj, probs, v_indices, output_size, map_arr):
     # NOTE: FastGCN described in paper samples neighboors without reference
     # to the v_indices. But in its tensorflow implementation, it has used
     # the v_indice to filter out the disconnected nodes. So the same thing
     # has been done here.
+    v_indices = map_arr[v_indices]
     support = adj[v_indices, :]
     neis = np.nonzero(np.sum(support, axis=0))[1]
     p1 = probs[neis]
@@ -148,6 +149,12 @@ def run(gpu, barrier, n_gnn_trainers, args):
     # 构造 adj, probs 用于 layerwise sampling
     adj_csr = fg_adj.tocsr()
     adj_train = adj_csr[fg_train_nid, :][:, fg_train_nid]
+    # 由于 fg_train_nid 不连续，因此构建一个映射功能的 numpy
+    max_value = np.max(fg_train_nid)
+    map_arr = np.full(max_value + 1, -1, dtype=np.int64)
+    for idx, num in enumerate(fg_train_nid):
+        # 将原始数组元素作为新数组的索引
+        map_arr[num] = idx
     norm_adj_train = nontuple_preprocess_adj(adj_train)
     col_norm = sparse_norm(norm_adj_train, axis=0)
     probs = col_norm / np.sum(col_norm)
@@ -181,7 +188,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
             cur_out_nodes = batch_inds
             # 按 args.ls_list 逐层进行采
             for layer_index in range(len(ls_lst)-2, -1, -1):
-                cur_sampled, _ = _one_layer_sampling(norm_adj_train, probs, cur_out_nodes, ls_lst[layer_index])
+                cur_sampled, _ = _one_layer_sampling(norm_adj_train, probs, cur_out_nodes, ls_lst[layer_index], map_arr)
                 cur_out_nodes = cur_sampled
                 # print(cur_out_nodes, nf_nids, type(cur_out_nodes), type(nf_nids))
                 nf_nids = np.concatenate((cur_out_nodes, nf_nids))
@@ -214,7 +221,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
             iter += 1
             logging.info(f'iter = {iter}')
             st = time.time()
-            if iter == 4000:
+            if iter == 10:
                 break
         
         logging.info(f'=> cur_epoch {epoch} finished on rank {args.rank}')
