@@ -217,8 +217,15 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                     cur_offset = 0
                     # 为确保每个 model 学习对应 mini-batch 的训练数据，需要根据交换列的顺序
                     useful_fg_train_nid = reverse_columns(useful_fg_train_nid, args.rank)
+                    redistribution_count = []
                     for row in useful_fg_train_nid:
                         for batch in row:
+                            if args.lb:
+                                # 对每个 batch 中的所有点，判断分属不同 partition 的数量，记录下最值的差距，判断负载不均衡的严重程度
+                                _, counts = np.unique(nid2pid[batch], return_counts=True)
+                                redistribution_count.append(counts)
+                            
+
                             cur_gpu_nid_mask = (nid2pid[batch]==cache_partidx)
                             sub_batch = batch[cur_gpu_nid_mask]
                             sub_batch_nid.extend(sub_batch)
@@ -316,6 +323,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         f'wait sampler total time: {sum(wait_sampler)}, total sub_iters: {len(wait_sampler)}, avg sub_iter time:{sum(wait_sampler)/len(wait_sampler)}')
     if args.gputil:
         logging.info(f'gpu util:{monitor.load}')
+    if args.lb:
+        logging.info(f'load banlance after redistribution: {redistribution_count}')
+    
 
 def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='GNN Training')
@@ -365,6 +375,8 @@ def parse_args_func(argv):
     parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
+    parser.add_argument('--lb', action='store_true', help='monitor the load banlance of each mini-batch')
+
     # args for deepergcn
     parser.add_argument('--mlp_layers', type=int, default=1,
                             help='the number of layers of mlp in conv')

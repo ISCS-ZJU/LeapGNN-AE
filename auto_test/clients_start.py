@@ -42,6 +42,7 @@ def parse_test_config(confpath):
         evalu = data['eval']
         gputil = data['gputil']
         utilinterval = data['utilinterval']
+        lb = data['lb']
 
         # ssh info
         ssh_pswd = data['ssh_pswd']
@@ -62,7 +63,8 @@ def parse_test_config(confpath):
         evalu,
         ssh_pswd,
         gputil,
-        utilinterval
+        utilinterval,
+        lb
     )
 
 def remote_run_command(ssh_pswd, serverip, cmd):
@@ -96,7 +98,8 @@ def parse_command_line_args():
     parser.add_argument('--iter_stop', type=int, default=-1, help='early stop to avoid oom')
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
-    
+    parser.add_argument('--lb', action='store_true', help='monitor the load banlance of each mini-batch')
+
     args = parser.parse_args()
 
     return args
@@ -121,6 +124,7 @@ auto_test_file = './test_config.yaml'
     ssh_pswd,
     gputil,
     utilinterval,
+    lb
 ) = parse_test_config(auto_test_file)
 
 # 覆写 yaml 中定义的值，方便批量执行client命令
@@ -148,6 +152,8 @@ if args.gputil:
     gputil = True
 if args.util_interval:
     utilinterval = args.util_interval
+if args.lb:
+    lb = True
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -179,6 +185,8 @@ for serverip in cluster_servers:
         cmd += " --gputil"
     if utilinterval != None:
         cmd += f" --util-interval {utilinterval}"
+    if lb == True:
+        cmd += " --lb"
     if args.iter_stop != -1:
         cmd += f" --iter_stop {args.iter_stop}"
     # 获取运行本文件时添加的额外命令行参数

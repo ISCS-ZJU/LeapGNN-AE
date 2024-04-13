@@ -10,7 +10,6 @@ cluster_servers:
   # - "12.12.12.3" # yq5
   # - "12.12.12.2" # yq6
   # - "12.12.12.1" # yq7
-
   - "12.12.12.4" # yq4
   - "12.12.12.3" # yq5
   - "12.12.12.5" # yq2
@@ -58,6 +57,7 @@ eval: False
 # eval: False
 gputil: False
 utilinterval: 0.05
+lb: False
 
 # Set the name of the server files to run
 server_files:
