@@ -30,7 +30,13 @@ def analyze_logs(logf):
     for ar in load_imbalance_after_redistribution:
         ratio = (max(ar) - min(ar)) / (sum(ar) / len(ar))
         ratio_lst.append(ratio)
-    print(max(ratio_lst), sum(ratio_lst) / len(ratio_lst))
+    # 打印最大 diff，平均 diff
+    print(f'max diff percent = {max(ratio_lst)}, average diff percent = {sum(ratio_lst) / len(ratio_lst)}')
+    # 超过 5% / 10% 的数量占比
+    larger_than_five = [ratio for ratio in ratio_lst if ratio > 0.05]
+    larger_than_ten = [ratio for ratio in ratio_lst if ratio > 0.1]
+    print(f'larger than 5% percent = {len(larger_than_five) / len(ratio_lst)}')
+    print(f'larger than 10% percent = {len(larger_than_ten) / len(ratio_lst)}')
     return max(ratio_lst), sum(ratio_lst) / len(ratio_lst)
 
 if __name__ == '__main__':

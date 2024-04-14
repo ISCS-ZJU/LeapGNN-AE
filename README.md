@@ -280,3 +280,6 @@ python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url '
 1. 一个终端进入 `auto_test`，并执行 `python3 servers_start.py --dataset ogbn_arxiv128 --cache_type static --partition_type metis` 启动服务器；
 2. 另一个终端进入 `auto_test`，并执行 `python3 clients_start.py --model_name gcn --sampling 2-2 --run_client_dix 0 --dataset ogbn_arxiv128 --n_epochs 5 --batch_size 8000 --hidden_size 128 --gputil --util-interval 0.03` 启动客户端；
 3. 如果要默认开启 gputil， 则需要修改 `auto_test/test_config.yaml` 文件中的 gputil 为 True.
+
+## 图切分算法命令举例
+`python ./prepartition/metis.py --dataset ./dist/repgnn_data/ogbn_products0/ --partition 5`
