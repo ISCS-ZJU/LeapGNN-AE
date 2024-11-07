@@ -148,8 +148,8 @@ def run(gpu, barrier, n_gnn_trainers, args):
             unique_pid_counts_dict = dict(zip(unique_pid, counts))
             for pid, count in unique_pid_counts_dict.items():
                 pid = int(pid) # np.float64->int
-                if pid != args.rank:
-                    n_remote_hit_nodes[pid] += count
+                # if pid != args.rank:
+                n_remote_hit_nodes[pid] += count
             # # 查看子树每层的nid        
             # offsets = nf._layer_offsets
             # for i in range(nf.num_layers):
@@ -160,7 +160,7 @@ def run(gpu, barrier, n_gnn_trainers, args):
         logging.info(f"{'=='*10} | rank={args.rank},epoch={epoch} 采样node信息输出 | {'=='*10}")
         logging.info(f'rank={args.rank}, number of training batches: {len(batches_n_nodes)}')
         logging.info(f'rank={args.rank}, the number of nodes for each tree spand by batch: {batches_n_nodes}, total nodes: {sum(batches_n_nodes)}')
-        logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes}')
+        logging.info(f'rank={args.rank}, the number of nodes hits on other trainers: {n_remote_hit_nodes},hit rate:{n_remote_hit_nodes[args.rank]/sum(n_remote_hit_nodes)}')
 
 
 def parse_args_func(argv):

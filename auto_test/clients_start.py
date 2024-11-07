@@ -46,6 +46,7 @@ def parse_test_config(confpath):
 
         # ssh info
         ssh_pswd = data['ssh_pswd']
+        ssh_port = data['ssh_port']
     return (
         len(cluster_servers),
         cluster_servers,
@@ -64,11 +65,12 @@ def parse_test_config(confpath):
         ssh_pswd,
         gputil,
         utilinterval,
-        lb
+        ssh_port,
+        lb,
     )
 
-def remote_run_command(ssh_pswd, serverip, cmd):
-    ssh_cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "bash -c \'{cmd}\'"'
+def remote_run_command(ssh_pswd, serverip, cmd, ssh_port):
+    ssh_cmd = f'sshpass -p {ssh_pswd} ssh -p {ssh_port} {serverip} "bash -c \'{cmd}\'"'
     print(f"-> Start running ' {cmd} ' on remote {serverip} machine.")
     # 在远程机器执行命令
     result = subprocess.run(ssh_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -124,6 +126,7 @@ auto_test_file = './test_config.yaml'
     ssh_pswd,
     gputil,
     utilinterval,
+    ssh_port,
     lb
 ) = parse_test_config(auto_test_file)
 
@@ -158,7 +161,7 @@ if args.lb:
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 for serverip in cluster_servers:
-    cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "cd {cur_dir} && python3 -c \'from getip import *; print(get_local_ip4_and_interface())\'"'
+    cmd = f'sshpass -p {ssh_pswd} ssh -p {ssh_port} {serverip} "cd {cur_dir} && source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn &&python3 -c \'from getip import *; print(get_local_ip4_and_interface())\'"'
     output = subprocess.check_output(cmd, shell=True)
     ips_lst = eval(output.decode())  # convert output from byte to string and eval() it
     # ensure ip, interface, and rank
@@ -176,7 +179,7 @@ processes = []
 for serverip in cluster_servers:
     interface, rank = ip_interface_rank[serverip]
     env_cmd = f"source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {client_dir} && export GLOO_SOCKET_IFNAME={interface}"
-    cmd = f"{env_cmd} && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size}"
+    cmd = f"{env_cmd} && export CUDA_VISIBLE_DEVICES=1 && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size} -wkr {world_size}"
     if log == True:
         cmd += " --log"
     if evalu == True:
@@ -194,7 +197,7 @@ for serverip in cluster_servers:
     # cmd += ' '.join(sys.argv[1:])
     # # remove 
     # asyncio.run(remote_run_command(ssh_pswd, serverip, cmd))
-    p = multiprocessing.Process(target=remote_run_command, args=(ssh_pswd, serverip, cmd))
+    p = multiprocessing.Process(target=remote_run_command, args=(ssh_pswd, serverip, cmd, ssh_port))
     p.start()
     processes.append(p)
 

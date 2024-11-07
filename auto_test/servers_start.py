@@ -29,6 +29,7 @@ def parse_server_config(confpath):
         statistic = data['log']
         # grpc
         grpc_port = data['grpc_port']
+        ssh_port = data['ssh_port']
 
     return (
         cluster_servers,
@@ -39,7 +40,8 @@ def parse_server_config(confpath):
         statistic,
         multi_feat_file,
         partition_type,
-        grpc_port
+        grpc_port,
+        ssh_port,
     )
 
 def parse_command_line_args():
@@ -60,8 +62,8 @@ def parse_command_line_args():
     return args
 
 # 远程异步执行命令
-async def remote_run_command(ssh_pswd, serverip, cmd, remote_log_file):
-    ssh_cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "{cmd} > {remote_log_file} 2>&1 &"'
+async def remote_run_command(ssh_pswd, serverip, cmd, remote_log_file, ssh_port):
+    ssh_cmd = f'sshpass -p {ssh_pswd} ssh -p {ssh_port} {serverip} "{cmd} > {remote_log_file} 2>&1 &"'
     print(f"-> Start running {cmd} on remote {serverip} machine.")
     # 在远程机器异步执行后台命令
     process = await asyncio.create_subprocess_shell(
@@ -69,8 +71,8 @@ async def remote_run_command(ssh_pswd, serverip, cmd, remote_log_file):
     )
     return process
 
-def remote_run_command_sync(ssh_pswd, serverip, cmd):
-    ssh_cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "bash -c \'{cmd}\'"'
+def remote_run_command_sync(ssh_pswd, serverip, cmd, ssh_port):
+    ssh_cmd = f'sshpass -p {ssh_pswd} ssh -p {ssh_port} {serverip} "bash -c \'{cmd}\'"'
     print(f"--> Start running ' {cmd} ' on remote {serverip} machine.")
     # ssh到远程机器并执行命令
     os.system(ssh_cmd)
@@ -86,7 +88,8 @@ auto_test_file = './test_config.yaml'
     statistic,
     multi_feat_file,
     partition_type,
-    grpc_port
+    grpc_port,
+    ssh_port,
 ) = parse_server_config(auto_test_file)
 
 # 覆写 yaml 中定义的值
@@ -98,8 +101,8 @@ if args.partition_type != '':
 if args.dataset != '':
     dataset = args.dataset
     dataset_path = os.path.join('./repgnn_data/', dataset)
-if args.multi_feat_file:
-    multi_feat_file = args.multi_feat_file
+# if args.multi_feat_file:
+multi_feat_file = args.multi_feat_file
 if args.cluster_servers != '':
     cluster_servers = eval(args.cluster_servers)
     print(cluster_servers, type(cluster_servers))
@@ -107,7 +110,7 @@ if args.cluster_servers != '':
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
 for serverip in cluster_servers:
-    scp_cmd = f"sshpass -p {ssh_pswd} scp -o StrictHostKeyChecking=no {server_config_file} {serverip}:{server_config_file}"
+    scp_cmd = f"sshpass -p {ssh_pswd} scp -P {ssh_port} -o StrictHostKeyChecking=no {server_config_file} {serverip}:{server_config_file}"
     try:
         subprocess.call(scp_cmd, shell=True)
         print(
@@ -127,7 +130,7 @@ for serverip in cluster_servers:
     # 在每个节点异步执行 分图算法
     processes = []
     cmd = f'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {os.path.abspath("../")} && python3 prepartition/{partition_type}.py --partition {len(cluster_servers)} --dataset ./dist/{dataset_path}'
-    p = multiprocessing.Process(target=remote_run_command_sync, args=(ssh_pswd, serverip, cmd))
+    p = multiprocessing.Process(target=remote_run_command_sync, args=(ssh_pswd, serverip, cmd, ssh_port))
     p.start()
     processes.append(p)
     for p in processes:
@@ -142,5 +145,5 @@ for serverip in cluster_servers:
         cmd += f' -statistic'
     if multi_feat_file:
         cmd += f' -multi_feat_file'
-    asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, remote_log_file))
+    asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, remote_log_file,ssh_port=ssh_port))
     # remote_run_command(ssh_pswd, serverip, cmd, remote_log_file)

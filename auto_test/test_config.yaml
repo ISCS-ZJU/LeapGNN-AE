@@ -6,14 +6,14 @@ cluster_servers:
   # - "10.214.241.228" # yq5
   # - "10.214.241.223" # yq6
   # - "10.214.241.232" # yq7
-  # - "12.12.12.4" # yq4
-  # - "12.12.12.3" # yq5
-  # - "12.12.12.2" # yq6
-  # - "12.12.12.1" # yq7
   - "12.12.12.4" # yq4
   - "12.12.12.3" # yq5
-  - "12.12.12.5" # yq2
-  - "12.12.12.6" # yq8
+  - "12.12.12.2" # yq6
+  - "12.12.12.1" # yq7
+  # - "12.12.12.4" # yq4
+  # - "12.12.12.3" # yq5
+  # - "12.12.12.5" # yq2
+  # - "12.12.12.6" # yq8
 
 
 # sshinfo
@@ -45,8 +45,8 @@ batch_size: 4096
 sampling: "2-2"
 n_epochs: 3
 learning_rate: 0.001
-cluster_build_port: "23459" # used by pytorch init_group
-grpc_port: "18110" # used for communication of cache server and client
+cluster_build_port: "23451" # used by pytorch init_group
+grpc_port: "18113" # used for communication of cache server and client
 dataset: "ogbn_arxiv0" # WARNING: rewrite dataset item in ./dist/conf/static_cache.yaml; choices=['reddit0', 'ogbn_arxiv0', 'ogbn_products0']
 hidden_size: 256
 
@@ -66,3 +66,5 @@ run_server_idx: 0 # Choose the client file to run
 cache_type: "static" # rewrite cache_type in static_cache.yaml file ['p3', 'static']
 multi_feat_file: false # each part has one feat file
 partition_type: "metis" # [metis, pg]
+
+ssh_port: "2022"

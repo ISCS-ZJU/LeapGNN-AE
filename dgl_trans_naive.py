@@ -68,6 +68,18 @@ trans_num={
 'graphsage_ogbn_arxiv0_8000_128' : 209975392,
 'graphsage_ogbn_products0_8000_128' : 17875151976,
 'graphsage_uk_2007_8000_128' : 4132324080,
+'gcn_ogbn_arxiv0_80000000_128_sl10000000-10000000' : 146376332,
+'gcn_ogbn_arxiv0_80000000_16_sl10000000-10000000' : 23033244,
+'gcn_ogbn_arxiv0_80000000_128_sl10000000' : 52445192,
+'gcn_ogbn_arxiv0_80000000_16_sl10000000' : 17593720,
+'gcn_uk_2007_80000000_128_sl10000000-10000000' : 2103382628,
+'gcn_uk_2007_80000000_16_sl10000000-10000000' : 901939612,
+'gcn_uk_2007_80000000_128_sl10000000' : 821232232,
+'gcn_uk_2007_80000000_16_sl10000000' : 365788728,
+'gcn_in_2004_80000000_128_sl10000000-10000000' : 2121678188,
+'gcn_in_2004_80000000_16_sl10000000-10000000' : 1259766692,
+'gcn_in_2004_80000000_128_sl10000000' : 909969440,
+'gcn_in_2004_80000000_16_sl10000000' : 531851848,
 }
 
 
@@ -181,7 +193,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     max_acc = 0
     exp_iter_num = math.ceil(ntrain_per_gpu/args.batch_size)
     num = 36
-    val = torch.empty(trans_num[f"{args.model_name}_{ args.dataset.strip('/').split('/')[-1]}_{args.batch_size}_{args.hidden_size}"]//exp_iter_num//num,dtype=torch.float32)
+    val = torch.empty(trans_num[f"{args.model_name}_{ args.dataset.strip('/').split('/')[-1]}_{args.batch_size}_{args.hidden_size}_sl{args.sampling}"]//exp_iter_num//num,dtype=torch.float32)
     new_val = torch.empty_like(val)
     # count number of model params
     

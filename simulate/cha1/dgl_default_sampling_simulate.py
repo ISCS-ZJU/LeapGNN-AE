@@ -86,16 +86,17 @@ def run(gpu, barrier, n_gnn_trainers, args):
     
     #################### 读取全图中的训练点id、计算每个gpu需要训练的nid数量、根据全图topo构建dglgraph，用于后续sampling ####################
     fg_adj = data.get_struct(args.dataset)
-    fg_labels = data.get_labels(args.dataset)
-    fg_train_mask, fg_val_mask, fg_test_mask = data.get_masks(args.dataset)
+    # fg_labels = data.get_labels(args.dataset)
+    fg_train_mask, _, _k = data.get_masks(args.dataset)
     fg_train_nid = np.nonzero(fg_train_mask)[0].astype(np.int64) # numpy arryay of the whole graph's training node
     ntrain_per_gpu = int(fg_train_nid.shape[0] / args.world_size) # # of training nodes per gpu
     logging.info(f'fg_train_nid: {fg_train_nid.shape[0]} ntrain_per_GPU: {ntrain_per_gpu}')
-    test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
-    fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
+    # test_nid = np.nonzero(fg_test_mask)[0].astype(np.int64)
+    # fg_labels = torch.from_numpy(fg_labels).type(torch.LongTensor)  # in cpu
     # construct this partition graph for sampling
     # TODO: 图的topo之后也要分布式存储
     fg = DGLGraph(fg_adj, readonly=True)
+    del fg_adj,fg_train_mask
 
     # #################### 创建本地模拟的GNN模型####################
     if args.model_name == 'gcn':
@@ -169,7 +170,10 @@ def run(gpu, barrier, n_gnn_trainers, args):
                 else:
                     block_input_dim.append(args.hidden_size)
             # 获取每个nf前传时combine需要传输的数据量
-            fwdoutput, nf_total_comb_size, nf_total_actv_size = model(nf)
+            with torch.no_grad():
+                _, nf_total_comb_size, nf_total_actv_size = model(nf)
+                # nf_total_comb_size = nf_total_comb_size.item()
+                # nf_total_actv_size = nf_total_actv_size.item()
             
             for i in range(block_num):
                 block_input_nid = nf_nids[offsets[i]:offsets[i+1]] # 子树的一层中的graph node
@@ -296,14 +300,14 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     datasetname = args.dataset.strip('/').split('/')[-1]
-    log_filename = os.path.join(log_dir, f'default_{modelname}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}.log')
+    log_filename = os.path.join(log_dir, f'default_{modelname}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}.log')
     if os.path.exists(log_filename):
-        if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        if if_delete=='y' or if_delete=='Y':
-            os.remove(log_filename) # 删除已有日志，重新运行
-        else:
-            print('已经运行过，无需重跑，直接退出程序')
-            sys.exit(-1) # 退出程序
+        # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
+        # if if_delete=='y' or if_delete=='Y':
+        os.remove(log_filename) # 删除已有日志，重新运行
+        # else:
+        #     print('已经运行过，无需重跑，直接退出程序')
+        #     sys.exit(-1) # 退出程序
     logging.basicConfig(level=logging.INFO, filename=log_filename, filemode='a+', format='%(levelname)s %(asctime)s %(filename)s %(lineno)d : %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
     logging.info(f"ngpus_per_trainer: {ngpus_per_node}")
 

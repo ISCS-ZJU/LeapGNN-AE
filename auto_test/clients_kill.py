@@ -18,17 +18,19 @@ def parse_server_config(confpath):
         server_config_file = data['server_files'][data['run_server_idx']]
         cur_dir = os.path.dirname(os.path.abspath(__file__))
         server_config_file = os.path.join(cur_dir, f"../dist/conf/{server_config_file}")
+        ssh_port = data['ssh_port']
 
     return (
         cluster_servers,
         ssh_pswd,
-        server_config_file
+        server_config_file,
+        ssh_port,
     )
 
 
 # 远程异步执行命令
-async def remote_run_command(ssh_pswd, serverip, cmd, ):
-    ssh_cmd = f'sshpass -p {ssh_pswd} ssh {serverip} "{cmd}"'
+async def remote_run_command(ssh_pswd, serverip, cmd, ssh_port):
+    ssh_cmd = f'sshpass -p {ssh_pswd} ssh -p {ssh_port} {serverip} "{cmd}"'
     print(f"Start running {cmd} on remote machine.")
     # 在远程机器异步执行后台命令
     process = await asyncio.create_subprocess_shell(
@@ -42,10 +44,11 @@ auto_test_file = './test_config.yaml'
     cluster_servers,
     ssh_pswd,
     server_config_file,
+    ssh_port,
 ) = parse_server_config(auto_test_file)
 
 # 在远程服务器上后台异步运行 server.go
 for serverip in cluster_servers:
     # 在每个节点异步执行 go run server.go
     cmd = f"ps -ef | grep {getpass.getuser()}" + " | grep python | grep repgnn | grep -v 'grep' | awk '{print \$2}' | xargs kill -9"
-    asyncio.run(remote_run_command(ssh_pswd, serverip, cmd))
+    asyncio.run(remote_run_command(ssh_pswd, serverip, cmd, ssh_port=ssh_port))
