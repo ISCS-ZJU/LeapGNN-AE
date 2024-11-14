@@ -172,14 +172,15 @@ for serverip in cluster_servers:
 # python client 的文件路径
 client_file_to_run = os.path.abspath(os.path.join("../", client_file_to_run))
 client_dir = os.path.dirname(client_file_to_run)
-dataset_dir = os.path.join(client_dir, f'./dist/repgnn_data/{dataset}')
+# dataset_dir = os.path.join(client_dir, f'./dist/repgnn_data/{dataset}')
+dataset_dir = os.path.join(os.path.abspath("../"), f'./dist/repgnn_data/{dataset}')
 
 # 在远程服务器上后台异步运行 gnn training client
 processes = []
 for serverip in cluster_servers:
     interface, rank = ip_interface_rank[serverip]
     env_cmd = f"source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {client_dir} && export GLOO_SOCKET_IFNAME={interface}"
-    cmd = f"{env_cmd} && export CUDA_VISIBLE_DEVICES=1 && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size} -wkr {world_size}"
+    cmd = f"{env_cmd} && export CUDA_VISIBLE_DEVICES=0,1 && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size} -wkr {world_size}"
     if log == True:
         cmd += " --log"
     if evalu == True:
