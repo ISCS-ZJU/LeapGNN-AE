@@ -21,20 +21,21 @@ ssh_pswd: "wwpwcl44"
 
 # Set the name of the client files to run
 client_files:
-  - "dgl_default.py" # 原始的 GNN 训练
-  - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练
-  - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重
-  - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量
-  - "dgl_p3.py"
-  - "dgl_p3_avoid_oom.py"
-  - "dgl_jpgnn_trans_lessjp_avoid_error.py"
-  - "dgl_default_localshuffle.py" # 原始的 GNN 训练 - localshuffle 版本
-  - "dgl_trans_naive.py"
-  - "dgl_default_avoid_oom.py"
-  - "dgl_jpgnn_trans_random_lessjp.py"
-  - "dgl_jpgnn_trans_multiplenfs_avoid_oom.py"
-  - "dgl_trans_naive_stop.py"
-  - "dgl_jpgnn_trans_avoid_oom.py"
+  - "dgl_default.py" # 原始的 GNN 训练 0
+  - "dgl_jpgnn_trans.py" # 基于 MB 的模型迁移 GNN 训练 1
+  - "dgl_jpgnn_trans_multiplenfs.py" # 合并子树并去重 2
+  - "dgl_jpgnn_trans_lessjp.py" # 减少跳跃的机器数量 3
+  - "dgl_p3.py" # 4
+  - "dgl_p3_avoid_oom.py" # 5
+  - "dgl_jpgnn_trans_lessjp_avoid_error.py" # 6
+  - "dgl_default_localshuffle.py" # 原始的 GNN 训练 - localshuffle 版本 7
+  - "dgl_trans_naive.py" # 8
+  - "dgl_default_avoid_oom.py" # 9
+  - "dgl_jpgnn_trans_random_lessjp.py" # 10
+  - "dgl_jpgnn_trans_multiplenfs_avoid_oom.py" # 11
+  - "dgl_trans_naive_stop.py" # 12
+  - "dgl_jpgnn_trans_avoid_oom.py" # 13
+  - "multi/multi_dgl_default.py" # 14
   # - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
 # Choose the client file to run
 run_client_idx: 4

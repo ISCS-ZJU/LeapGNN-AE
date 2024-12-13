@@ -64,6 +64,23 @@
     拷贝 gcn/gcn/data/ 中数据集对应的文件到需要的目录，例如 cp 3rdparties/gcn/gcn/data/ind.citeseer.* /data2/cwj/repgnn/citeseer/
     修改 pre.sh 中ORINAME, 然后执行 ./pre.sh  # maybe should in repgnn conda env
     ```
+  
++ 使用webgraph下的数据集(如in uk)
+    1. 需要先安装java环境和对应包
+    ```bash
+    ### on path repgnn/
+    cd dist/repgnn_data/in-2004 
+    java -cp "lib/*" it.unimi.dsi.webgraph.ASCIIGraph in-2004 in-2004 
+    ### 会生成in-2004.graph-txt 
+    cd ../../.. 
+    python ./prepartition/txt2coo.py --dataset ./dist/repgnn_data/in_2004 --name in-2004 
+    ### 数据集预处理
+    python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-label  --gen-set
+    python ./prepartition/metis.py --dataset ./dist/repgnn_data/in_2004/ --partition 4
+
+    python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-feature  --feat-multi-file --feat-size 600 --part-num 4 --part-type metis --p3-feature 
+    python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-feature  --feat-multi-file --feat-size 600 --part-num 4 --part-type metis 
+    ```
 
 ## 运行：
 ## 手动分布式 (git-branch: distributed_version)

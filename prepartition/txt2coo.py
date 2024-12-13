@@ -1,10 +1,20 @@
 import scipy.sparse as spsp
 import numpy as np
 import os
+import argparse
+
+def parse_args_func(argv):
+    parser = argparse.ArgumentParser(description='txt2coo')
+    parser.add_argument('-d', '--dataset', default="./dist/repgnn_data/uk-2007",
+                        type=str, help='training dataset path')
+    parser.add_argument('-n', '--name', default="in-2004",
+                        type=str, help='training dataset name')
+    return parser.parse_args(argv)
 
 if __name__ == '__main__':
-    dataset = './dist/repgnn_data/twitter'
-    name = 'twitter-2010'
+    args = parse_args_func(None)
+    dataset = args.dataset
+    name = args.name
     row = []
     col = []
     i = 0

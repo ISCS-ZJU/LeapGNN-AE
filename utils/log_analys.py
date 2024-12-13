@@ -16,6 +16,8 @@ def extract_log_files(file_paths):
     log_files = []
     for path in file_paths:
         if os.path.isfile(path) and path.endswith('.log'):
+            # if 'film' not in path and 'deep' not in path:
+            #     continue
             log_files.append(path)
         elif os.path.isdir(path):
             sub_files = [os.path.join(path, f) for f in os.listdir(path)]
@@ -37,12 +39,13 @@ def divide_by_epoch_num(value, epoch_num):
     else:
         return value
 
-analys_list = parse_config('./log_analys.yaml')
+# analys_list = parse_config('./log_analys.yaml')
 
 pattens = {
     'total_local_feats_gather_time' : 1,
     'total_remote_feats_gather_time' : 1,
     'total epochs time' : table_offset,
+    '  fetch feat  ' : table_offset,
     'fetch feat from cache server' : table_offset,
     'sync before compute' : table_offset,
     'gpu-compute with optimizer.step' : table_offset,
@@ -78,6 +81,7 @@ order = [
     'name',
     'total epochs time (s)',
     'sampling stall (s)',
+    '  fetch feat  ',
     'fetch feats from cache server',
     'fetch local time(s)',
     'fetch remote time(s)',
@@ -97,9 +101,10 @@ order = [
 if __name__ == '__main__':
     # number = re.findall("[\d,.]+",str)
     datas = []
+    hash_map = {}
     # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
-    analys_list = extract_log_files(analys_list)
-    # analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/in/'])
+    # analys_list = extract_log_files(analys_list)
+    analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/new_naive'])
     analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
         iter_num = -1
@@ -134,7 +139,6 @@ if __name__ == '__main__':
                 if 'new jp_times' in line:
                     new_jp_times = int(line.split('new jp_times is ')[1])
                 
-
             tol_node = np.sum(np.load(os.path.join(dataset,'train.npy')))
             exp_iter = math.ceil(tol_node//world_size/batch_size)
             if iter_num != -1:
@@ -196,17 +200,28 @@ if __name__ == '__main__':
             data['miss-rate'] = '/'
 
         datas.append(data)
+        hash_map[data['name']] = data
         # print(data)
+    for data in datas:
+        if 'naive' in data['name']:
+            compute_file_name = 'default_' + data['name'].split('naive_')[1].split('.log')[0] + '_localFalse.log'
+            # compute_file_name = 'jpgnn_trans_lessjp_dedup_True_' + data['name'].split('_',1)[1]
+            if compute_file_name not in hash_map:
+                continue
+            if 'gpu-compute with optimizer.step' in hash_map[compute_file_name]:
+                data['total epochs time'] += hash_map[compute_file_name]['gpu-compute with optimizer.step']
+            elif 'GPU computing (s)' in hash_map[compute_file_name]:
+                data['total epochs time'] += hash_map[compute_file_name]['GPU computing (s)']
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
-    pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
+    # pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
     # pf['others(grpc call) (s)'] = pf['total time/epoch (s)'] - pf['sampling stall (s)'] - pf['fetch feats from cache server'] - pf['GPU computing (s)'] - pf['model transfer'] - pf['syn']
     # if pf['# client-server request nodes'].bool():
     #     pf['miss-rate'] = pf['# local missed'].div(pf['# client-server request nodes'])
     # else:
     #     pf['miss-rate'] = '/'
-    pf = pf[order]
+    # pf = pf[order]
     # print(pf)
     if os.path.exists('./data.xlsx'):
         os.system("rm " + os.path.join(".", 'data.xlsx'))
