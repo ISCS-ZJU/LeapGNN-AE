@@ -104,7 +104,7 @@ if __name__ == '__main__':
     hash_map = {}
     # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
     # analys_list = extract_log_files(analys_list)
-    analys_list = extract_log_files(['/home/qhy/gnn/repgnn/logs/new_naive'])
+    analys_list = extract_log_files(['./logs/new_naive'])
     analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
         iter_num = -1

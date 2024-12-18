@@ -300,3 +300,13 @@ python3 dgl_default_debug.py -mn gcn -bs 4096 -s 2 -ep 10 -lr 0.001 --dist-url '
 
 ## 图切分算法命令举例
 `python ./prepartition/metis.py --dataset ./dist/repgnn_data/ogbn_products0/ --partition 5`
+
+## ae scripts
+```bash
+## config the cluster_servers ip in test_conifg.yaml in auto_test folder at first
+cd auto_test
+python script_auto_server_client.py
+cd ..
+python utils/log_analys.py
+## the output will be written in data.xlsx
+```
