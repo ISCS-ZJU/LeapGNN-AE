@@ -11,6 +11,8 @@ def parse_args_func(argv):
     parser = argparse.ArgumentParser(description='log analys')
     parser.add_argument('-d', '--dir', default="./logs",
                         type=str, help='log dir')
+    parser.add_argument('-t', '--type',default='miss-rate',
+                        type=str)
     return parser.parse_args(argv)
 
 # def parse_config(confpath):
@@ -18,17 +20,23 @@ def parse_args_func(argv):
 #         data = yaml.safe_load(fh)
 #         return data['files_to_analys']
 
-def extract_log_files(file_paths):
+def extract_log_files(file_paths,args):
     # 有一个list变量，其中有很多字符串表示文件路径或者文件夹路径，抽取出其中所有以'.log'为结尾的文件路径，放到列表并返回
     log_files = []
     for path in file_paths:
         if os.path.isfile(path) and path.endswith('.log'):
-            # if 'film' not in path and 'deep' not in path:
-            #     continue
+            if 'default' not in path and 'jpgnn_trans_' not in path:
+                continue
+            if args.type == 'request-num':
+                if 'lessjp' in path:
+                    continue
+            else:
+                if 'dedup' in path:
+                    continue
             log_files.append(path)
         elif os.path.isdir(path):
             sub_files = [os.path.join(path, f) for f in os.listdir(path)]
-            log_files.extend(extract_log_files(sub_files))
+            log_files.extend(extract_log_files(sub_files,args))
     return log_files
 
 def find_ep_number(string):
@@ -112,7 +120,7 @@ if __name__ == '__main__':
     hash_map = {}
     # 把 analys_list 中的文件夹中的.log日志文件抽取出来并排序，方便观看
     # analys_list = extract_log_files(analys_list)
-    analys_list = extract_log_files([args.dir])
+    analys_list = extract_log_files([args.dir],args)
     analys_list = sorted(analys_list, key=lambda x: os.path.basename(x))
     for file_path in analys_list:
         iter_num = -1
@@ -220,10 +228,23 @@ if __name__ == '__main__':
                 data['total epochs time'] += hash_map[compute_file_name]['gpu-compute with optimizer.step']
             elif 'GPU computing (s)' in hash_map[compute_file_name]:
                 data['total epochs time'] += hash_map[compute_file_name]['GPU computing (s)']
+        if 'jpgnn_trans_lessjp_dedup_True_' in data['name']:
+            data['name'] = 'ours+all_' + data['name'].split('jpgnn_trans_lessjp_dedup_True_')[1]
+        elif 'jpgnn_trans_multinfs_dedup_' in data['name']:
+            data['name'] = 'ours+1+2_' + data['name'].split('jpgnn_trans_multinfs_dedup_')[1]
+        elif 'jpgnn_trans_' in data['name']:
+            data['name'] = 'ours+1_' + data['name'].split('jpgnn_trans_')[1]
+
     pf = pd.DataFrame(datas)
-    # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
-    pf = pf[['name','total epochs time (s)']]
+    if args.type == 'miss-rate':
+        pf = pf[['name','miss-rate']]
+    elif args.type == 'time':
+        pf = pf[['name','fetch remote time(s)']]
+    elif args.type == 'request-num':
+        pf = pf[['name', '# client-server request nodes','# local missed',]]
+
+    # print(pf)
     # pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
     # pf['others(grpc call) (s)'] = pf['total time/epoch (s)'] - pf['sampling stall (s)'] - pf['fetch feats from cache server'] - pf['GPU computing (s)'] - pf['model transfer'] - pf['syn']
     # if pf['# client-server request nodes'].bool():

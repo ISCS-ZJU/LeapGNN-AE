@@ -223,7 +223,6 @@ if __name__ == '__main__':
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
-    pf = pf[['name','total epochs time (s)']]
     # pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
     # pf['others(grpc call) (s)'] = pf['total time/epoch (s)'] - pf['sampling stall (s)'] - pf['fetch feats from cache server'] - pf['GPU computing (s)'] - pf['model transfer'] - pf['syn']
     # if pf['# client-server request nodes'].bool():
