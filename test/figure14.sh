@@ -1,4 +1,5 @@
+#0.472s
 cd ..
 python utils/log_analys_gather.py --dir ./logs/indv --type miss-rate
-mv indv.xlsx test/figure14.xlsx
+mv indv.csv test/figure14.csv
 cd test

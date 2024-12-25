@@ -277,6 +277,10 @@ def run(gpuid, ngpus_per_node, args, log_queue):
         args.n_classes = 6
     elif 'pubmed' in args.dataset:
         args.n_classes = 3
+    elif 'in' in args.dataset:
+        args.n_classes = 60
+    elif 'uk' in args.dataset:
+        args.n_classes = 60
     elif 'twitter' in args.dataset:
         args.n_classes = 172
     elif 'it' in args.dataset:
@@ -397,6 +401,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                 logging.info(f'n_sub_batches:{n_sub_batches}')
                 
                 sub_iter = 0
+                iter_num = 0
                 wait_sampler = []
                 
 
@@ -452,15 +457,18 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             with torch.autograd.profiler.record_function('gpu-compute'):
                                 optimizer.step() # 至此，一个iteration结束
                                 optimizer.zero_grad()
+                                iter_num = iter_num + 1
                     else:
                         with torch.autograd.profiler.record_function('gpu-compute'):
                                 optimizer.step() # 至此，一个iteration结束
                                 optimizer.zero_grad()
+                                iter_num = iter_num + 1
                         
                     sub_iter += 1
                     st = time.time()
-                    if sub_iter > args.iter_stop * jp_times:
+                    if iter_num >= args.iter_stop:
                         break
+                logging.info(f'rank: {args.rank}, iter_num: {iter_num}')
                 if cache_client.log:
                     miss_num, try_num, miss_rate = cache_client.get_miss_rate()
                     if epoch==0:

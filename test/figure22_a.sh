@@ -1,4 +1,5 @@
-NAME=full_batch
+#54:25.84
+NAME=bs
 cd ..
 mkdir logs/$NAME
 rm logs/$NAME/*.log
@@ -8,5 +9,5 @@ cd ..
 rm logs/server_output_*.log
 mv logs/*.log logs/$NAME
 python utils/log_analys.py --dir ./logs/$NAME 
-mv $NAME.csv test/figure21.csv
+mv $NAME.csv test/figure22_a.csv
 cd test

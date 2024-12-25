@@ -101,6 +101,8 @@ def parse_command_line_args():
     parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
     parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
     parser.add_argument('--lb', action='store_true', help='monitor the load banlance of each mini-batch')
+    parser.add_argument('--servers_num', type=int, default=-1,
+                        help='training dataset name')
 
     args = parser.parse_args()
 
@@ -157,6 +159,8 @@ if args.util_interval:
     utilinterval = args.util_interval
 if args.lb:
     lb = True
+if args.servers_num != -1:
+    cluster_servers = cluster_servers[:args.servers_num]
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -180,7 +184,7 @@ processes = []
 for serverip in cluster_servers:
     interface, rank = ip_interface_rank[serverip]
     env_cmd = f"source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd {client_dir} && export GLOO_SOCKET_IFNAME={interface}"
-    cmd = f"{env_cmd} && export CUDA_VISIBLE_DEVICES=0,1 && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size} -wkr {world_size}"
+    cmd = f"{env_cmd} && export CUDA_VISIBLE_DEVICES=0 && time python3 {client_file_to_run} -mn {model_name} -bs {batch_size} -s {sampling} -ep {n_epochs} -lr {learning_rate} --dist-url 'tcp://{cluster_servers[0]}:{cluster_build_port}' --world-size {world_size} --rank {rank} --grpc-port {serverip}:{grpc_port} -d {dataset_dir} -hd {hidden_size} -wkr {world_size}"
     if log == True:
         cmd += " --log"
     if evalu == True:
@@ -214,5 +218,5 @@ for serverip, (_, rank) in ip_interface_rank.items():
     if os.path.exists(dest_logs_path):
         shutil.rmtree(dest_logs_path)
     os.mkdir(dest_logs_path)
-    cmd = f'sshpass -p {ssh_pswd} scp -o StrictHostKeyChecking=no {serverip}:{logs_file} {dest_logs_dir}/logs_rank{rank}/'
+    cmd = f'sshpass -p {ssh_pswd} scp -P {ssh_port} -o StrictHostKeyChecking=no {serverip}:{logs_file} {dest_logs_dir}/logs_rank{rank}/'
     os.system(cmd)

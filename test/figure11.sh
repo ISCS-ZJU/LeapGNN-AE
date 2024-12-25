@@ -1,9 +1,13 @@
-cd ../auto_test
-python script_auto_server_client.py --name overall
+#3:09:20
+NAME=overall
 cd ..
-mkdir logs/overall
+mkdir logs/$NAME
+rm logs/$NAME/*.log
+cd auto_test
+python script_auto_server_client.py --name $NAME
+cd ..
 rm logs/server_output_*.log
-mv logs/*.log logs/overall
-python utils/log_analys.py --dir ./logs/overall 
-mv overall.xlsx test/figure11.xlsx
+mv logs/*.log logs/$NAME
+python utils/log_analys.py --dir ./logs/$NAME 
+mv $NAME.csv test/figure11.csv
 cd test

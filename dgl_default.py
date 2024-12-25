@@ -23,12 +23,45 @@ import logging
 import time
 
 from storage.storage_dist import DistCacheClient
+from storage.storage_naive import NaiveCacheClient
+
 
 from common.log import setup_primary_logging, setup_worker_logging
 
 import GPUtil
 from threading import Thread
 import time
+
+import psutil
+
+def convert_bytes(bytes):
+    # 将字节数转换为更可读的格式（KB、MB、GB）
+    if bytes < 1024:
+        return f"{bytes} Bytes"
+    elif bytes < 1024**2:
+        return f"{bytes/1024:.2f} KB"
+    elif bytes < 1024**3:
+        return f"{bytes/1024**2:.2f} MB"
+    else:
+        return f"{bytes/1024**3:.2f} GB"
+
+
+def get_cpu_memory_usage(prefix = None):
+    # 获取CPU使用率和内存信息
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory_info = psutil.virtual_memory()
+
+    # 格式化输出
+    result = ''
+    if prefix:
+        result += f'----------{prefix}----------\n'
+    result += f"CPU使用率: {cpu_percent}%\n"
+    result += f"总内存: {convert_bytes(memory_info.total)}\n"
+    result += f"可用内存: {convert_bytes(memory_info.available)}\n"
+    result += f"已使用内存: {convert_bytes(memory_info.used)}\n"
+    result += f"内存使用率: {memory_info.percent}%"
+
+    return result
 
 class Monitor(Thread):
     def __init__(self, delay, gpuid):
@@ -114,6 +147,7 @@ def run(gpu, ngpus_per_node, args, log_queue):
     torch.distributed.barrier()
 
     #################### 创建用于从分布式缓存中获取features数据的客户端对象 ####################
+    # cache_client = NaiveCacheClient(args.grpc_port, args.gpu, args.log,args.rank, args.dataset)
     cache_client = DistCacheClient(args.grpc_port, args.gpu, args.log)
     cache_client.Reset()
     cache_client.ConstructNid2Pid(args.dataset, args.world_size, 'metis', len(fg_train_mask))
@@ -135,6 +169,8 @@ def run(gpu, ngpus_per_node, args, log_queue):
     elif 'in' in args.dataset:
         args.n_classes = 60
     elif 'uk' in args.dataset:
+        args.n_classes = 60
+    elif 'it' in args.dataset:
         args.n_classes = 60
     else:
         raise Exception("ERRO: Unsupported dataset.")
@@ -356,16 +392,16 @@ if __name__ == '__main__':
         log_filename = os.path.join(log_dir, f'default_{model_name}_{datasetname}_trainer{args.world_size}_bs{args.batch_size}_sl{args.sampling}_ep{args.epoch}_hd{args.hidden_size}_localFalse.log')
     if os.path.exists(log_filename):
         # # if_delete = input(f'{log_filename} has exists, whether to delete? [y/n] ')
-        # if_delete = 'y'
-        # if if_delete=='y' or if_delete=='Y':
-        #     os.remove(log_filename) # 删除已有日志，重新运行
+        if_delete = 'y'
+        if if_delete=='y' or if_delete=='Y':
+            os.remove(log_filename) # 删除已有日志，重新运行
         # else:
         #     print('已经运行过，无需重跑，直接退出程序')
         #     sys.exit(-1) # 退出程序
-        while os.path.exists(log_filename):
-            base, extension = os.path.splitext(log_filename)
-            log_filename = f"{base}_1{extension}"
-            print(f"new log_filename: {log_filename}")
+        # while os.path.exists(log_filename):
+        #     base, extension = os.path.splitext(log_filename)
+        #     log_filename = f"{base}_1{extension}"
+        #     print(f"new log_filename: {log_filename}")
     
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()

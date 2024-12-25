@@ -310,8 +310,9 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                         
                     sub_iter += 1
                     st = time.time()
-                    if sub_iter > args.iter_stop * args.world_size:
+                    if sub_iter >= args.iter_stop * args.world_size:
                         break
+                logging.info(f'rank: {args.rank}, iter_num: {sub_iter/args.world_size}')
                 if cache_client.log:
                     miss_num, try_num, miss_rate = cache_client.get_miss_rate()
                     logging.info(f'Epoch miss rate ( miss_num/try_num ) for epoch {epoch} on rank {args.rank}: {miss_num} / {try_num} = {miss_rate}')

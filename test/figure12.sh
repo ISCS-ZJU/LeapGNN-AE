@@ -1,9 +1,13 @@
-cd ../auto_test
-python script_auto_server_client.py --name deep
+#24:06.32
+NAME=deep
 cd ..
-mkdir logs/deep
+mkdir logs/$NAME
+rm logs/$NAME/*.log
+cd auto_test
+python script_auto_server_client.py --name $NAME
+cd ..
 rm logs/server_output_*.log
-mv logs/*.log logs/deep
-python utils/log_analys.py --dir ./logs/deep 
-mv deep.xlsx test/figure12.xlsx
+mv logs/*.log logs/$NAME
+python utils/log_analys.py --dir ./logs/$NAME 
+mv $NAME.csv test/figure12.csv
 cd test

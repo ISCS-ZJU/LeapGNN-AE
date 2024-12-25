@@ -57,6 +57,8 @@ def parse_command_line_args():
                         help='training dataset name')
     parser.add_argument('--cluster_servers', type=str, default='',
                         help='training dataset name')
+    parser.add_argument('--servers_num', type=int, default=-1,
+                        help='training dataset name')
     args = parser.parse_args()
 
     return args
@@ -106,6 +108,8 @@ multi_feat_file = args.multi_feat_file
 if args.cluster_servers != '':
     cluster_servers = eval(args.cluster_servers)
     print(cluster_servers, type(cluster_servers))
+if args.servers_num != -1:
+    cluster_servers = cluster_servers[:args.servers_num]
 # sys.exit()
 
 # 复制 go server config file 到集群其他机器，确保server配置相同
