@@ -145,20 +145,15 @@ We use the open-source dataset from OGBN (Transfer Ogbn Dataset Format):
 
 We provide the `auto_test` feature to automatically start the distributed GNN training across multiple machines (ensure all machines can SSH into each other).
 
-To run a basic GNN training on a sample dataset, follow steps 1, 2, and 3 as described above.
+To run a simple GNN training on the small arxiv dataset within 5 minutes.
 
 ```bash
 # Simple example
-1.
-2.
-3.
-python3 client_start.py --run_client_idx 3 --model_name gat --sampling 10-10 --batch-size 2048 --n-epochs 5 --hidden-size 256
+cd test
+./hello_world.sh
 ```
 
-Explanation of `auto_test`:
-1. Modify the `test_config.yaml` file to configure the cluster information and files to run.
-2. Run `python3 servers_start.py` to start the server scripts on each node. You can monitor the server startup by checking the `logs/server_output*.log` files on one of the nodes.
-3. Run `python3 clients_start.py` to start the client scripts on each node. Logs will be written to the `logs` directory.
+The command first invokes `servers_start.py` located in the `auto_test` directory to automatically launch `dist/server.go` on each node, thereby setting up the distributed feature caching system. Subsequently, the command automatically calls `clients_start.py` to initiate the corresponding client GNN training system on each node.
 
 **Note**:
 - Use `python3 servers_kill.py` and `python3 clients_kill.py` to terminate all server and client processes across the nodes.
@@ -176,9 +171,22 @@ Note that some scripts take longer to run because they need to generate the .log
 ```bash
 cd test
 # execute the scripts in the order of increasing figure numbers to reproduce the results.
-下面是每个 sh 的运行时间估计：
-
-
+Below is the estimated runtime for each .sh script:
+figure11.sh 3h10m
+figure12.sh 24m
+figure13.sh 3h10m
+figure14.sh <1min
+figure15.sh <1min
+figure16.sh <1min
+figure17.sh 10min
+figure18.sh 52min
+figure20.sh 8min
+figure21.sh 2h5m
+figure22-a.sh 55min
+figure22-b.sh 1h25m
+figure23-a.sh 1h35m
+figure23-b.sh 36m
+test_acc.sh <1min
 ```
 
 Each experiment corresponds to a specific figure in the paper and has a dedicated script. These scripts follow a similar structure:
