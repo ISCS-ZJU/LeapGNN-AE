@@ -310,3 +310,21 @@ cd ..
 python utils/log_analys.py
 ## the output will be written in data.xlsx
 ```
+  | 3rdparties | d | Install specific versions of third-party libraries such as dgl, distcache, etc. | 
+  | auto_test | d | Automatically complete testing scripts for distributed multi-machine setups on a single machine. | 
+  | common | d | Common, shared functions. | 
+  | data | d | Libraries for data preprocessing, and generating/loading datasets. | 
+  | dist | d | Multi-machine distributed caching system. | 
+  | logs/logs_rank* | d | Log files. | 
+  | model | d | Common GNN models. | 
+  | model_inter | d | Models used to compute intermediate data for naive transfer methods. | 
+  | prepartition | d | Various graph partitioning algorithms. | 
+  | rpc_client | d | Client interface for distributed caching. | 
+  | scripts | d | Experiment testing script files. | 
+  | test | d | AE testing script files, generating metadata for each graph. | 
+  | simulate | d | Simulate results such as hit rates and local-shuffling accuracy for large-scale distributed runs. | 
+  | storage | d | Implementation of DistCacheClient. | 
+  | utils | d | Auxiliary functions for plotting, log analysis, multi-machine synchronization code modification, etc. | 
+  | dgl_default* | Default version. | 
+  | dgl_jpgnn_* | Various versions of our technical points; dgl_jpgnn_trans_lessjp.py is the final version. | 
+  | dgl_p3* | P3 version. | | dgl_trans_naive* | Our naive version in the design (migration per layer). |
