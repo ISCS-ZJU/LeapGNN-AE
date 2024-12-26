@@ -1,9 +1,0 @@
-name,total epochs time (s)
-default_deepergcn_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2_ep3_hd16.log,18.08280
-default_film_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep3_hd16.log,42.01920
-jpgnn_trans_lessjp_dedup_True_deepergcn_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2_ep5_hd16.log,1.74072
-jpgnn_trans_lessjp_dedup_True_film_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep5_hd16.log,2.71473
-naive_deepergcn_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2_ep3_hd16.log,9.08267
-naive_film_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep3_hd16.log,21.93367
-p3_deepergcn_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2_ep5_hd16.log,17.27100
-p3_film_ogbn_arxiv0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep5_hd16.log,31.42260

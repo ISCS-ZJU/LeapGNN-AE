@@ -237,6 +237,14 @@ all_client_cmd['gpu_util'] = [
     'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset uk_2007 --n_epochs 1 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
 ]
 
+all_server_cmd['hello'] = [
+    'python3 servers_start.py --dataset ogbn_arxiv0 --cache_type static --partition_type metis',
+]
+
+all_client_cmd['hello'] = [
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 0 --dataset  ogbn_arxiv0 --n_epochs 5 --batch_size 8000 --hidden_size 16',
+]
+
 def check_and_delete_file(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)

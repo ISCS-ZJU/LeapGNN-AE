@@ -320,7 +320,7 @@ python utils/log_analys.py
   | model_inter | d | Models used to compute intermediate data for naive transfer methods. | 
   | prepartition | d | Various graph partitioning algorithms. | 
   | rpc_client | d | Client interface for distributed caching. | 
-  | scripts | d | Experiment testing script files. | 
+  | scripts | d | Experiment testing script files. obsv1.sh generates table 1 | 
   | test | d | AE testing script files, generating metadata for each graph. | 
   | simulate | d | Simulate results such as hit rates and local-shuffling accuracy for large-scale distributed runs. | 
   | storage | d | Implementation of DistCacheClient. | 

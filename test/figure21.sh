@@ -1,3 +1,4 @@
+# 2:04:44
 NAME=full_batch
 cd ..
 mkdir logs/$NAME

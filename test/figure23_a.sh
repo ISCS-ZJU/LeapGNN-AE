@@ -11,5 +11,3 @@ mv logs/*.log logs/$NAME
 python utils/log_analys.py --dir ./logs/$NAME 
 mv $NAME.csv test/figure23_a.csv
 cd test
-# to use other dataset, change '--dataset' of all_server_cmd['fanout'] and all_client_cmd['fanout'] in file 'script_auto_server_client.py'
-# to use other model, change '--model' of all_client_cmd['fanout'] in file 'script_auto_server_client.py'

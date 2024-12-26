@@ -13,5 +13,3 @@ python utils/log_analys.py --dir ./logs/$NAME
 mv $NAME.csv test/figure18.csv
 cd test
 # figure 18(b) can be find in logs/random/jpgnn_trans_random_lessjp_dedup_True..., marked as "table:"
-# to use other dataset, change '--dataset' of all_server_cmd['random'] and all_client_cmd['random'] in file 'script_auto_server_client.py'
-# to use other model, change '--model' of all_client_cmd['random'] in file 'script_auto_server_client.py'
