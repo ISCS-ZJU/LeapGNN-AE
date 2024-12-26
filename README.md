@@ -158,8 +158,10 @@ To run a simple GNN training on the small arxiv dataset within 5 minutes.
 
 ```bash
 # Simple example
-cd test
-./hello_world.sh
+1. modify the 'cluster_servers' variable in auto_test/test_config.yaml file
+2. cd test
+3. ./hello_world.sh
+4. The program exited without any exceptions, and a `.log` file was generated in the current directory. This indicates that the program has successfully completed its execution.
 ```
 
 The command first invokes `servers_start.py` located in the `auto_test` directory to automatically launch `dist/server.go` on each node, thereby setting up the distributed feature caching system. Subsequently, the command automatically calls `clients_start.py` to initiate the corresponding client GNN training system on each node.
