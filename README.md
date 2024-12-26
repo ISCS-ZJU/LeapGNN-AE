@@ -61,8 +61,8 @@ The software versions we use are:
 #### 3. **Clone the Repository and Install Submodules**
 
 ```bash
-git clone https://gitee.com/nustart/repgnn.git
-cd repgnn
+git clone https://github.com/ISCS-ZJU/LeapGNN-AE.git
+cd LeapGNN-AE
 git checkout distributed_version
 git submodule init
 git submodule update
@@ -141,7 +141,7 @@ pip install setuptools==50.3.2
 Here’s how to prepare the dataset. To avoid any potential issues, we have made the dataset available on our Cloud [link], and we recommend downloading the data directly from there.
 
 **Important**: Make sure that the datasets downloaded from the cloud are copied to each machine. 
-All data should be placed in the `repgnn/dist/repgnn_data` directory, for example, `repgnn/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `repgnn/dist/repgnn_data` using `ln -s`.
+All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`.
 
 (Optional)
 Below is our process for preparing the datasets.
