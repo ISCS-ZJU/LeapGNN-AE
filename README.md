@@ -138,12 +138,12 @@ pip install setuptools==50.3.2
 
 ### Step 2: Prepare the Dataset
 
-Here’s how to prepare the dataset. To avoid any potential issues, we have made the dataset available on our Cloud [link], and we recommend downloading the data directly from there.
+Here’s how to prepare the dataset. To avoid any potential issues, we have made the dataset available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
 
-**Important**: Make sure that the datasets downloaded from the cloud are copied to each machine. 
+**Important**: Make sure that the datasets downloaded from the Zenodo are copied to each machine. 
 All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`.
 
-(Optional)
+(If you have downloaded the dataset from Zenodo, you can skip the following data construction steps and proceed directly to the next section.)
 Below is our process for preparing the datasets.
 We use the open-source dataset from OGBN (Transfer Ogbn Dataset Format):
 1. `cd data`; Modify `pre.sh` by setting `SETPATH` to the directory where the data will be stored (excluding the filename), and `NAME` to the name of the OGBN dataset you wish to download.
@@ -161,7 +161,7 @@ To run a simple GNN training on the small arxiv dataset within 5 minutes.
 1. modify the 'cluster_servers' variable in auto_test/test_config.yaml file
 2. cd test
 3. ./hello_world.sh
-4. The program exited without any exceptions, and a `.log` file was generated in the current directory. This indicates that the program has successfully completed its execution.
+4. The program exited without any exceptions, and a `.log` file was generated in the current directory. This indicates that the program has successfully completed its execution. Make sure the `.log` file contains a table that provides a time breakdown.
 ```
 
 The command first invokes `servers_start.py` located in the `auto_test` directory to automatically launch `dist/server.go` on each node, thereby setting up the distributed feature caching system. Subsequently, the command automatically calls `clients_start.py` to initiate the corresponding client GNN training system on each node.
