@@ -11,3 +11,4 @@ mv logs/*.log logs/$NAME
 python utils/log_analys.py --dir ./logs/$NAME 
 mv $NAME.csv test/figure11.csv
 cd test
+# to use other dataset, change '--dataset' of all_server_cmd['overall'] and all_client_cmd['overall'] in file 'script_auto_server_client.py'

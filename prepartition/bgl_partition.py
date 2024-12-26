@@ -1,6 +1,6 @@
 import sys
 sys.path.append('./')
-
+sys.path.append('/home/qhy/gnn/repgnn')
 import data
 import enum
 import numpy as np
@@ -200,18 +200,25 @@ class BlockGenerator():
                     
     def _get_block_adj(self,add_reversed_edge=False):
         block_num = len(self.blocks)
+        rows = []
+        cols = []
         self.block_adj = np.zeros((block_num,block_num))  #块的邻接矩阵
         for row,block in enumerate(self.blocks):
             for node in block.nodes:
                 neighbors = self.adj.getrow(node).indices
                 for neighbor in neighbors:
-                    self.block_adj[row][self.block_map[neighbor]] = 1  #把一条边的两个点所属的块是相连的
+                    rows.append(row)
+                    cols.append(self.block_map[neighbor])
+                    # self.block_adj[row][self.block_map[neighbor]] = 1  #把一条边的两个点所属的块是相连的
                     if add_reversed_edge:
-                        self.block_adj[self.block_map[neighbor]][row] = 1
+                        cols.append(row)
+                        rows.append(self.block_map[neighbor])
+                        # self.block_adj[self.block_map[neighbor]][row] = 1
         #to csr
-        row, col = np.nonzero(self.block_adj)
-        values = self.block_adj[row, col]
-        self.block_adj = spsp.csr_matrix((values, (row, col)), shape=self.block_adj.shape)
+        # row, col = np.nonzero(self.block_adj)
+        # values = self.block_adj[row, col]
+        values = np.ones(len(rows))
+        self.block_adj = spsp.csr_matrix((values, (rows, cols)), shape=(block_num,block_num))
 
     
     def _merge_blocks(self):
@@ -311,7 +318,8 @@ class BlockGenerator():
         self._generate()
         self.parts = [Part(i) for i in range(partition_num)]
         block_num = len(self.blocks)
-        block_num_per_part = int(self.assign_init_scale*block_num/partition_num)
+        print(block_num)
+        block_num_per_part = max(int(self.assign_init_scale*block_num/partition_num),1)
         seed_block_part = np.random.choice(range(block_num),block_num_per_part * partition_num)
         # 随机分配初始块到区域内
         for i in range(partition_num):

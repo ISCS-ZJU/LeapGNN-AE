@@ -1,0 +1,17 @@
+name,fetch remote time(s)
+default_deepergcn_ogbn_products0_trainer4_bs512_sl2-2-2-2-2_ep3_hd16.log,465.91827
+default_film_ogbn_products0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep3_hd16.log,5335.73147
+default_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,164.78333
+default_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,156.84667
+default_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,172.44333
+default_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,179.80000
+default_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,174.57000
+default_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,168.54333
+ours+1_deepergcn_ogbn_products0_trainer4_bs512_sl2-2-2-2-2_ep5_hd16.log,193.47304
+ours+1_film_ogbn_products0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep5_hd16.log,4474.46472
+ours+1_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,94.32000
+ours+1_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,94.01800
+ours+1_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,97.21400
+ours+1_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,95.41200
+ours+1_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,97.91200
+ours+1_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,100.06600

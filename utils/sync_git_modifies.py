@@ -6,8 +6,13 @@ import os
 def get_modifed_files(gitpath):
     repo = git.Repo(gitpath)
     modified_files = [item.a_path for item in repo.index.diff(None) if item.change_type != "D"]
+
+    untracked_files = repo.untracked_files
+    # print(untracked_files)
+    all_changed_files = modified_files + untracked_files
+
     # print(modified_files)
-    return modified_files
+    return all_changed_files
 
 def scp_modifed_files_to_another_mathine_under_same_path(remote_ip, pswd):
     files_lst = get_modifed_files(os.getcwd())
@@ -16,7 +21,7 @@ def scp_modifed_files_to_another_mathine_under_same_path(remote_ip, pswd):
     if instruct=='y':
         for rip in remote_ip.split():
             for filename in files_lst:
-                os.system(f'sshpass -p {pswd} scp {filename} {rip}:{os.path.join(os.getcwd(), filename)}')
+                os.system(f'sshpass -p {pswd} scp -P 2022 {filename} {rip}:{os.path.join(os.getcwd(), filename)}')
                 print(f'-> scp {filename} {rip}:{os.path.join(os.getcwd(), filename)} 执行结束')
             print()
     elif instruct == 'n':

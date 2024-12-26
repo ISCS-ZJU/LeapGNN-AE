@@ -137,7 +137,7 @@ if __name__ == '__main__':
                 if 'dataset=\'' in line:
                     dataset = line.split('dataset=\'')[1].split('\',')[0]
                 if 'iter_num:' in line:
-                    iter_num = int(line.split('iter_num:')[1])
+                    iter_num = int(float(line.split('iter_num:')[1]))
                 if 'world_size=' in line:
                     world_size = int(line.split('world_size=')[1].split(',')[0])
                 if 'batch_size=' in line:
@@ -146,6 +146,15 @@ if __name__ == '__main__':
                     avg_epoch_time_jpless = float(line.split("avg_epoch_time of [")[1].split(' ')[0][:-1])
                 if 'new jp_times' in line:
                     new_jp_times = int(line.split('new jp_times is ')[1])
+                if 'Got feature dim from server: ' in line:
+                    data['feat_dim'] = int(line.split('Got feature dim from server: ')[1])
+                if 'ori #nodes = ' in line:
+                    data['ori_nodes'] = int(line.split('ori #nodes = ')[1].split(',')[0])
+                    data['ori_edges'] = int(line.split('#edges = ')[1].split()[0])
+                if 'nstart #nodes = ' in line:
+                    data['nodes'] = int(line.split('nstart #nodes = ')[1].split(',')[0])
+                    data['edges'] = int(line.split('#edges = ')[1].split()[0])
+                    data['total epochs time'] = 0
                 
             tol_node = np.sum(np.load(os.path.join(dataset,'train.npy')))
             exp_iter = math.ceil(tol_node//world_size/batch_size)
@@ -183,6 +192,18 @@ if __name__ == '__main__':
             data['sync before compute'] = 0
         if 'get_nfs' not in data.keys():
             data['get_nfs'] = 0
+        if 'nodes' not in data.keys():
+            data['nodes'] = 0
+        if 'edges' not in data.keys():
+            data['edges'] = 0
+        if 'ori_nodes' not in data.keys():
+            data['nodes'] = 0
+        if 'ori_edges' not in data.keys():
+            data['edges'] = 0
+        if 'feat_dim' not in data.keys():
+            data['feat_dim'] = 0
+        
+        
         
         
         # 如果是p3，那么总时间去掉 topology transfer
@@ -191,16 +212,17 @@ if __name__ == '__main__':
 
 
         # 计算平均每个epoch的时间
-        for k, v in data.items():
-            data[k] = divide_by_epoch_num(v, epoch_num / rate)
         
         # 如果是jpless，自动提取最小的时间作为total_epoch_time，其余的时间自动缩小相应倍数，打印最终跳跃次数
         if avg_epoch_time_jpless!= -1:
             print(file_path, 'final jp_times:', new_jp_times)
-            scale = data['total epochs time'] / avg_epoch_time_jpless
+            scale = data['total epochs time'] / avg_epoch_time_jpless / epoch_num
             for k, v in data.items():
                 if k != '# client-server request nodes' and k!= '# local missed' and k!='miss-rate' and k!='name':
                     data[k] = v / scale
+
+        for k, v in data.items():
+            data[k] = divide_by_epoch_num(v, epoch_num / rate)
         
         if data['try_num'] != 0:
             data['miss-rate'] = data['miss_num'] / data['try_num']
@@ -220,6 +242,17 @@ if __name__ == '__main__':
                 data['total epochs time'] += hash_map[compute_file_name]['gpu-compute with optimizer.step']
             elif 'GPU computing (s)' in hash_map[compute_file_name]:
                 data['total epochs time'] += hash_map[compute_file_name]['GPU computing (s)']
+        if 'neutronstar' in data['name']:
+            compute_file_name = 'default_' + data['name'].split('neutronstar_')[1]
+            if 'gpu-compute with optimizer.step' in hash_map[compute_file_name]:
+                ori_compute_time = hash_map[compute_file_name]['gpu-compute with optimizer.step']
+            elif 'GPU computing (s)' in hash_map[compute_file_name]:
+                ori_compute_time = hash_map[compute_file_name]['GPU computing (s)']
+            hd = int(compute_file_name.split('hd')[1].split('_')[0])
+            ori_total_time = hash_map[compute_file_name]['total epochs time']
+            fetch_cost_each_node = hash_map[compute_file_name]['total_remote_feats_gather_time']/hash_map[compute_file_name]['miss_num']
+            data['total epochs time'] = ori_total_time - ori_compute_time + ori_compute_time*(data['nodes']+data['edges'])/(data['ori_nodes']+data['ori_edges']) + fetch_cost_each_node*(data['ori_nodes']-data['nodes'])*hd/hash_map[compute_file_name]['feat_dim']
+            
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
@@ -232,10 +265,16 @@ if __name__ == '__main__':
     #     pf['miss-rate'] = '/'
     # pf = pf[order]
     # print(pf)
-    if os.path.exists(f'./{os.path.basename(args.dir)}.xlsx'):
-        os.system("rm " + os.path.join(".", f'{os.path.basename(args.dir)}.xlsx'))
-    writer = pd.ExcelWriter(f'./{os.path.basename(args.dir)}.xlsx')  # 初始化一个writer
-    pf.to_excel(writer, float_format='%.5f',index=False)  # table输出为excel, 传入writer
-    writer._save()
-    print(f'-> write to {os.path.basename(args.dir)}.xlsx done.')
+
+    # if os.path.exists(f'./{os.path.basename(args.dir)}.xlsx'):
+    #     os.system("rm " + os.path.join(".", f'{os.path.basename(args.dir)}.xlsx'))
+    # writer = pd.ExcelWriter(f'./{os.path.basename(args.dir)}.xlsx')  # 初始化一个writer
+    # pf.to_excel(writer, float_format='%.5f',index=False)  # table输出为excel, 传入writer
+    # writer._save()
+    # print(f'-> write to {os.path.basename(args.dir)}.xlsx done.')
+
+    if os.path.exists(f'./{os.path.basename(args.dir)}.csv'):
+        os.system("rm " + os.path.join(".", f'{os.path.basename(args.dir)}.csv'))
+    pf.to_csv(f'./{os.path.basename(args.dir)}.csv', float_format='%.5f',index=False)
+    print(f'-> write to {os.path.basename(args.dir)}.csv done.')
 

@@ -6,6 +6,7 @@ import numpy as np
 import pymetis
 import argparse
 import scipy.sparse as spsp
+from scipy.sparse import csr_matrix
 import os
 
 import logging
@@ -23,16 +24,17 @@ if __name__ == "__main__":
     # load data
     # 加载全图topo（其中的点是从0开始编号的）
     adj = spsp.load_npz(os.path.join(args.dataset, 'adj.npz'))
+    adj = adj.tocsr()
     print('load full graph adj')
-    train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
-    train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
+    # train_mask, val_mask, test_mask = data.get_masks(args.dataset)  # 加载mask
+    # train_nid = np.nonzero(train_mask)[0].astype(np.int64)  # 得到node id
     # [array([0, 2, 3, 4, 5, 7, 8]), array([1, 2, 3, 4, 5, 6, 9]), ..., array([1, 5])]每项表示每i个点的邻居点id
-    adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()]
+    # adjacency_list = [np.nonzero(lst)[0] for lst in adj.toarray()]
     # print(adjacency_list)
     # n_cuts:边切分的次数，membership:[...]表示从Index=0的点开始被分配到的partition的id
     print('start metis partition')
     n_cuts, membership = pymetis.part_graph(
-        args.partition, adjacency=adjacency_list) # membership是一个一维数组，记录了每个点所属的part id
+        args.partition, xadj=adj.indptr, adjncy=adj.indices) # membership是一个一维数组，记录了每个点所属的part id
     print('end metis partition')
     # print(n_cuts, membership) # 7 [0, 1, 0, 0, 0, 1, 1, 0, 1, 1]
     
@@ -42,8 +44,8 @@ if __name__ == "__main__":
     for nid, pid in enumerate(membership):
         part_id[pid].append(nid)
     # print(part_id)
-    for lst in part_id:
-        lst.sort(key=lambda x: len(adjacency_list[x]), reverse=True) # 每个part内的点按照出度从大到小排序
+    # for lst in part_id:
+    #     lst.sort(key=lambda x: len(adjacency_list[x]), reverse=True) # 每个part内的点按照出度从大到小排序
     # print(part_id)
 
     # save graph node id for each partition

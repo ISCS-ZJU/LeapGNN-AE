@@ -422,7 +422,7 @@ def run(gpuid, ngpus_per_node, args, log_queue):
                             ed = time.time()
                     # two model compute
                     if colide_table is not None:
-                        logging.info("colide")
+                        # logging.info("colide")
                         with torch.autograd.profiler.record_function('gpu-compute'):
                             if colide_table[args.rank][epoch_time_step]:
                                 # simulate another model compute
@@ -546,6 +546,10 @@ def parse_args_func(argv):
     parser.add_argument('--default-time', default='-1', type=float, help='one epoch time of default mode')
     parser.add_argument('--moniter-epochs', default=1, type=int, help='number of epochs to moniter each epoch training time')
 
+    parser.add_argument('--iter_stop', type=int, default=2, help='early stop to avoid oom')
+    parser.add_argument('--gputil', action='store_true', help='Enable GPU utilization monitoring')
+    parser.add_argument('--util-interval', type=float, default=0.1, help='Time interval to call gputil (unit: second)')
+    # args for deepergcn
 
     return parser.parse_args(argv)
 
@@ -654,6 +658,7 @@ def generate_collision_table_dict(k, times):
         table[i] = np.roll(table[i-1], -1)
     # print('init table:')
     print(table)
+    logging.info(f'table:{table}')
     # random delete
     delnum = 1
     # for delnum in range(1, k):

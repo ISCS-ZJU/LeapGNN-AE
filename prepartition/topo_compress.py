@@ -92,12 +92,13 @@ if __name__ == '__main__':
     由于训练程序中实际layer数为输入采样长度+2(构建sampler时+1,dgl内部+1)(如2-2将产生4层,即三跳邻居),本处num_hop数应为训练程序中采样长度+2
     adj_type csr对应neighbor_type的out csc对应in
     '''
-    adj_type='csr'
+    adj_type='csc'
     num_hop = 3
     dataset = '/home/qhy/gnn/repgnn/dist/repgnn_data/ogbn_papers100M0'
-    
+
     adj_path = os.path.join(dataset,'adj_bak.npz')
-    save_path = os.path.join(dataset,f'adj_compressed_{adj_type}.npz')
+    # save_path = os.path.join(dataset,f'adj_compressed_{adj_type}.npz')
+    save_path = os.path.join(dataset,f'adj.npz')
     mask_path = os.path.join(dataset,'train.npy')
     del_path = os.path.join(dataset,'del_mask.npy')
     # part_path = os.path.join(dataset,'dist_True/4_pagraph/0.npy')

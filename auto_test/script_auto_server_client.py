@@ -113,24 +113,24 @@ all_server_cmd['full_batch'] = [
 ]
 
 all_client_cmd['full_batch'] = [
-    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
-    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
-    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
-    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 5 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
-    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
-    # 'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 12 --iter_stop 5 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
+    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 16',
+    'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 16',
+    # 'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gcn --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name gat --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 9 --iter_stop 1 --dataset in_2004 --n_epochs 3 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 6 --iter_stop 1 --dataset in_2004 --n_epochs 5 --batch_size 80000000 --hidden_size 128',
+    # 'python3 clients_start.py --model_name graphsage --sampling 10000000-10000000 --run_client_idx 15 --dataset in_2004 --n_epochs 1 --batch_size 80000000 --hidden_size 128',
 ]
 
 all_server_cmd['bs'] = [
@@ -192,8 +192,8 @@ all_server_cmd['machine'] = [
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 2',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 3',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 4',
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 5',
-    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 6',
+    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 5',
+    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 6',
 ]
 
 all_client_cmd['machine'] = [
@@ -203,10 +203,10 @@ all_client_cmd['machine'] = [
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 3',
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 4',
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 4',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
-    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
+    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
 ]
 
 all_server_cmd['merging'] = [
@@ -228,13 +228,13 @@ all_client_cmd['random'] = [
 
 all_server_cmd['gpu_util'] = [
     'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type metis --multi_feat_file True',
-    'python3 servers_start.py --dataset uk_2007 --cache_type static --partition_type p3 --multi_feat_file True',
+    'python3 servers_start.py --dataset uk_2007 --cache_type p3 --partition_type metis --multi_feat_file True',
 ]
 
 all_client_cmd['gpu_util'] = [
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 0 --dataset uk_2007 --n_epochs 5 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 4 --dataset uk_2007 --n_epochs 5 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
-    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 2 --dataset uk_2007 --n_epochs 5 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset uk_2007 --n_epochs 1 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset uk_2007 --n_epochs 1 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
+    'python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --iter_stop 5 --dataset uk_2007 --n_epochs 1 --batch_size 8000 --hidden_size 16 --gputil --util-interval 0.25',
 ]
 
 def check_and_delete_file(file_path):
@@ -250,10 +250,8 @@ if __name__ == '__main__':
     server_cmd_lst = all_server_cmd[args.name]
     client_cmd_lst = all_client_cmd[args.name]
     username = getpass.getuser()
-    if username == 'weijian':
-        file_path = '/home/weijian/gitclone/repgnn/dist/server_done.txt'
-    elif username == 'qhy':
-        file_path = '/home/qhy/gnn/repgnn/dist/server_done.txt'
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../dist/server_done.txt')
+
 
     os.system('python3 servers_kill.py')
     time.sleep(10)

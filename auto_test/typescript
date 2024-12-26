@@ -1,0 +1,195 @@
+Script started on 2023-08-04 17:51:02+08:00 [<not executed on terminal>]
+qhy      33673     1  0 17:49 ?        00:00:00 sh -c python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33674 33673  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33716 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33717 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33718 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33719 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+qhy      33720 33719  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.232 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 3 --grpc-port 10.214.241.232:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+qhy      33721 33718  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.229 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 2 --grpc-port 10.214.241.229:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+qhy      33722 33717  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.228 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 1 --grpc-port 10.214.241.228:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+qhy      33724 33716  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.227 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+qhy      33756 33721  0 17:49 ?        00:00:00 sshpass -p zzzzzzzz ssh 10.214.241.229 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 2 --grpc-port 10.214.241.229:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+qhy      3(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33673     1  0 17:49 ?        00:00:00 sh -c python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33674 33673  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33716 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33717 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33718 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33719 33674  0 17:49 ?        00:00:00 python3 clients_start.py --model_name gat --sampling 10-10 --run_client_idx 5 --dataset ogbn_papers100M0 --n_epochs 5 --batch_size 8000 --iter_stop 10 --hidden_size 16
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33720 33719  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.232 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 3 --grpc-port 10.214.241.232:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33721 33718  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.229 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 2 --grpc-port 10.214.241.229:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33722 33717  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.228 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 1 --grpc-port 10.214.241.228:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33724 33716  0 17:49 ?        00:00:00 /bin/sh -c sshpass -p wwpwcl44 ssh 10.214.241.227 "bash -c 'source `which conda | xargs readlink -f | xargs dirname | xargs dirname`/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'"
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33756 33721  0 17:49 ?        00:00:00 sshpass -p zzzzzzzz ssh 10.214.241.229 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 2 --grpc-port 10.214.241.229:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33757 33720  0 17:49 ?        00:00:00 sshpass -p zzzzzzzz ssh 10.214.241.232 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 3 --grpc-port 10.214.241.232:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33758 33722  0 17:49 ?        00:00:00 sshpass -p zzzzzzzz ssh 10.214.241.228 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 1 --grpc-port 10.214.241.228:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33759 33724  0 17:49 ?        00:00:00 sshpass -p zzzzzzzz ssh 10.214.241.227 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33760 33756  0 17:49 pts/22   00:00:00 ssh 10.214.241.229 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 2 --grpc-port 10.214.241.229:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33761 33757  0 17:49 pts/23   00:00:00 ssh 10.214.241.232 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens5f1 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 3 --grpc-port 10.214.241.232:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33762 33758  0 17:49 pts/24   00:00:00 ssh 10.214.241.228 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 1 --grpc-port 10.214.241.228:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33763 33759  0 17:49 pts/33   00:00:00 ssh 10.214.241.227 bash -c 'source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url 'tcp://10.214.241.227:23457' --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10'
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      33783 33782  0 17:49 ?        00:00:00 bash -c source /home/qhy/anaconda3/bin/activate && conda activate repgnn && cd /home/qhy/gnn/repgnn && export GLOO_SOCKET_IFNAME=ens17f0 && time python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url tcp://10.214.241.227:23457 --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      34235 33783  1 17:49 ?        00:00:01 python3 /home/qhy/gnn/repgnn/dgl_p3_avoid_oom.py -mn gat -bs 8000 -s 10-10 -ep 5 -lr 0.003 --dist-url tcp://10.214.241.227:23457 --world-size 4 --rank 0 --grpc-port 10.214.241.227:18112 -d /home/qhy/gnn/repgnn/./dist/repgnn_data/ogbn_papers100M0 -hd 16 --log --iter_stop 10
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      34241 34235  0 17:49 ?        00:00:00 /home/qhy/anaconda3/envs/repgnn/bin/python3 -c from multiprocessing.resource_tracker import main;main(16)
+bash: syntax error near unexpected token `16'
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      34243 34235 81 17:49 ?        00:01:29 /home/qhy/anaconda3/envs/repgnn/bin/python3 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=17, pipe_handle=23) --multiprocessing-fork
+bash: syntax error near unexpected token `tracker_fd=17,'
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      34938 38078  0 17:51 pts/40   00:00:00 grep --color=auto python
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ qhy      38335 37989  0 14:40 ?        00:00:23 /home/qhy/.vscode-server/bin/6445d93c81ebe42c4cbd7a60712e0b17d9463e97/node /home/qhy/.vscode-server/extensions/ms-python.vscode-pylance-2023.8.10/dist/server.bundle.js --cancellationReceive=file:1d992f45e93689bc2cf46bbea6cd8cd8def896ec59 --node-ipc --clientProcessId=37989
+
+Command 'qhy' not found, did you mean:
+
+  command 'hy' from deb python3-hy (0.18.0-1)
+
+Try: apt install <deb name>
+
+(base) ]0;qhy@yq4: ~/gnn/repgnn/auto_test[01;32mqhy@yq4[00m:[01;34m~/gnn/repgnn/auto_test[00m$ exit
+
+Script done on 2023-08-04 17:51:35+08:00 [COMMAND_EXIT_CODE="127"]

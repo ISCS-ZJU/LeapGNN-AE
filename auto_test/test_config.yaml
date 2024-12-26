@@ -36,6 +36,7 @@ client_files:
   - "dgl_trans_naive_stop.py" # 12
   - "dgl_jpgnn_trans_avoid_oom.py" # 13
   - "multi/multi_dgl_default.py" # 14
+  - "dgl_neutronstar_statistic.py" # 15
   # - "dgl_default_partialremotegather.py" # 原始的 GNN 训练 - 远程的节点只聚合部分 版本
 # Choose the client file to run
 run_client_idx: 4

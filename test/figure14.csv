@@ -1,0 +1,17 @@
+name,miss-rate
+default_deepergcn_ogbn_products0_trainer4_bs512_sl2-2-2-2-2_ep3_hd16.log,0.76160
+default_film_ogbn_products0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep3_hd16.log,0.75687
+default_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,0.76427
+default_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,0.76381
+default_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,0.76398
+default_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,0.76429
+default_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd128.log,0.76397
+default_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep3_hd16.log,0.76365
+ours+1_deepergcn_ogbn_products0_trainer4_bs512_sl2-2-2-2-2_ep5_hd16.log,0.11577
+ours+1_film_ogbn_products0_trainer4_bs512_sl2-2-2-2-2-2-2-2-2_ep5_hd16.log,0.32495
+ours+1_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,0.16898
+ours+1_gat_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,0.16873
+ours+1_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,0.16872
+ours+1_gcn_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,0.16858
+ours+1_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd128.log,0.16846
+ours+1_graphsage_ogbn_products0_trainer4_bs8000_sl10-10_ep5_hd16.log,0.16859

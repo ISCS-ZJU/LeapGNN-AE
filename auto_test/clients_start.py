@@ -161,6 +161,7 @@ if args.lb:
     lb = True
 if args.servers_num != -1:
     cluster_servers = cluster_servers[:args.servers_num]
+    world_size = args.servers_num
 
 ip_interface_rank = {}  # key: serverip value:(interface, rank)
 cur_dir = os.path.dirname(os.path.abspath(__file__))
