@@ -69,7 +69,7 @@
     1. 需要先安装java环境和对应包
     ```bash
     ### on path repgnn/
-    cd dist/repgnn_data/in-2004 
+    cd dist/repgnn_data/in_2004 
     java -cp "lib/*" it.unimi.dsi.webgraph.ASCIIGraph in-2004 in-2004 
     ### 会生成in-2004.graph-txt 
     cd ../../.. 
