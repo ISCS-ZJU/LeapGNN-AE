@@ -192,8 +192,8 @@ all_server_cmd['machine'] = [
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 2',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 3',
     'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 4',
-    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 5',
-    # 'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 6',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 5',
+    'python3 servers_start.py --dataset ogbn_products0 --cache_type static --partition_type metis --servers_num 6',
 ]
 
 all_client_cmd['machine'] = [
@@ -203,10 +203,10 @@ all_client_cmd['machine'] = [
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 3',
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 4',
     'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 4',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
-    # 'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 5',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 9 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
+    'python3 clients_start.py --model_name gcn --sampling 10-10 --run_client_idx 6 --iter_stop 5 --dataset ogbn_products0 --n_epochs 5 --batch_size 8000 --hidden_size 16 --servers_num 6',
 ]
 
 all_server_cmd['merging'] = [
