@@ -140,17 +140,17 @@ pip install setuptools==50.3.2
 
 ### Step 2: Prepare the Dataset
 
-We use the open-source dataset from the following links:
+We use the open-source datasets from the following links:
 - [Arxiv](https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv)
 - [Product](https://ogb.stanford.edu/docs/nodeprop/#ogbn-products)
 - [IN](https://law.di.unimi.it/webdata/in-2004/)
 - [UK](https://law.di.unimi.it/webdata/uk-2007-05@1000000/)
 - [IT](https://law.di.unimi.it/webdata/it-2004/)
 
-To avoid any potential issues, we have made the preprocessed dataset available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
+To avoid any potential issues, we have made the preprocessed datasets (total around 60GB) available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
 
-**Important**: Make sure that the datasets downloaded from the Zenodo are copied to each machine. 
-All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`. Finally, there should be 9 folders (i.e., ogbn_arxiv0, ogbn_products[with various feature length-0,50,100,200,400,800], in_2004, uk_2007) under the `repgnn_data` directory. If you generate datasets by yourself, please ensure that the directory names remain consistent with those.
+**Important**: Make sure that the datasets downloaded from the Zenodo are *unzipped* and *copied* to each machine. 
+All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`. Finally, there should be 9 folders (i.e., ogbn_arxiv0, ogbn_products[with various feature lengths-0,50,100,200,400,800], in_2004, uk_2007) under the `repgnn_data` directory. If you generate datasets by yourself, please ensure that the directory names remain consistent with those.
 
 (If you have downloaded the preprocessed dataset from Zenodo, you can skip the following data construction steps and proceed directly to the next step.)
 Below is our process for preparing the datasets.
