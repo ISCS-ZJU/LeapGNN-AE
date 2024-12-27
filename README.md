@@ -60,13 +60,15 @@ The software versions we use are:
 
 #### 3. **Clone the Repository and Install Submodules**
 
+Since we have modified the underlying C++ source code of DGL, specifically adding the [NeighborSamplerWithDiffBatchSz](https://github.com/swordfate/dgl_jpgnn/commit/ca00a9c0aa1dc619dfcc3cf7b2f3d6f89a64339d) class based on dgl==0.4.1, it is necessary to update the submodule, as indicated in the following steps.
+
 ```bash
 git clone https://github.com/ISCS-ZJU/LeapGNN-AE.git
 cd LeapGNN-AE
 git checkout distributed_version
 git submodule init
 git submodule update
-# Go to the dgl submodule
+# Go to the dgl submodule # 
 cd 3rdparties/dgl
 git submodule init
 git submodule update
@@ -138,14 +140,21 @@ pip install setuptools==50.3.2
 
 ### Step 2: Prepare the Dataset
 
-Here’s how to prepare the dataset. To avoid any potential issues, we have made the dataset available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
+We use the open-source dataset from the following links:
+- [Arxiv](https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv)
+- [Product](https://ogb.stanford.edu/docs/nodeprop/#ogbn-products)
+- [IN](https://law.di.unimi.it/webdata/in-2004/)
+- [UK](https://law.di.unimi.it/webdata/uk-2007-05@1000000/)
+- [IT](https://law.di.unimi.it/webdata/it-2004/)
+
+To avoid any potential issues, we have made the preprocessed dataset available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
 
 **Important**: Make sure that the datasets downloaded from the Zenodo are copied to each machine. 
 All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`.
 
-(If you have downloaded the dataset from Zenodo, you can skip the following data construction steps and proceed directly to the next section.)
+(If you have downloaded the preprocessed dataset from Zenodo, you can skip the following data construction steps and proceed directly to the next step.)
 Below is our process for preparing the datasets.
-We use the open-source dataset from OGBN (Transfer Ogbn Dataset Format):
+Here’s how to prepare the dataset. 
 1. `cd data`; Modify `pre.sh` by setting `SETPATH` to the directory where the data will be stored (excluding the filename), and `NAME` to the name of the OGBN dataset you wish to download.
 2. Adjust the `LEN` parameter in `pre.sh` for the feature length (set to 0 to use the original features without modification).
 3. Ensure the script is executable: `chmod u+x pre.sh`, then run `./pre.sh`.
