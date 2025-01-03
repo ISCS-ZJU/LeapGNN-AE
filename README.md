@@ -140,24 +140,42 @@ pip install setuptools==50.3.2
 
 ### Step 2: Prepare the Dataset
 
-We use the open-source dataset from the following links:
+We use the open-source datasets from the following links:
 - [Arxiv](https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv)
 - [Product](https://ogb.stanford.edu/docs/nodeprop/#ogbn-products)
 - [IN](https://law.di.unimi.it/webdata/in-2004/)
 - [UK](https://law.di.unimi.it/webdata/uk-2007-05@1000000/)
 - [IT](https://law.di.unimi.it/webdata/it-2004/)
 
-To avoid any potential issues, we have made the preprocessed dataset available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
+To avoid any potential issues, we have made the preprocessed datasets (total around 60GB) available on Zenodo [link](https://zenodo.org/records/14557307?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjgxZjRhYThkLTZmZTAtNDEzMy05MTAwLTM0ZWNhOWUwOTIwNCIsImRhdGEiOnt9LCJyYW5kb20iOiJkNDBhOGQwNzY3ZjM1NDc1MzQwYmMzYTU3Njc0Yzc4NiJ9.ZRK-f10Jb6IpMvIEOHve-Sdl_HaKMtQMGbl-ujlj0DUdcEsgzOYvWuybdzxrmLeCWgTO11JV4YoNKcodT3LjXA), and we recommend downloading the data directly from there.
 
-**Important**: Make sure that the datasets downloaded from the Zenodo are copied to each machine. 
-All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`.
+**Important**: Make sure that the datasets downloaded from the Zenodo are *unzipped* and *copied* to each machine. 
+All data should be placed in the `LeapGNN-AE/dist/repgnn_data` directory, for example, `LeapGNN-AE/dist/repgnn_data/ogbn_products50`. If your disk space is limited, please place the data on a data disk and create a symbolic link to `LeapGNN-AE/dist/repgnn_data` using `ln -s`. Finally, there should be 9 folders (i.e., ogbn_arxiv0, ogbn_products[with various feature lengths-0,50,100,200,400,800], in_2004, uk_2007) under the `repgnn_data` directory. If you generate datasets by yourself, please ensure that the directory names remain consistent with those.
 
 (If you have downloaded the preprocessed dataset from Zenodo, you can skip the following data construction steps and proceed directly to the next step.)
 Below is our process for preparing the datasets.
-Here’s how to prepare the dataset. 
+
+Here’s how to prepare the datasets from ogb (i.e., arxiv, products). 
+```bash
 1. `cd data`; Modify `pre.sh` by setting `SETPATH` to the directory where the data will be stored (excluding the filename), and `NAME` to the name of the OGBN dataset you wish to download.
 2. Adjust the `LEN` parameter in `pre.sh` for the feature length (set to 0 to use the original features without modification).
 3. Ensure the script is executable: `chmod u+x pre.sh`, then run `./pre.sh`.
+```
+
+Here’s how to prepare the datasets from webgraph (i.e., in, UK, it).
+```bash
+cd dist/repgnn_data/in_2004 
+java -cp "lib/*" it.unimi.dsi.webgraph.ASCIIGraph in-2004 in-2004 # lib/* is the path for java package
+### This command will generate the file 'in-2004.graph-txt'
+cd ../../.. 
+python ./prepartition/txt2coo.py --dataset ./dist/repgnn_data/in_2004 --name in-2004 
+### Preprocess the dataset
+python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-label  --gen-set
+python ./prepartition/metis.py --dataset ./dist/repgnn_data/in_2004/ --partition 4
+
+python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-feature  --feat-multi-file --feat-size 600 --part-num 4 --part-type metis --p3-feature 
+python ./data/preprocess.py --dataset ./dist/repgnn_data/in_2004/ --directed --gen-feature  --feat-multi-file --feat-size 600 --part-num 4 --part-type metis
+```
 
 ### Step 3: Run a Basic Example ("Hello World")
 
@@ -176,8 +194,7 @@ To run a simple GNN training on the small arxiv dataset within 5 minutes.
 The command first invokes `servers_start.py` located in the `auto_test` directory to automatically launch `dist/server.go` on each node, thereby setting up the distributed feature caching system. Subsequently, the command automatically calls `clients_start.py` to initiate the corresponding client GNN training system on each node.
 
 **Note**:
-- Use `python3 servers_kill.py` and `python3 clients_kill.py` to terminate all server and client processes across the nodes.
-- If you don’t want to manually modify `test_config.yaml`, you can use it as a template and pass custom arguments when starting the client, for example:
+- `cd auto_test`; Use `python3 servers_kill.py` and `python3 clients_kill.py` to terminate all server and client processes across the nodes.
 
 
 ---
