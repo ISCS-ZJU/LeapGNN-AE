@@ -234,7 +234,7 @@ if __name__ == '__main__':
         # print(data)
     for data in datas:
         if 'naive' in data['name']:
-            compute_file_name = 'default_' + data['name'].split('naive_')[1].split('.log')[0] + '_localFalse.log'
+            compute_file_name = 'default_' + data['name'].split('naive_')[1].split('_ep')[0]
             # compute_file_name = 'jpgnn_trans_lessjp_dedup_True_' + data['name'].split('_',1)[1]
             if compute_file_name not in hash_map:
                 continue
