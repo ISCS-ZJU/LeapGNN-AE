@@ -230,7 +230,7 @@ if __name__ == '__main__':
             data['miss-rate'] = '/'
 
         datas.append(data)
-        hash_map[data['name']] = data
+        hash_map[data['name'].split('_ep')[0]] = data
         # print(data)
     for data in datas:
         if 'naive' in data['name']:
@@ -243,12 +243,14 @@ if __name__ == '__main__':
             elif 'GPU computing (s)' in hash_map[compute_file_name]:
                 data['total epochs time'] += hash_map[compute_file_name]['GPU computing (s)']
         if 'neutronstar' in data['name']:
-            compute_file_name = 'default_' + data['name'].split('neutronstar_')[1]
+            compute_file_name = 'default_' + data['name'].split('neutronstar_')[1].split('_ep')[0]
+            if compute_file_name not in hash_map:
+                continue
             if 'gpu-compute with optimizer.step' in hash_map[compute_file_name]:
                 ori_compute_time = hash_map[compute_file_name]['gpu-compute with optimizer.step']
             elif 'GPU computing (s)' in hash_map[compute_file_name]:
                 ori_compute_time = hash_map[compute_file_name]['GPU computing (s)']
-            hd = int(compute_file_name.split('hd')[1].split('_')[0])
+            hd = int(data['name'].split('hd')[1].split('_')[0])
             ori_total_time = hash_map[compute_file_name]['total epochs time']
             fetch_cost_each_node = hash_map[compute_file_name]['total_remote_feats_gather_time']/hash_map[compute_file_name]['miss_num']
             data['total epochs time'] = ori_total_time - ori_compute_time + ori_compute_time*(data['nodes']+data['edges'])/(data['ori_nodes']+data['ori_edges']) + fetch_cost_each_node*(data['ori_nodes']-data['nodes'])*hd/hash_map[compute_file_name]['feat_dim']
