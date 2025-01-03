@@ -147,7 +147,8 @@ if __name__ == '__main__':
                 if 'new jp_times' in line:
                     new_jp_times = int(line.split('new jp_times is ')[1])
                 if 'Got feature dim from server: ' in line:
-                    data['feat_dim'] = int(line.split('Got feature dim from server: ')[1])
+                    feat_dim = int(line.split('Got feature dim from server: ')[1])
+                    data['feat_dim'] = feat_dim
                 if 'ori #nodes = ' in line:
                     data['ori_nodes'] = int(line.split('ori #nodes = ')[1].split(',')[0])
                     data['ori_edges'] = int(line.split('#edges = ')[1].split()[0])
@@ -201,6 +202,7 @@ if __name__ == '__main__':
         if 'ori_edges' not in data.keys():
             data['edges'] = 0
         if 'feat_dim' not in data.keys():
+            feat_dim = 0
             data['feat_dim'] = 0
         
         
@@ -229,6 +231,7 @@ if __name__ == '__main__':
         else:
             data['miss-rate'] = '/'
 
+        data['feat_dim'] = feat_dim
         datas.append(data)
         hash_map[data['name'].split('_ep')[0]] = data
         # print(data)
@@ -258,7 +261,7 @@ if __name__ == '__main__':
     pf = pd.DataFrame(datas)
     # print(pf)
     pf.rename(columns=columns_mapp, inplace=True)  # 直接修改原table
-    pf = pf[['name','total epochs time (s)']]
+    # pf = pf[['name','total epochs time (s)']]
     # pf['others(grpc call etc) (s)']=pf['total epochs time (s)'].sub(pf[['sampling stall (s)','fetch feats from cache server','GPU computing (s)','model transfer','sync before bkwd', 'sync for each sub_iter', 'train data prepare for jp']].sum(axis=1))
     # pf['others(grpc call) (s)'] = pf['total time/epoch (s)'] - pf['sampling stall (s)'] - pf['fetch feats from cache server'] - pf['GPU computing (s)'] - pf['model transfer'] - pf['syn']
     # if pf['# client-server request nodes'].bool():
