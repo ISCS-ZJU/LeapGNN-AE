@@ -2,6 +2,7 @@
 NAME=random
 cd ..
 mkdir logs/$NAME
+rm logs/*.log
 rm logs/$NAME/*.log
 cd auto_test
 python script_auto_server_client.py --name $NAME
